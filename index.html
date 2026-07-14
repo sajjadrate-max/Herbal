@@ -53,7 +53,7 @@ h2.section-title{color:var(--gold); font-size:1.8rem; border-bottom:2px solid va
 .subpanel{display:none;} .subpanel.active{display:block;}
 .symptom-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px;}
 @media(max-width:600px){.symptom-grid{grid-template-columns:1fr;}}
-.symptom{background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 16px; cursor:pointer; display:flex; align-items:center; gap:10px;}
+.symptom{background:var(--card); border:1px solid var(--border); border-radius:8px; padding:8px 10px; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:.92rem;}
 .symptom:hover{border-color:var(--gold-soft);}
 .symptom input{width:18px; height:18px;}
 .symptom.checked{border-color:var(--gold); background:rgba(212,175,55,0.08);}
@@ -68,17 +68,16 @@ h2.section-title{color:var(--gold); font-size:1.8rem; border-bottom:2px solid va
 .diag-question{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px 22px; margin-bottom:20px;}
 .diag-question .q-title{color:var(--gold); font-size:1.2rem; font-weight:700;}
 .diag-question .q-source{color:var(--muted); font-size:.85rem; font-family:'Poppins',sans-serif; margin-right:8px;}
-.diag-boxes{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:16px;}
-@media(max-width:700px){.diag-boxes{grid-template-columns:1fr;}}
-.diag-box{background:var(--navy); border:2px solid var(--border); border-radius:10px; padding:18px 14px; text-align:center; cursor:pointer; transition:.15s; min-height:90px; display:flex; align-items:center; justify-content:center;}
+.diag-boxes{display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-top:12px;}
+.diag-box{background:var(--navy); border:2px solid var(--border); border-radius:10px; padding:10px 8px; text-align:center; cursor:pointer; transition:.15s; min-height:50px; display:flex; align-items:center; justify-content:center; font-size:.9rem;}
 .diag-box:hover{border-color:var(--gold-soft);}
 .diag-box.selected{border-color:var(--gold); background:rgba(212,175,55,0.12); box-shadow:0 0 0 1px var(--gold) inset;}
 .diag-box .mizaj-name{display:block; color:var(--gold-soft); font-size:.8rem; font-family:'Poppins',sans-serif; margin-bottom:6px;}
 .diag-box .opt-text{font-size:1rem; line-height:1.6;}
 .mizaj-columns{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin:20px 0 10px;}
 @media(max-width:800px){.mizaj-columns{grid-template-columns:1fr;}}
-.disease-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:20px 0 10px;}
-@media(max-width:650px){.disease-grid{grid-template-columns:1fr;}}
+.disease-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:20px 0 10px;}
+@media(max-width:650px){.disease-grid{grid-template-columns:1fr 1fr;}}
 input.search{width:100%; padding:12px 16px; border-radius:8px; border:1px solid var(--border);
   background:var(--card); color:var(--text); font-family:inherit; font-size:1rem; margin-bottom:16px;}
 table{width:100%; border-collapse:collapse; font-family:'Poppins',sans-serif; font-size:.95rem; margin-bottom:20px;}
@@ -131,7 +130,11 @@ footer{text-align:center; padding:30px; color:var(--muted); border-top:1px solid
   </div>
   <div class="rule-box"><b>ماخذ برائے نسخے، خوراک اور طریقہ علاج:</b> تشریح فارماکوپیا بالمفرد اعضاء — حکیم محمد عارف دنیا پوری۔</div>
 
-  <div class="rule-box">جو علامات مریض میں موجود ہوں انہیں متعلقہ کالم میں منتخب کریں۔ جتنی زیادہ علامات منتخب ہوں گی، تشخیص اتنی ہی درست ہوگی۔</div>
+  <div class="rule-box">جو علامات مریض میں موجود ہوں انہیں متعلقہ کالم میں منتخب کریں۔ جتنی زیادہ علامات منتخب ہوں گی، تشخیص اتنی ہی درست ہوگی۔ جو علامت معلوم نہ ہو، اسے چھوڑ دیں — کوئی حرج نہیں، تشخیص باقی جوابات سے مکمل ہو جائے گی۔</div>
+
+  <div style="position:fixed; bottom:20px; right:16px; z-index:60;">
+    <button class="btn" onclick="computeMizaj()" style="box-shadow:0 4px 14px rgba(0,0,0,0.5); padding:14px 22px; font-size:.95rem; border-radius:30px;">مزاج کی تشخیص اور علاج</button>
+  </div>
 
   <div id="criteriaContainer"></div>
 
@@ -147,20 +150,19 @@ footer{text-align:center; padding:30px; color:var(--muted); border-top:1px solid
 
   <div class="diag-question">
     <span class="q-title">بیماری کب سے ہے</span>
-    <div class="diag-boxes" style="grid-template-columns:1fr 1fr;" id="opts-patient_type"></div>
+    <div class="diag-boxes" style="display:flex; justify-content:center; gap:10px;" id="opts-patient_type"></div>
   </div>
 
   <div class="diag-question">
     <span class="q-title">ازدواجی حیثیت</span>
-    <div class="diag-boxes" style="grid-template-columns:1fr 1fr;" id="opts-marital_status"></div>
+    <div class="diag-boxes" style="display:flex; justify-content:center; gap:10px;" id="opts-marital_status"></div>
   </div>
 
   <h3 style="color:var(--gold); margin-top:30px;">بیماریاں</h3>
-  <div class="rule-box">آگے جتنی بھی بیماریاں ہیں ان میں سے سلکٹ کرتے جائیں۔ ایک سے زیادہ بیماریاں سلکٹ کر کے بتا سکتے ہیں۔</div>
+  <div class="rule-box">نیچے اعضاء کے مطابق بیماریوں کے بٹن ہیں۔ جو عضو متاثر ہو اس کا بٹن دبا کر فہرست میں سے مریض کی بیماری/علامت منتخب کریں۔ جتنی بیماریاں معلوم ہوں اتنی منتخب کر لیں — جو معلوم نہ ہو یا یقین نہ ہو، اسے چھوڑ دیں، کوئی مسئلہ نہیں ہوگا۔</div>
   <input class="search" id="diseaseSearch" placeholder="بیماری تلاش کریں..." onkeyup="filterDiseases()">
   <div class="mizaj-columns" id="diseaseGrid"></div>
 
-  <button class="btn" onclick="computeMizaj()" style="margin-top:20px;">مزاج کی تشخیص کریں</button>
   <div id="mizajResult" style="margin-top:24px;"></div>
 </section>
 
@@ -215,6 +217,214 @@ footer{text-align:center; padding:30px; color:var(--muted); border-top:1px solid
   <div class="note">ماخذ: تشریح فارماکوپیا بالمفرد اعضاء — حکیم محمد عارف دنیا پوری۔ مکمل کتاب کے تمام چھ مزاج (اعصابی عضلاتی، عضلاتی اعصابی، عضلاتی غدی، غدی عضلاتی، غدی اعصابی، اعصابی غدی) اور خصوصی نسخے شامل ہیں — 86 نسخے۔</div>
   <input class="search" id="nuskheSearch" placeholder="دوائی تلاش کریں..." onkeyup="filterNuskhe()">
   <div id="nuskheList"></div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">جسم کے اعضاء کا مزاج (80% اصول)</h3>
+  <div class="rule-box">
+    اصول: جس عضو میں خرابی ہو، اسی عضو کے مزاج کی دوا (فوائد دیکھ کر بہترین منتخب کر کے) دینے سے 80% آرام آ جاتا ہے۔<br><br>
+    بال = عضلاتی غدی (3) | سر = اعصابی غدی (6) | دماغ = اعصابی غدی (6) | دل = عضلاتی غدی (3) | زبان = غدی اعصابی (5) | جگر = غدی اعصابی (5) | آنکھیں = غدی اعصابی (5) | کان = غدی اعصابی (5) | ناک = غدی اعصابی (5) | چہرے کی جلد = غدی اعصابی (5) | مسوڑے = غدی اعصابی (5) | گلا = غدی اعصابی (5) | مثانہ = غدی اعصابی (5) | خصیے = غدی اعصابی (5) | عضوِ خاص کی جڑ = غدی عضلاتی (4) | پھیپھڑے = عضلاتی غدی (3) | معدہ = نمبر 4 و 5 | پتہ = غدی عضلاتی (4) | گردہ = غدی اعصابی (5) | شریانیں/رگیں = عضلاتی غدی (3) | جلد (عمومی) = غدی اعصابی (5) | رحم (خواتین) = غدی اعصابی (5) | پستان = غدی اعصابی (5) | ٹانگیں = عضلاتی غدی (3) | ہاتھ = عضلاتی غدی (3) | تلی = عضلاتی غدی (3) | لبلبہ = غدی اعصابی (5)<br><br>
+    مثال: گلے کی کوئی بھی خرابی ہو تو نمبر 5 (غدی اعصابی) کی دوائیں چیک کریں، جو دوا گلے کے لیے فوائد میں بہترین لگے وہی دیں۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">علاج کے لیے مزاج منتخب کرنے کی ترجیحی ترتیب</h3>
+  <div class="rule-box">
+    مریض کے مزاج کے مطابق علاج کے لیے دوسری تحریکوں میں سے ترجیحی ترتیب سے دوا منتخب کریں — سب دوائیں نہیں دینی، صرف بیماری کے لیے فوائد میں بہترین لگیں وہ دیں۔<br><br>
+    <b>اعصابی مریض:</b> ترجیح — پہلے عضلاتی اعصابی (2)، پھر عضلاتی غدی (3)، پھر غدی عضلاتی (4)۔<br>
+    گرمی میں زیادہ تر نمبر 2 کو ترجیح دیں (نہ ملے تو 3 یا 4)۔ سردی میں نمبر 4 یا 3 کو ترجیح دیں (نہ ملے تو مجبوراً نمبر 2)۔<br><br>
+    <b>عضلاتی مریض:</b> ترجیح — پہلے غدی عضلاتی (4)، پھر غدی اعصابی (5)، پھر اعصابی غدی (6)۔<br>
+    گرمی میں نمبر 5 یا 6 کو ترجیح دیں (مجبوراً نمبر 4)۔ سردی میں نمبر 4 یا 5 کو ترجیح دیں (مجبوراً نمبر 6)۔<br><br>
+    <b>غدی مریض:</b> ترجیح — پہلے اعصابی غدی (6)، پھر اعصابی عضلاتی (1) یا عضلاتی اعصابی (2)۔<br>
+    <span style="color:#e07a5f;">اعصابی عضلاتی (1) اور عضلاتی اعصابی (2) کبھی ایک ساتھ نہ دیں۔</span><br>
+    گرمی میں نمبر 1 یا 6 کو ترجیح دیں (مجبوراً نمبر 2، لیکن نمبر 2 دیں تو نمبر 1 ساتھ نہ ملائیں)۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">ادویات دینے کے چار بنیادی قوانین</h3>
+  <div class="rule-box">
+    <b>قانون نمبر 1:</b> زیادہ تر مریضوں کو تسکین کی وجہ سے بیماری ہوتی ہے۔<br><br>
+    <b>قانون نمبر 2:</b> تسکین اور تحلیل کا فرق رکھیں — کبھی کبھی تحلیل سے بھی بیماری ہوتی ہے۔<br><br>
+    <b>قانون نمبر 3:</b> ایمرجنسی مریض میں کبھی کبھی مشینی تحریک میں بہت تیزی ہوتی ہے — اس مشینی تحریک کو بند کر کے اس کی کیمیائی تحریک چلا دیں، مریض فوراً کنٹرول ہو جائے گا، اس کے بعد قانون کے مطابق علاج کریں۔<br><br>
+    <b>قانون نمبر 4:</b> کسی بھی تحریک میں ورم ہو تو اس کا علاج غدی اعصابی (نمبر 5) سے ہوگا۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">چٹنی — علاج کے بعد صحت یابی برقرار رکھنے کی ٹانک</h3>
+  <div class="rule-box">
+    اگر مریض کمزور، دبلا پتلا، خون کی کمی کا شکار ہو یا بڑی عمر کا ہو، تو اصل علاج کے ساتھ ساتھ اسی مزاج کی مناسبت سے چٹنی بھی ضرور دیں۔ چٹنی کو مرض کے علاج کے آخری ہفتے سے شروع کریں، اور جب باقی تمام دوائیاں ختم ہو جائیں تو چٹنی کو مزید ایک سے دو ہفتے تک جاری رکھیں — اس سے مریض کی صحت مکمل بحال ہو جاتی ہے اور وہی مرض دوبارہ لاحق ہونے کا امکان نہیں رہتا۔ بڑی عمر کے مریض کو ہر صورت میں چٹنی دیں، چاہے کمزوری کی کوئی اور علامت نہ بھی ہو۔<br><br>
+    <b>نمبر 1 (اعصابی عضلاتی):</b> مفرح شاہی یا مفرح جدید<br>
+    <b>نمبر 2 (عضلاتی اعصابی):</b> اطریفل<br>
+    <b>نمبر 3 (عضلاتی غدی):</b> معجون<br>
+    <b>نمبر 4 (غدی عضلاتی):</b> جوارش<br>
+    <b>نمبر 5 (غدی اعصابی):</b> لبوب<br>
+    <b>نمبر 6 (اعصابی غدی):</b> خمیرہ<br><br>
+    <b>شوگر کے مریض کے لیے احتیاط:</b> شوگر والے مریض کو صرف نمبر 2، 3، 4 کی چٹنی دی جا سکتی ہے۔ نمبر 1، 5، 6 کی چٹنی نہ دیں — الا یہ کہ ان میں سے میٹھا (چینی) نکال کر بنائی جائے، تب دی جا سکتی ہے۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">ورم بمقابلہ عام زخم</h3>
+  <div class="rule-box">
+    اگر زخم کی وجہ سے جسم پھول گیا ہو، سوزش ہو اور بخار بھی ہو — تو یہ ورم ہے، اس کا علاج نمبر 5 سے ہوگا۔ لیکن اگر عام سا زخم ہے (سوزش/بخار کے بغیر) تو اس کا علاج مریض کی اپنی تحریک (مزاج) کے مطابق ہی کریں۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">⚠ ایمرجنسی مریضوں کا علاج — حکیم کی رہنمائی کے لیے (احتیاط سے استعمال کریں)</h3>
+  <div class="rule-box">
+    <b>عمومی اصول:</b> ایمرجنسی مریض مشینی (فوری/تیز) تحریک کے حامل ہوتے ہیں۔ ایمرجنسی ادویات ہمیشہ قہوے کے ساتھ دیں۔ یہ ادویات زیادہ سے زیادہ 2 سے 4 دن تک دیں — جب مریض کہے کہ کچھ فرق پڑا ہے تو سمجھیں تحریک کنٹرول ہونا شروع ہو گئی ہے (اسے "مشینی تحریک کا ورم" کہتے ہیں)، اس کے بعد اسی کی کیمیائی (مستقل) تحریک سے علاج جاری رکھیں۔<br><br>
+
+    <b>نمبر 3 (عضلاتی غدی) ایمرجنسی — مثلاً خونی بواسیر یا شدید خون کا اخراج:</b><br>
+    نمبر 5، 6، 1 سے علاج نہ کریں۔ اس کے بجائے نمبر 1 اور نمبر 2 کی تحریک سے علاج کریں (یہی وہ استثناء ہے جس میں 1 اور 2 کو ملانا جائز ہے): <b>حب شفاء + 2 نمبر ملین (عضلاتی اعصابی ملین) + 1 نمبر ملین (اعصابی عضلاتی ملین)۔</b><br>
+    <span style="color:var(--muted); font-size:.9rem;">(ادویات کے قانون نمبر 3 کے مطابق: ایمرجنسی میں مشینی تحریک بند کر کے اس کی کیمیائی تحریک چلائی جاتی ہے، جس سے مریض فوراً کنٹرول ہو جاتا ہے۔)</span><br>
+    <span style="color:#e07a5f;">قاعدہ یاد رکھیں: نمبر 1 اور نمبر 2 کو عام حالات میں کبھی نہ ملائیں — صرف نمبر 3 کی ایمرجنسی کے لیے یہ استثناء ہے۔</span><br>
+    موسم کے مطابق: <b>گرمیوں میں</b> 5 نمبر ملین + 1 نمبر ملین۔ <b>سردیوں میں</b> 5 نمبر ملین + 6 نمبر ملین۔<br>
+    جب خون رک جائے اور تحریک کنٹرول ہو جائے تو پھر نمبر 5، 6، 1 سے علاج کریں۔<br><br>
+
+    <b>نمبر 5 (غدی اعصابی) ایمرجنسی — جسم سکڑنا (انگریزی طب میں "کینسر" کہلاتا ہے، حکمت میں نہیں):</b><br>
+    ایمرجنسی میں نمبر 4 اور نمبر 3 سے علاج کریں۔ جب مرض کنٹرول ہو جائے تو نمبر 1 یا نمبر 2 سے علاج کریں (دونوں کو اکٹھا نہ ملائیں)۔<br><br>
+
+    <b>نمبر 1 (اعصابی عضلاتی) ایمرجنسی — جسم سکڑنا، پیشاب کی مقدار کم ہونا:</b><br>
+    ایمرجنسی میں نمبر 6 اور نمبر 5 سے علاج کریں۔ جب تحریک کنٹرول ہو جائے تو نمبر 3 اور نمبر 4 سے علاج کریں۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">جنسی امراض میں علاج کا طریقہ</h3>
+  <div class="rule-box">
+    جس تحریک کا بھی مریض ہو (اعصابی یا عضلاتی)، سب سے پہلے جگر (صفرا) کو ایکٹو کرنا چاہیے: <b>جوارش کمونی + 5 نمبر ہاضم</b> — یہ جگر کو ایکٹو کرنے کے ساتھ معدہ بھی درست کرتی ہے، ایک سے دو ہفتے استعمال کروائیں۔ اگر تحریک غدی ہو تو جنسی علاج جگر ایکٹو ہونے کے بعد ہی شروع کریں۔<br><br>
+    <b>اعصابی مردانہ/زنانہ کمزوری:</b> جگر ایکٹو کرنے کے بعد <b>حب ایٹمی + 2 نمبر ملین + کیپسول بیضہ مرغ</b> — تین ہفتوں میں مکمل علاج ہو جاتا ہے۔<br>
+    <b>عضلاتی تحریک، غدی علاج درکار ہو تو:</b> 1 نمبر اکسیر + مغلظ (سدا جوانی) والا فارمولا ملا کر دیں۔<br><br>
+    <b>دماغی کمزوری کے لیے</b> (جب سپرم/مذی/منی سب معمول کے مطابق ہوں مگر مریض کو دماغی/اعصابی کمزوری محسوس ہو): <b>خمیرہ گاؤ زبان + خمیرہ مروارید۔</b>
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">سرعتِ انزال، ذکاوتِ حس اور جریان/لیکوریا کا مکمل علاج</h3>
+  <div class="rule-box">
+    <b>ترتیب:</b> مردانہ کمزوری میں پہلے سرعتِ انزال ہوتا ہے، پھر ذکاوتِ حس، پھر جریان/لیکوریا (لیکوریا کی اصطلاح ہمیشہ پرانے/دیرینہ مریض کے لیے استعمال ہوتی ہے)۔ مرد اور عورت دونوں کا علاج طریقہ ایک ہی ہے۔<br><br>
+
+    <b>اگر سرعتِ انزال یا ذکاوتِ حس نئی ہو:</b> اگلی تحریک سے علاج کریں — اعصابی ہو تو عضلاتی سے، عضلاتی ہو تو غدی اعصابی یا اعصابی غدی سے، غدی ہو تو اعصابی غدی یا اعصابی عضلاتی سے۔<br><br>
+
+    <b>اگر پرانا سرعتِ انزال، ذکاوتِ حس یا جریان/لیکوریا ہو</b> (تینوں کا علاج طریقہ ایک ہی ہے):<br>
+    اگر مریض پرانا اعصابی ہو تو غدی اعصابی تحریک سے علاج کریں۔ پہلے جگر و معدہ ایکٹو کریں (1-2 ہفتے): <b>جوارش کمونی + 5 ہاضم + سنگھ دانہ مرغ۔</b> نظامِ ہضم کے لیے: گرمی میں نمبر 5، سردی میں نمبر 4۔ اس کے بعد سیکس ٹریٹمنٹ شروع کریں، نظامِ ہضم کی دوا (5 ہاضم) بھی ساتھ ساتھ جاری رکھیں۔<br>
+    اگر مریض نیا اعصابی ہو تو عضلاتی اعصابی تحریک سے علاج کریں۔<br><br>
+
+    <b>ذکاوتِ حس کا بہترین فارمولا:</b> 1 نمبر اکسیر + مغلظ۔ اگر مریض 7 دن بعد کہے معدہ خراب ہو رہا ہے تو یا بدپرہیزی کر رہا ہے یا مغلظ کی مقدار کم کریں۔ اگر کہے ٹھیک ہے تو مغلظ آدھا گرام بڑھا دیں تاکہ جلدی ٹھیک ہو۔<br><br>
+
+    <b>گرمیوں کے موسم میں تبدیلی:</b> اعصابی تحریک کے جنسی امراض میں، آخری ہفتے میں عضلاتی اعصابی تحریک کی دوا دیں: حب صابر + 2 نمبر مغلظ + کیپسول بیضہ مرغ + کشتہ قلعی۔<br><br>
+
+    <b>درمیانے موسم میں مغلظ:</b> 2 نمبر مغلظ + 6 نمبر مغلظ دونوں کو ملا کر دیں۔<br><br>
+
+    <b>پیشاب کی علامات:</b> پیشاب دھندلا، گدلا، گاد والا یا بدبودار ہو (کسی بھی تحریک میں) تو یہ پس سل کی علامت ہے۔ پیشاب میں جھاگ ہو تو معدہ سے منی/مذی حد سے زیادہ خارج ہو رہی ہے۔<br><br>
+
+    <b>پس سل کا علاج</b> (کسی بھی تحریک کے مریض کا علاج ایک ہی طریقے سے): 5 اکسیر + شربت بزوری + اکسیر ورم + (گرمیوں میں 6 تریاق / سردیوں میں 1 ملین)۔ شربت بزوری گرمیوں میں ٹھنڈی، سردیوں میں گرم دیں۔ کورس ایک سے ڈیڑھ ماہ۔<br><br>
+
+    <b>فاسد معدے کی صفائی کے لیے (پھول والا علاج):</b> گلاب کی پتیاں + کیوڑہ کے پھول + گل بابونہ۔<br><br>
+
+    <b>لیکچر 23 — جریان/لیکوریا علاج کے تین مراحل:</b><br>
+    1) پہلے 1-2 ہفتے: ورم، جگر، معدہ درست کریں — اکسیر ورم + 5 اکسیر + 1 ملین (یا 6 تریاق) + 5 ہاضم + جوارش کمونی + سنگھ دانہ مرغ۔<br>
+    2) اس کے بعد: 1 اکسیر + مغلظ۔<br>
+    3) آخری ہفتے میں اگر ضرورت پڑے: 2 مغلظ + کیپسول بیضہ مرغ + حب ایٹمی۔<br><br>
+
+    <b>موسمی و نیا/پرانا مریض کا عمومی اصول:</b> سردیوں میں آگے کی تینوں تحریکوں میں علاج ممکن ہے۔ گرمیوں میں ایک تحریک چھوڑ کر آگے والی سے علاج کریں۔ نیا مریض ہو تو آگے کی تینوں تحریکوں میں علاج ممکن ہے۔ پرانا مریض ہو تو ایک تحریک چھوڑ کر آگے کی دو تحریکوں میں علاج کریں — لیکن یہ صرف سردیوں میں ہی کریں، گرمیوں میں نہیں (نقصان دہ ہے)۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">ورم سے پیدا ہونے والی بیماریاں اور علاج</h3>
+  <div class="rule-box">
+    <b>یہ بیماریاں ورم کی وجہ سے ہوتی ہیں:</b> سسٹ، گلٹی، رسولی، السر، فالج، غدی عضلاتی شوگر، لقوہ، کینسر، ورمِ جگر (ہیپاٹائٹس)، پیلا یرقان۔ ان سب کا علاج نمبر 5 (غدی اعصابی) سے ہوتا ہے۔ علاج کرتے وقت ہمیشہ غدی اعصابی مسہل کو مدنظر رکھیں۔ <span style="color:#e07a5f;">قاعدہ: جب بھی مسہل دیں تو ساتھ انٹی سیپٹک ضرور دیں۔</span><br><br>
+
+    <b>یرقان کا خصوصی علاج:</b><br>
+    <b>کالا یرقان:</b> 5 نمبر ہاضم + اکسیر جدید + 4 نمبر ملین، دن میں تین بار، عرقِ چہار یا عرقِ اجوائن کے ساتھ۔<br>
+    <b>پیلا یرقان:</b> 6 نمبر تریاق + اعصابی کھار + 1 نمبر ملین + 5 نمبر ہاضم + شربت بزوری۔<br><br>
+
+    <b>نالی دار غدود:</b> غدی اعصابی تحریک سے ایکٹو ہوتے ہیں۔ مریض کی اپنی تحریک کوئی بھی ہو، اگر نالی دار غدود میں جراثیم رک گئے ہوں تو نمبر 5 کو ایکٹو کریں — غدی اعصابی ملین، تریاق یا اکسیر میں سے جو بہتر لگے دے دیں۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">بغیر دوائی کے تحریک کنٹرول کرنے کے طریقے</h3>
+  <div class="rule-box">
+    <b>اعصابی تحریک:</b> علامت — پیشاب زیادہ سفید ہو۔ کنٹرول کا طریقہ: پیدل چلنا، کام کاج کرنا، جسم کو حرکت دینا — اس سے اعصابی تحریک کنٹرول ہو جاتی ہے۔<br><br>
+    <b>عضلاتی تحریک:</b> کنٹرول کا طریقہ: اچانک غصے والا ماحول بنائیں (مثلاً "فلاں بندے کو یہ کروں گا، وہ کروں گا" جیسا ڈرامہ/دھمکی) — اس سے تحریک کنٹرول ہو جاتی ہے۔<br><br>
+    <b>غدی عضلاتی تحریک:</b> علامت — مریض اکثر غصے والا ہوتا ہے۔ کنٹرول کا طریقہ: جب بھی غصہ آئے تو اللہ تعالیٰ کو یاد کریں، ذکر وغیرہ کریں — اس سے تحریک کنٹرول ہو جاتی ہے۔
+  </div>
+
+  <h3 style="color:#e07a5f; margin-top:30px;">⚠⚠ تیز بخار (103°F سے اوپر) — جان بچانے والی احتیاط ⚠⚠</h3>
+  <div class="rule-box" style="border-right-color:#e07a5f;">
+    <b style="color:#e07a5f;">اگر بخار 103°F سے اوپر ہو تو ہرگز ٹھنڈے پانی کی پٹی استعمال نہ کریں — صرف نیم گرم پانی کی پٹی استعمال کریں۔</b> پٹی پہلے ماتھے پر رکھیں، سر کا ٹمپریچر کم ہو جائے تو گردن پر رکھیں، پھر سینے پر — اسی ترتیب سے باری باری۔<br><br>
+    <b style="color:#e07a5f;">بخار 104°F یا 105°F یا اس سے اوپر ہو تو ٹھنڈے پانی کا استعمال بالکل نہ کریں</b> — ورنہ مریض بے ہوش ہو سکتا ہے، موت واقع ہو سکتی ہے، دماغ کمزور ہو سکتا ہے، یا کسی عضو پر فالج ہو سکتا ہے جس سے دو سے تین سال تک دماغی کمزوری رہ سکتی ہے۔<br>
+    <b>دماغی کمزوری کی علامت:</b> مریض کہے "ایسا لگتا ہے میں خواب میں ہوں، کوئی یادداشت نہیں، سب کچھ خواب کی طرح نظر آ رہا ہے۔"<br><br>
+    <b>اگر بخار 101°F ہو</b> تو ماتھے پر ٹھنڈے پانی کی پٹی لگا سکتے ہیں۔<br>
+    10-15 منٹ بعد جب بخار کنٹرول ہو کر 101-102°F پر آ جائے تو نمک ملا کر کوئی بھی پھلوں کا جوس دیں — اس سے بخار مزید اتر جائے گا۔<br><br>
+
+    <b>انفیکشن والا بخار (عموماً 104-105°F تک):</b> سر پر نیم گرم پانی کی پٹی رکھیں، 101-102°F پر آنے پر جوس پلا دیں۔ انفیکشن جسم میں کہیں بھی ہو سکتا ہے (گلا، سر، پھیپھڑے، گردے) لیکن مشاہدے میں 95% کیسز میں گلے میں ہوتا ہے۔<br><br>
+
+    <b>گلے کے انفیکشن کی تشخیص:</b> سر میں زیادہ درد، سر میں بخار، سر زیادہ گرم محسوس ہونا — ایسی صورت میں زبان کو نیچے دبا کر گلے کا معائنہ ضرور کریں۔ صرف بخار اتارنے کی دوا دینے سے وقتی آرام آئے گا مگر 2 گھنٹے بعد بخار دوبارہ آ جائے گا — اصل مسئلہ (انفیکشن) حل نہیں ہوگا۔<br>
+    <b>گلے کے انفیکشن کا علاج:</b> گلے میں موجود دانوں/سوجن کو دبا کر گندا خون/مواد نکالیں، پھر پھٹکڑی کا پاؤڈر (ایک کالی مرچ کے برابر مقدار) انگلی سے گلے پر لگائیں — جب ورم ختم ہوگا تو بخار بھی ختم ہو جائے گا۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">الرجی و خارش کی اقسام، تشخیص اور علاج</h3>
+  <div class="rule-box">
+    الرجی کی پہچان رنگ سے کریں۔ الرجی زیادہ تر عضلاتی تحریک کی ہوتی ہے۔<br><br>
+    <b>عضلاتی اعصابی (نمبر 2) الرجی:</b> سیاہی مائل زخم، آنکھوں کے نیچے ہلکی سیاہی — یورک ایسڈ اس میں ضرور ہوتا ہے۔ ٹھنڈی چیزوں کے کثرت سے استعمال سے ہوتی ہے۔ علاج: 5 ہاضم + 4 ملین + اکسیر جدید۔<br><br>
+    <b>عضلاتی غدی (نمبر 3) الرجی:</b> دانوں کی طرح، کسی کسی جگہ پر۔<br><br>
+    <b>غدی عضلاتی (نمبر 4) الرجی:</b> سرخ رنگ کے بڑے بڑے دھبے اور دانے، سارے جسم پر۔ علاج: حب شفاء + اعصابی کھار + 1 ملین + شربت بزوری۔ نسخہ: صندل کا برادہ 3-4 ماشہ پانی میں + شربت بزوری ایک چمچ، 5 منٹ رکھ کر مکس کریں، دن بھر ٹھنڈے پانی سے نہاتے رہیں۔ متبادل: لسی ایک چمچ + نمک 2 چٹکی + گڑ (ذائقے کے لیے) + بیری/شہتوت/آم کے پتے کا پیسٹ ملا کر پلائیں۔<br><br>
+    <b>خوشبو سے الرجی:</b> نمبر 5 سے علاج کریں۔<br>
+    <b>الرجی سے کہیں سے خون آنا:</b> یہ عضلاتی غدی (نمبر 3) ہے۔<br>
+    <b>زخم بھرنے کے لیے:</b> غدی عضلاتی/غدی اعصابی (نمبر 4/5) سے علاج کریں۔<br><br>
+
+    <b>خارشوں کے لیے مالش اور دوائیاں</b> (نسخے کے صفحے پر تفصیل دیکھیں — مرہم غدی خارش، مرہم اعصابی خارش، مرہم عضلاتی اعصابی خارش): ہر مالش والی دوا کو منہ اور آنکھوں سے بچائیں۔<br>
+    <b>خارشِ اعصابی کھانے کی دوا:</b> 2 ملین + تریاق تبخیر + حب صابر۔<br><br>
+
+    <b>چہرے کے دانے:</b> عضلاتی تحریک کی زیادتی سے ہوتے ہیں — گوشت، فاسٹ فوڈ، کھٹی چیزیں، مصالحے، چٹ پٹی غذاؤں کی کثرت سے۔ لیپ کے لیے نسخے کا صفحہ دیکھیں۔<br>
+    <b>دانے جلدی پکانے کے لیے:</b> امرت دھارا قطرہ قطرہ لگائیں، یا 4 نمبر ملین میں تھوڑا پانی ملا کر لگائیں (جلن ہو تو پانی زیادہ کریں) — دو دن میں دانہ پک جائے گا۔<br><br>
+
+    <b>گندم سے الرجی</b> (اعصابی غدی — نمبر 6 تحریک):<br>
+    گرمیوں کا علاج: 2 ملین + تریاق تبخیر + حب صابر (حب صابر دن میں دو بار، باقی تین بار)۔ ہر چار دن بعد ایک بار موشن: 2 مسہل + حب ایٹمی + تریاق تبخیر۔<br>
+    سردیوں کا علاج: حب ایٹمی + حب صابر + تریاق تبخیر۔ ہر چار دن بعد: 2 ملین + تریاق تبخیر + حب صابر، تین گولی، باقی ایک ایک گولی۔<br><br>
+
+    <b>عمومی اصول:</b> اگر کوئی بھی مریض کسی دوا سے ٹھیک نہ ہو رہا ہو تو اسے ملٹی وٹامن ضرور دیں۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">مردانہ بانجھ پن (ایزوسپرمیا) اور پس سل کی اقسام</h3>
+  <div class="rule-box">
+    <b>جراثیم نہ بننے کی وجوہات:</b> 1) جگر کی کمزوری۔ 2) جریان/لیکوریا، سرعتِ انزال، ذکاوتِ حس۔ 3) پس سل (انفیکشن) — عشقی زہر، سوزاکی زہر، سوداوی زہر یا بواسیری زہر۔<br><br>
+    <b>خصیوں کو گرمائش دینے کا طریقہ:</b> ٹب میں نیم گرم پانی بھریں، گل کیسو اور استون کے پھول ڈالیں، پاؤں باہر رکھ کر ٹب میں بیٹھیں تاکہ خصیوں کو گرمائش ملے اور وہ کام کرنا شروع کریں۔<br><br>
+    <b>سب سے پہلا مسئلہ ہمیشہ جگر کی کمزوری سے ہوتا ہے</b> — اس لیے پہلے جگر کو ٹھیک کریں، عضلاتی مقوی دیں۔<br><br>
+
+    <b>پس سل کی اقسام (بلحاظ تحریک):</b><br>
+    1) عشقی زہر = اعصابی غدی (نمبر 6)<br>
+    2) سوزاکی زہر = غدی عضلاتی (نمبر 4)<br>
+    3) سوداوی/بواسیری زہر = عضلاتی اعصابی (نمبر 2)<br>
+    یہ سب پس سل (انفیکشن) ہیں، علاج ایک ہی ہے۔ رپورٹ میں موٹیلٹی/کاؤنٹ وغیرہ کے مسائل اسی وجہ سے آتے ہیں۔<br><br>
+
+    <b>پس سل کی تشخیص سپرم کاؤنٹ سے:</b><br>
+    کاؤنٹ 18-20 = اعصابی تحریک۔ کاؤنٹ 12-13 = عضلاتی تحریک۔ کاؤنٹ 3-5 = غدی تحریک۔<br><br>
+
+    <b>علاج کی ترتیب:</b> اگر اعصابی یا عضلاتی پس سل ہو تو پہلے تحریک کنٹرول کریں، پھر ورم/پس سل کا علاج کریں۔ اعصابی پس سل ہو تو 3-5 دن عضلاتی تحریک کی دوا دیں۔ عضلاتی پس سل ہو تو غدی تحریک کی دوا دیں۔<br><br>
+
+    <b>پس سل کا فارمولا:</b> 5 اکسیر + اکسیر ورم + 6 تریاق (یا 1 ملین)۔<br>
+    <b>زیادہ طاقتور فارمولا</b> (اگر پہلے سے فرق نہ پڑے): 5 اکسیر + 5 تریاق (ایک بار) + 6 تریاق (باقی روزانہ)۔<br><br>
+
+    <span style="color:#e07a5f;">⚠ اگر پرہیز نہ کروائی جائے تو کوئی فرق نہیں پڑے گا — چائے، چاول، کافی، پتے والی سبزیاں، گوشت، دالیں سب بند کروائیں۔</span><br><br>
+
+    کمزور پیدا ہونے والے بچوں کی وجہ بھی یہی (جراثیم کی کمزوری) ہے۔ اگر بچہ دماغی طور پر کمزور پیدا ہو تو یہ ماں میں کمی ہے — وہ یا تو تسکین کی مریضہ تھی یا تحلیل کی مریضہ تھی۔ پھوڑے بھی ورم کی وجہ سے ہوتے ہیں۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">حاملہ خواتین کے مسائل اور بچے کی ولادت</h3>
+  <div class="rule-box">
+    حمل میں جو بھی مسائل ہوں، علاج نمبر 5 سے کریں — کیونکہ بچے کی نشوونما نمبر 5 ہی میں ہوتی ہے۔ پھلوں کی خوراک اور ملٹی وٹامن دیں۔<br><br>
+    <b>حاملہ خواتین کی کمزوری کے لڈو</b> کی تفصیل نسخے کی فہرست میں دیکھیں — خون کی کمی، توانائی کی کمی، پٹھوں کی کمزوری، یا ماں کا دودھ نہ بننا، سب کے لیے مفید، صرف 3 ماہ میں مکمل افاقہ۔<br>
+    حمل میں گیس ہو تو 5 ہاضم دے سکتے ہیں۔<br><br>
+
+    <b>ماں کا دودھ نہ بننے کی صورت میں:</b> بچے کو بکری کا دودھ دیں۔ اگر بکری کا دودھ ہضم نہ ہو تو گائے کا دودھ دیں۔<br>
+    <b>بچہ رو رہا ہو تو</b> پیٹ چیک کریں — سخت ہو تو گیس کا مسئلہ ہے، اس کی ماں کا گیس کا علاج کریں (ٹھنڈی چیزوں سے ہوتی ہے) — ماں کا مزاج اعصابی غدی کے مطابق درست کریں، بچہ خودبخود ٹھیک ہو جائے گا۔ بچے کو وقت پر دودھ دیں۔ بچے کو دوائی 4 ماہ کے بعد شروع کریں۔<br><br>
+
+    <b>مشکل ولادت کی وجوہات:</b><br>
+    1) جو مرد حمل کے 6-7 ماہ بعد بیوی کا استعمال کرتے ہیں، اس سے بیوی کمزور ہو جاتی ہے اور پیدائش میں مشکل ہوتی ہے۔<br>
+    2) حمل کے 7 ماہ بعد خودبخود تحریک غدی عضلاتی ہو جاتی ہے، 8ویں ماہ میں غدی اعصابی۔ اگر 8ویں ماہ میں تحریک عضلاتی ہی رہے تو آپریشن کا خطرہ ہوتا ہے۔<br>
+    3) حمل میں غدی اعصابی تحریک سے ایک خاص قسم کا مادہ (معدہ) بننا شروع ہوتا ہے جس سے بچہ آسانی سے پھسل کر پیدا ہوتا ہے۔<br>
+    4) جن خواتین کو لیکوریا ہو، یا جن کے شوہر زیادہ ایکٹو ہوں اور 6-7 ماہ کے بعد قربت سے پرہیز نہ کریں، انہیں یہ مسئلہ ہوتا ہے۔<br>
+    5) مشکل ولادت والی خواتین میں وہ خاص مادہ کم ہوتا ہے — غدی اعصابی تحریک (نالی دار غدود) ایکٹو نہیں ہوتی، جسم میں حرارت کی کمی ہوتی ہے (یعنی جگر کی کمزوری)۔ زیادہ دردِ زہ والی خواتین میں بھی یہی وجہ (جگر کی کمی، ٹھنڈی چیزوں کی کثرت) ہوتی ہے۔<br>
+    6) جن خواتین کو حمل سے پہلے بھرپور ملٹی وٹامن دیا جائے، انہیں ولادت میں آسانی ہوتی ہے۔<br><br>
+
+    اگر حمل کے دوران بچے کو کوئی نقصان/ڈیمج پہنچ جائے تو حمل ضائع کروانا (اسقاط) بہتر سمجھا جاتا ہے — اس فیصلے میں مستند معالج اور شرعی رہنمائی دونوں کو ضرور مدنظر رکھیں۔
+  </div>
+
+  <h3 style="color:var(--gold); margin-top:30px;">نبض کی تشخیص میں عام غلطیاں</h3>
+  <div class="rule-box">
+    اکثر حکیم صاحبان نبض میں غلطی کرتے ہیں۔ یاد رکھیں:<br>
+    1) کسی کی بھی نبض دیکھ کر اکیلے اسی بنیاد پر دوائی تجویز نہ کریں — کم از کم 4 سے 5 دیگر علامات کو ضرور ملائیں (میچ کریں)۔ نبض صبح کے وقت مریض کی اصل حالت پر ملتی ہے، اس لیے صبح کا وقت ترجیح دیں۔<br>
+    2) اگر مریض پرہیز نہ کرے تو علاج ناکام ہو جاتا ہے — پرہیز پر عمل کروانا ضروری ہے۔<br>
+    3) ملٹی وٹامن کی کمی کی وجہ سے بھی علاج میں ناکامی ہو سکتی ہے — ساتھ ملٹی وٹامن/چٹنی/پھل ضرور دیں۔
+  </div>
 </section>
 
 <!-- ===================== MARDON KAY AMRAAZ BOOK ===================== -->
@@ -278,6 +488,11 @@ function showMizaj(id, el){
 
 // ---------- DIAGNOSTIC QUESTIONS (each: title + 3 boxes, single-select) ----------
 const criteria = [
+  { id:'weakness', title:'مریض کی علامات کیا ہے', options:[
+      {label:'سوچ سوچ کر بولنا', mizaj:'ghudi'},
+      {label:'سست چال ہونا یا جسم میں درد', mizaj:'asabi'},
+      {label:'جسم ٹوٹ پھوٹ کا شکار ہونا', mizaj:'adalati'}
+    ]},
   { id:'face', title:'چہرے کا رنگ کیسا ہے', options:[
       {label:'سفیدی مائل', mizaj:'asabi'},
       {label:'سرخی مائل', mizaj:'adalati'},
@@ -297,6 +512,22 @@ const criteria = [
       {label:'چلنے پھرنے سے', mizaj:'adalati'},
       {label:'بیٹھنے لیٹنے سے', mizaj:'asabi'},
       {label:'ہر وقت', mizaj:'ghudi'}
+    ]},
+  { id:'taste', title:'منہ کا ذائقہ کیسا رہتا ہے', options:[
+      {label:'پھیکا', mizaj:'asabi'},
+      {label:'کھٹا', mizaj:'adalati'},
+      {label:'کڑوا', mizaj:'adalati'},
+      {label:'چٹ پٹا / مرچ والا', mizaj:'ghudi'},
+      {label:'نمکین', mizaj:'ghudi'},
+      {label:'میٹھا', mizaj:'asabi'}
+    ]},
+  { id:'eating_tongue', title:'کھانا کھاتے وقت زبان کی کیفیت کیسی ہوتی ہے', options:[
+      {label:'زبان خشک محسوس ہو', mizaj:'adalati'},
+      {label:'زبان سے پانی چھوٹتا محسوس ہو', mizaj:'ghudi'}
+    ]},
+  { id:'eating_gas', title:'کھانے کے دوران گیس کب بنتی ہے', options:[
+      {label:'کھانا کھانے کے بعد گیس بنے', mizaj:'adalati'},
+      {label:'کھانا کھانے سے پہلے گیس بنے', mizaj:'asabi'}
     ]},
   { id:'bp', title:'بلڈ پریشر کیسا ہے', options:[
       {label:'لو', mizaj:'asabi'},
@@ -328,11 +559,6 @@ const criteria = [
       {label:'سیاہی مائل', mizaj:'adalati'},
       {label:'سرخ', mizaj:'ghudi'}
     ]},
-  { id:'taste', title:'منہ کا ذائقہ کیسا رہتا ہے', options:[
-      {label:'میٹھا', mizaj:'asabi'},
-      {label:'کھٹا', mizaj:'adalati'},
-      {label:'نمکین', mizaj:'ghudi'}
-    ]},
   { id:'qabz', title:'قبض کس طرح ہوتی ہے', options:[
       {label:'لیس دار', mizaj:'asabi'},
       {label:'خشک', mizaj:'adalati'},
@@ -359,12 +585,18 @@ criteria.forEach(c=>{
     <div class="diag-boxes" id="opts-${c.id}"></div>`;
   cc.appendChild(wrap);
   const optWrap = wrap.querySelector(`#opts-${c.id}`);
+  if(c.options.length === 2){
+    optWrap.style.cssText = 'display:flex; justify-content:center; gap:10px; margin-top:12px;';
+  }
   c.options.forEach((opt, i)=>{
     const box = document.createElement('div');
     box.className = 'diag-box';
     box.id = `opt-${c.id}-${i}`;
     box.onclick = ()=> selectOption(c.id, i);
     box.innerHTML = `<span class="opt-text">${opt.label}</span>`;
+    if(c.options.length === 2){
+      box.style.cssText += 'flex:0 1 160px;';
+    }
     optWrap.appendChild(box);
   });
 });
@@ -437,6 +669,7 @@ patientTypeChoices.forEach((opt, i)=>{
   const box = document.createElement('div');
   box.className = 'diag-box';
   box.id = `opt-patient_type-${i}`;
+  box.style.cssText = 'flex:0 1 160px;';
   box.onclick = ()=> selectOption('patient_type', i);
   box.innerHTML = `<span class="opt-text">${opt.label}</span>`;
   patientTypeOpts.appendChild(box);
@@ -452,6 +685,7 @@ maritalChoices.forEach((opt, i)=>{
   const box = document.createElement('div');
   box.className = 'diag-box';
   box.id = `opt-marital_status-${i}`;
+  box.style.cssText = 'flex:0 1 160px;';
   box.onclick = ()=> selectOption('marital_status', i);
   box.innerHTML = `<span class="opt-text">${opt.label}</span>`;
   maritalOpts.appendChild(box);
@@ -459,108 +693,503 @@ maritalChoices.forEach((opt, i)=>{
 
 // ---------- DISEASES (grouped by primary mizaj they point toward) ----------
 const diseaseList = [
-  {name:"شوگر", mizaj:"all"},
-  {name:"دمہ", mizaj:"all"},
-  {name:"ہیضہ", mizaj:"asabi"},
-  {name:"فالج", mizaj:"all"},
-  {name:"موٹاپا", mizaj:"all"},
-  {name:"کھانسی", mizaj:"all"},
-  {name:"گندم سے الرجی", mizaj:"all"},
-  {name:"پس سل", mizaj:"all"},
-  {name:"سرعت انزال", mizaj:"all"},
-  {name:"لیکوریا", mizaj:"all"},
-  {name:"نامردی", mizaj:"all"},
-  {name:"آتشک", mizaj:"all"},
-  {name:"جریان", mizaj:"all"},
-  {name:"بلڈ پریشر لو", mizaj:"asabi"},
-  {name:"برص (چتری)", mizaj:"all"},
-  {name:"نزلہ", mizaj:"all"},
-  {name:"خسرہ", mizaj:"all"},
-  {name:"چیچک", mizaj:"all"},
-  {name:"لیوکیمیا", mizaj:"all"},
-  {name:"ہڈیوں کا کینسر", mizaj:"all"},
-  {name:"پھیپھڑوں کا کینسر", mizaj:"all"},
-  {name:"خون کی کمی", mizaj:"all"},
-  {name:"ہیپاٹائٹس اے", mizaj:"asabi"},
-  {name:"سر درد", mizaj:"all"},
-  {name:"دماغ کے مسائل", mizaj:"all"},
-  {name:"عضو تناسل کے مسائل", mizaj:"all"},
-  {name:"شادی کورس", mizaj:"all"},
-  {name:"حمل کا ضائع ہونا", mizaj:"all"},
-  {name:"الٹیاں آنا", mizaj:"asabi"},
-  {name:"تحریک کا توڑ", mizaj:"all"},
-  {name:"مردانہ بانچھ پن", mizaj:"all"},
-  {name:"بلغم زیادہ نکلنا", mizaj:"asabi"},
-  {name:"مرگی", mizaj:"all"},
-  {name:"ہسٹیریا", mizaj:"adalati"},
-  {name:"الرجی", mizaj:"all"},
-  {name:"بواسیر بادی", mizaj:"adalati"},
-  {name:"بواسیر خونی", mizaj:"ghudi"},
-  {name:"گلٹی", mizaj:"adalati"},
-  {name:"رسولی", mizaj:"adalati"},
-  {name:"واریکوسل", mizaj:"adalati"},
-  {name:"تیزابیت", mizaj:"adalati"},
-  {name:"یورک ایسڈ", mizaj:"adalati"},
-  {name:"ٹائیفائیڈ", mizaj:"all"},
-  {name:"ملیریا", mizaj:"all"},
-  {name:"تپ دق (ٹی بی)", mizaj:"adalati"},
-  {name:"تھیلیسیمیا", mizaj:"all"},
-  {name:"کولیسٹرول", mizaj:"adalati"},
-  {name:"ہرنیا", mizaj:"adalati"},
-  {name:"فیٹی لیور", mizaj:"adalati"},
-  {name:"معدے کا السر", mizaj:"all"},
-  {name:"معدے کا کینسر", mizaj:"all"},
-  {name:"مقعد کا کینسر", mizaj:"all"},
-  {name:"چھاتی کا کینسر", mizaj:"all"},
-  {name:"ناسور", mizaj:"all"},
-  {name:"بھگندر", mizaj:"ghudi"},
-  {name:"نمونیا", mizaj:"adalati"},
-  {name:"ہارٹ اٹیک", mizaj:"adalati"},
-  {name:"لقوہ", mizaj:"adalati"},
-  {name:"رعشہ", mizaj:"adalati"},
-  {name:"پٹھوں کا اکڑاؤ", mizaj:"adalati"},
-  {name:"پتھری گردہ", mizaj:"all"},
-  {name:"ہیپاٹائٹس سی", mizaj:"adalati"},
-  {name:"احتلام", mizaj:"all"},
-  {name:"ڈپریشن", mizaj:"all"},
-  {name:"گیس کے مسائل", mizaj:"all"},
-  {name:"معدے کی خرابی", mizaj:"all"},
-  {name:"جوڑوں کا درد", mizaj:"all"},
-  {name:"عرق النساء", mizaj:"all"},
-  {name:"ناف کا ٹلنا", mizaj:"all"},
-  {name:"بریسٹ کے مسائل", mizaj:"all"},
-  {name:"کمر درد", mizaj:"all"},
-  {name:"کان کے مسائل", mizaj:"all"},
-  {name:"دانت کے مسائل", mizaj:"all"},
-  {name:"گلے کے مسائل", mizaj:"all"},
-  {name:"زنانہ بانچھ پن", mizaj:"all"},
-  {name:"چنبل", mizaj:"adalati"},
-  {name:"نکسیر", mizaj:"adalati"},
-  {name:"پیلا یرقان", mizaj:"ghudi"},
-  {name:"کالا یرقان", mizaj:"adalati"},
-  {name:"ہیپاٹائٹس بی", mizaj:"ghudi"},
-  {name:"انفکشن", mizaj:"all"},
-  {name:"سوزاک", mizaj:"ghudi"},
-  {name:"رحم کا ورم", mizaj:"all"},
-  {name:"سسٹ", mizaj:"adalati"},
-  {name:"پانی والی رسولی", mizaj:"ghudi"},
-  {name:"پتھری پتہ", mizaj:"all"},
-  {name:"گردے کا ورم", mizaj:"all"},
-  {name:"بلڈ پریشر ہائی", mizaj:"ghudi"},
-  {name:"دھدری", mizaj:"adalati"},
-  {name:"بڑی آنت کا کینسر", mizaj:"all"},
-  {name:"گردے فیل ہونا (ڈائیلاسز)", mizaj:"all"},
-  {name:"چکر آنا", mizaj:"all"},
-  {name:"ڈیلیوری کیلئے", mizaj:"all"},
-  {name:"حاملہ خواتین کے مسائل", mizaj:"all"},
-  {name:"سنگرہنی", mizaj:"ghudi"},
-  {name:"دست، موشن، پیچش", mizaj:"ghudi"},
-  {name:"کانچ نکلنا", mizaj:"all"},
-  {name:"پاؤں کے تلوے کی جلن", mizaj:"adalati"},
-  {name:"حیض کے مسائل", mizaj:"all"},
-  {name:"چہرے کے مسائل", mizaj:"all"},
-  {name:"پٹھوں کا کھچاؤ", mizaj:"ghudi"},
-  {name:"آنکھوں کے مسائل", mizaj:"all"}
+  // ===== سر (28) =====
+  {name:"اعصابی سردرد", mizaj:"asabi", tendency:1, organ:"سر"},
+  {name:"ٹھنڈا سر درد", mizaj:"asabi", tendency:1, organ:"سر"},
+  {name:"سرسام", mizaj:"asabi", tendency:1, organ:"سر"},
+  {name:"نسیان", mizaj:"asabi", tendency:1, organ:"سر"},
+  {name:"محرقہ دماغی", mizaj:"asabi", tendency:1, organ:"سر"},
+  {name:"کابوس", mizaj:"asabi", tendency:1, organ:"سر"},
+  {name:"عضلاتی سردرد", mizaj:"adalati", tendency:2, organ:"سر"},
+  {name:"گیس سے سردرد", mizaj:"adalati", tendency:2, organ:"سر"},
+  {name:"دماغی کمزوری کا سردرد", mizaj:"adalati", tendency:2, organ:"سر"},
+  {name:"ذہنی سردرد", mizaj:"adalati", tendency:2, organ:"سر"},
+  {name:"بےخوابی", mizaj:"adalati", tendency:2, organ:"سر"},
+  {name:"مالیخولیا", mizaj:"adalati", tendency:2, organ:"سر"},
+  {name:"ہسٹیریا", mizaj:"adalati", tendency:2, organ:"سر"},
+  {name:"مرگی", mizaj:"adalati", tendency:2, organ:"سر"},
+  {name:"عام سردرد", mizaj:"adalati", tendency:3, organ:"سر"},
+  {name:"بےخوابی", mizaj:"adalati", tendency:3, organ:"سر"},
+  {name:"دائمی سردرد", mizaj:"adalati", tendency:3, organ:"سر"},
+  {name:"درد شقیقہ دائیں طرف", mizaj:"adalati", tendency:3, organ:"سر"},
+  {name:"انسومنیا", mizaj:"adalati", tendency:3, organ:"سر"},
+  {name:"سردرد شقیقہ بائیں طرف", mizaj:"ghudi", tendency:4, organ:"سر"},
+  {name:"سرسام", mizaj:"ghudi", tendency:4, organ:"سر"},
+  {name:"جنون", mizaj:"ghudi", tendency:4, organ:"سر"},
+  {name:"مرگی", mizaj:"ghudi", tendency:4, organ:"سر"},
+  {name:"سرسام", mizaj:"ghudi", tendency:5, organ:"سر"},
+  {name:"سردرد", mizaj:"asabi", tendency:6, organ:"سر"},
+  {name:"کتے کاٹنے کا جنون", mizaj:"asabi", tendency:6, organ:"سر"},
+  {name:"مرگی", mizaj:"asabi", tendency:6, organ:"سر"},
+  {name:"بھول جانا", mizaj:"asabi", tendency:6, organ:"سر"},
+
+  // ===== آنکھ (18) =====
+  {name:"آنکھوں کی جھلی میں سوزش", mizaj:"asabi", tendency:1, organ:"آنکھ"},
+  {name:"آنکھ میں پانی آنا", mizaj:"asabi", tendency:1, organ:"آنکھ"},
+  {name:"آنکھ کا پھولا", mizaj:"asabi", tendency:1, organ:"آنکھ"},
+  {name:"آنکھ مچ جانا", mizaj:"adalati", tendency:2, organ:"آنکھ"},
+  {name:"آنکھ پر سرخ دانہ", mizaj:"adalati", tendency:2, organ:"آنکھ"},
+  {name:"آنکھ کی خارش", mizaj:"adalati", tendency:2, organ:"آنکھ"},
+  {name:"آنکھ کا خونی حلقہ", mizaj:"adalati", tendency:3, organ:"آنکھ"},
+  {name:"آنکھوں کے گرد سیاہ حلقے", mizaj:"adalati", tendency:3, organ:"آنکھ"},
+  {name:"آنکھ کا دھنس جانا", mizaj:"adalati", tendency:3, organ:"آنکھ"},
+  {name:"آنکھوں کے حلقوں پر خارش", mizaj:"adalati", tendency:3, organ:"آنکھ"},
+  {name:"آنکھوں کی بیماری و درد", mizaj:"ghudi", tendency:4, organ:"آنکھ"},
+  {name:"پیلا یرقان", mizaj:"ghudi", tendency:4, organ:"آنکھ"},
+  {name:"آنکھوں کی پلکوں پر سرخ دانے", mizaj:"ghudi", tendency:4, organ:"آنکھ"},
+  {name:"آنکھوں میں زخم و ورم", mizaj:"ghudi", tendency:4, organ:"آنکھ"},
+  {name:"آنکھوں سے پانی آنا", mizaj:"ghudi", tendency:5, organ:"آنکھ"},
+  {name:"آنکھ کی سیاہ پتلی کا پھیلنا", mizaj:"ghudi", tendency:5, organ:"آنکھ"},
+  {name:"آنکھوں کی جھلی میں سوزش", mizaj:"asabi", tendency:6, organ:"آنکھ"},
+  {name:"آنکھوں سے پانی آنا", mizaj:"asabi", tendency:6, organ:"آنکھ"},
+
+  // ===== کان (17) =====
+  {name:"کان کا درد", mizaj:"asabi", tendency:1, organ:"کان"},
+  {name:"کان بہنا", mizaj:"asabi", tendency:1, organ:"کان"},
+  {name:"کان کا درد", mizaj:"adalati", tendency:2, organ:"کان"},
+  {name:"کان کا بجنا", mizaj:"adalati", tendency:2, organ:"کان"},
+  {name:"کان کی خشکی", mizaj:"adalati", tendency:2, organ:"کان"},
+  {name:"رعشہ", mizaj:"adalati", tendency:2, organ:"کان"},
+  {name:"کان کا درد", mizaj:"adalati", tendency:3, organ:"کان"},
+  {name:"کان سے خون بہنا", mizaj:"adalati", tendency:3, organ:"کان"},
+  {name:"کان میں شائیں شائیں", mizaj:"adalati", tendency:3, organ:"کان"},
+  {name:"کان میں زخم", mizaj:"ghudi", tendency:4, organ:"کان"},
+  {name:"کان کا السر", mizaj:"ghudi", tendency:4, organ:"کان"},
+  {name:"کان بہنا", mizaj:"ghudi", tendency:4, organ:"کان"},
+  {name:"کان کی سوزش", mizaj:"ghudi", tendency:4, organ:"کان"},
+  {name:"کانچ نکلنا", mizaj:"ghudi", tendency:4, organ:"کان"},
+  {name:"کانچ کا نکلنا", mizaj:"ghudi", tendency:5, organ:"کان"},
+  {name:"کانوں میں چیز پھنسی محسوس ہونا", mizaj:"asabi", tendency:6, organ:"کان"},
+  {name:"کانوں میں وزن محسوس ہونا", mizaj:"asabi", tendency:6, organ:"کان"},
+
+  // ===== ناک (16) =====
+  {name:"زکامِ بلغمی", mizaj:"asabi", tendency:1, organ:"ناک"},
+  {name:"چھینکیں آنا", mizaj:"asabi", tendency:1, organ:"ناک"},
+  {name:"بند نزلہ", mizaj:"adalati", tendency:2, organ:"ناک"},
+  {name:"ناک سے خون نکلنا", mizaj:"adalati", tendency:2, organ:"ناک"},
+  {name:"ناک کی خشکی", mizaj:"adalati", tendency:2, organ:"ناک"},
+  {name:"نکسیر", mizaj:"adalati", tendency:2, organ:"ناک"},
+  {name:"نکسیر آنا", mizaj:"adalati", tendency:3, organ:"ناک"},
+  {name:"بند نزلہ", mizaj:"adalati", tendency:3, organ:"ناک"},
+  {name:"نکسیر", mizaj:"ghudi", tendency:4, organ:"ناک"},
+  {name:"نزلہ", mizaj:"ghudi", tendency:4, organ:"ناک"},
+  {name:"ناک میں زخم و خون", mizaj:"ghudi", tendency:4, organ:"ناک"},
+  {name:"نکسیر", mizaj:"ghudi", tendency:4, organ:"ناک"},
+  {name:"نزلہ", mizaj:"ghudi", tendency:5, organ:"ناک"},
+  {name:"ناک سے گرم رطوبت گرنا", mizaj:"asabi", tendency:6, organ:"ناک"},
+  {name:"سونگھنے کی قوت کم ہونا", mizaj:"asabi", tendency:6, organ:"ناک"},
+  {name:"نزلہ", mizaj:"asabi", tendency:6, organ:"ناک"},
+
+  // ===== ہونٹ (12) =====
+  {name:"ہونٹوں کا بڑا اور موٹا ہونا", mizaj:"asabi", tendency:1, organ:"ہونٹ"},
+  {name:"قلب کی حرکت کم ہونا", mizaj:"asabi", tendency:1, organ:"ہونٹ"},
+  {name:"ہونٹوں کا پھٹنا", mizaj:"adalati", tendency:2, organ:"ہونٹ"},
+  {name:"ہونٹ سے خون نکلنا", mizaj:"adalati", tendency:2, organ:"ہونٹ"},
+  {name:"ہونٹوں کا ورم", mizaj:"adalati", tendency:2, organ:"ہونٹ"},
+  {name:"ہونٹوں کا ورم", mizaj:"adalati", tendency:3, organ:"ہونٹ"},
+  {name:"ہونٹ کی خشکی", mizaj:"adalati", tendency:3, organ:"ہونٹ"},
+  {name:"ہونٹوں پر صفراوی چھالے", mizaj:"ghudi", tendency:4, organ:"ہونٹ"},
+  {name:"ضعفِ قلب", mizaj:"ghudi", tendency:4, organ:"ہونٹ"},
+  {name:"ضعفِ قلب", mizaj:"ghudi", tendency:5, organ:"ہونٹ"},
+  {name:"ضعفِ قلب", mizaj:"asabi", tendency:6, organ:"ہونٹ"},
+  {name:"عظیمِ قلب", mizaj:"asabi", tendency:6, organ:"ہونٹ"},
+
+  // ===== منہ و زبان (20) =====
+  {name:"منہ میں چھالے", mizaj:"asabi", tendency:1, organ:"منہ و زبان"},
+  {name:"منہ سے پانی آنا", mizaj:"asabi", tendency:1, organ:"منہ و زبان"},
+  {name:"زبان پر چھالے", mizaj:"asabi", tendency:1, organ:"منہ و زبان"},
+  {name:"لکنت", mizaj:"asabi", tendency:1, organ:"منہ و زبان"},
+  {name:"زبان کا ذائقہ محسوس نہ ہونا", mizaj:"asabi", tendency:1, organ:"منہ و زبان"},
+  {name:"منہ میں چھالے", mizaj:"adalati", tendency:2, organ:"منہ و زبان"},
+  {name:"زبان کی جلن", mizaj:"adalati", tendency:2, organ:"منہ و زبان"},
+  {name:"زبان کا سوجن", mizaj:"adalati", tendency:2, organ:"منہ و زبان"},
+  {name:"زبان کا کھردرا پن", mizaj:"adalati", tendency:2, organ:"منہ و زبان"},
+  {name:"منہ سے بدبو", mizaj:"adalati", tendency:2, organ:"منہ و زبان"},
+  {name:"لکنت", mizaj:"adalati", tendency:2, organ:"منہ و زبان"},
+  {name:"زبان کا سکڑنا", mizaj:"adalati", tendency:3, organ:"منہ و زبان"},
+  {name:"زبان کی خشکی", mizaj:"adalati", tendency:3, organ:"منہ و زبان"},
+  {name:"زبان کا کینسر", mizaj:"adalati", tendency:3, organ:"منہ و زبان"},
+  {name:"منہ میں چھالے", mizaj:"ghudi", tendency:4, organ:"منہ و زبان"},
+  {name:"منہ میں چھالے", mizaj:"ghudi", tendency:5, organ:"منہ و زبان"},
+  {name:"زبان کی لکنت", mizaj:"ghudi", tendency:5, organ:"منہ و زبان"},
+  {name:"منہ سے گندی بدبو", mizaj:"asabi", tendency:6, organ:"منہ و زبان"},
+  {name:"زبان کا پھولنا", mizaj:"asabi", tendency:6, organ:"منہ و زبان"},
+  {name:"ذائقہ ختم ہونا", mizaj:"asabi", tendency:6, organ:"منہ و زبان"},
+
+  // ===== دانت و مسوڑھے (12) =====
+  {name:"دانتوں کا ہلنا", mizaj:"asabi", tendency:1, organ:"دانت و مسوڑھے"},
+  {name:"دانتوں کا گرنا", mizaj:"asabi", tendency:1, organ:"دانت و مسوڑھے"},
+  {name:"دانتوں کا درد", mizaj:"adalati", tendency:2, organ:"دانت و مسوڑھے"},
+  {name:"دانتوں کا گندہ ہونا", mizaj:"adalati", tendency:2, organ:"دانت و مسوڑھے"},
+  {name:"دانتوں کا کھلنا", mizaj:"adalati", tendency:2, organ:"دانت و مسوڑھے"},
+  {name:"دانت پیسنا", mizaj:"adalati", tendency:2, organ:"دانت و مسوڑھے"},
+  {name:"دانتوں کا ریزہ ریزہ ہونا", mizaj:"adalati", tendency:2, organ:"دانت و مسوڑھے"},
+  {name:"درد دانت", mizaj:"adalati", tendency:3, organ:"دانت و مسوڑھے"},
+  {name:"مسوڑوں کا ورم", mizaj:"adalati", tendency:3, organ:"دانت و مسوڑھے"},
+  {name:"مسوڑھوں کی بیماری", mizaj:"adalati", tendency:3, organ:"دانت و مسوڑھے"},
+  {name:"دانتوں کا بڑھنا", mizaj:"asabi", tendency:6, organ:"دانت و مسوڑھے"},
+  {name:"دانت بڑھنا", mizaj:"asabi", tendency:6, organ:"دانت و مسوڑھے"},
+
+  // ===== گلا (8) =====
+  {name:"گلے میں کیرا گرنا", mizaj:"asabi", tendency:1, organ:"گلا"},
+  {name:"حلق کی سوزش", mizaj:"asabi", tendency:1, organ:"گلا"},
+  {name:"گلے کی سوزش", mizaj:"adalati", tendency:2, organ:"گلا"},
+  {name:"گلے کی سوزش", mizaj:"adalati", tendency:2, organ:"گلا"},
+  {name:"آواز کا بیٹھنا", mizaj:"adalati", tendency:3, organ:"گلا"},
+  {name:"گلے کی سوزش", mizaj:"adalati", tendency:3, organ:"گلا"},
+  {name:"گلے کی جھلی کی سوزش", mizaj:"ghudi", tendency:4, organ:"گلا"},
+  {name:"سوزشِ مری", mizaj:"ghudi", tendency:5, organ:"گلا"},
+
+  // ===== پھیپھڑے و دمہ (32) =====
+  {name:"دمہ بلغمی", mizaj:"asabi", tendency:1, organ:"پھیپھڑے و دمہ"},
+  {name:"پھیپھڑوں کا ڈھیلا ہونا", mizaj:"asabi", tendency:1, organ:"پھیپھڑے و دمہ"},
+  {name:"عضوِ تناسل کا لمبا و موٹا ہونا", mizaj:"asabi", tendency:1, organ:"پھیپھڑے و دمہ"},
+  {name:"پھیپھڑوں کا کینسر", mizaj:"asabi", tendency:1, organ:"پھیپھڑے و دمہ"},
+  {name:"مسلسل لڑکیاں ہونا", mizaj:"asabi", tendency:1, organ:"پھیپھڑے و دمہ"},
+  {name:"دمہ", mizaj:"adalati", tendency:2, organ:"پھیپھڑے و دمہ"},
+  {name:"کھانسی", mizaj:"adalati", tendency:2, organ:"پھیپھڑے و دمہ"},
+  {name:"نمونیا", mizaj:"adalati", tendency:2, organ:"پھیپھڑے و دمہ"},
+  {name:"پھیپھڑوں کا ورم", mizaj:"adalati", tendency:2, organ:"پھیپھڑے و دمہ"},
+  {name:"عضوِ تناسل کا چھوٹا ہونا", mizaj:"adalati", tendency:2, organ:"پھیپھڑے و دمہ"},
+  {name:"عضوِ تناسل کا ڈھیلا ہونا", mizaj:"adalati", tendency:2, organ:"پھیپھڑے و دمہ"},
+  {name:"سینہ کی خشکی", mizaj:"adalati", tendency:3, organ:"پھیپھڑے و دمہ"},
+  {name:"خشک کھانسی", mizaj:"adalati", tendency:3, organ:"پھیپھڑے و دمہ"},
+  {name:"دمہ", mizaj:"adalati", tendency:3, organ:"پھیپھڑے و دمہ"},
+  {name:"پھیپھڑوں سے خون آنا", mizaj:"adalati", tendency:3, organ:"پھیپھڑے و دمہ"},
+  {name:"عضوِ تناسل کا ورم", mizaj:"adalati", tendency:3, organ:"پھیپھڑے و دمہ"},
+  {name:"واریکوسل", mizaj:"adalati", tendency:3, organ:"پھیپھڑے و دمہ"},
+  {name:"دمہ", mizaj:"ghudi", tendency:4, organ:"پھیپھڑے و دمہ"},
+  {name:"کھانسی", mizaj:"ghudi", tendency:4, organ:"پھیپھڑے و دمہ"},
+  {name:"پھیپھڑوں کا ورم", mizaj:"ghudi", tendency:4, organ:"پھیپھڑے و دمہ"},
+  {name:"پھیپھڑوں میں پیپ", mizaj:"ghudi", tendency:4, organ:"پھیپھڑے و دمہ"},
+  {name:"پھیپھڑوں میں زخم", mizaj:"ghudi", tendency:4, organ:"پھیپھڑے و دمہ"},
+  {name:"کھانسی سے خون بہنا", mizaj:"ghudi", tendency:4, organ:"پھیپھڑے و دمہ"},
+  {name:"سل", mizaj:"ghudi", tendency:4, organ:"پھیپھڑے و دمہ"},
+  {name:"کھانسی", mizaj:"ghudi", tendency:5, organ:"پھیپھڑے و دمہ"},
+  {name:"سینہ میں شدید جلن والی کھانسی", mizaj:"ghudi", tendency:5, organ:"پھیپھڑے و دمہ"},
+  {name:"غدی دمہ", mizaj:"ghudi", tendency:5, organ:"پھیپھڑے و دمہ"},
+  {name:"پھیپھڑے کی بائیں طرف درد", mizaj:"ghudi", tendency:5, organ:"پھیپھڑے و دمہ"},
+  {name:"پھیپھڑوں کا لٹک جانا", mizaj:"asabi", tendency:6, organ:"پھیپھڑے و دمہ"},
+  {name:"سینہ کی گھٹن", mizaj:"asabi", tendency:6, organ:"پھیپھڑے و دمہ"},
+  {name:"جلن دار کھانسی", mizaj:"asabi", tendency:6, organ:"پھیپھڑے و دمہ"},
+  {name:"عضوِ تناسل کا ڈھیلا ہونا", mizaj:"asabi", tendency:6, organ:"پھیپھڑے و دمہ"},
+
+  // ===== دل (13) =====
+  {name:"دل کا بڑا ہونا", mizaj:"asabi", tendency:1, organ:"دل"},
+  {name:"دل کا ڈوبنا", mizaj:"asabi", tendency:1, organ:"دل"},
+  {name:"دل کی خشکی و سکڑنا", mizaj:"adalati", tendency:2, organ:"دل"},
+  {name:"ہارٹ اٹیک", mizaj:"adalati", tendency:2, organ:"دل"},
+  {name:"دل کی گھبراہٹ", mizaj:"adalati", tendency:3, organ:"دل"},
+  {name:"دل کا سکڑنا", mizaj:"adalati", tendency:3, organ:"دل"},
+  {name:"دل کا سوراخ", mizaj:"adalati", tendency:3, organ:"دل"},
+  {name:"دل کی سوزش", mizaj:"ghudi", tendency:4, organ:"دل"},
+  {name:"دل کا پھیل جانا", mizaj:"ghudi", tendency:4, organ:"دل"},
+  {name:"دل کی گھبراہٹ", mizaj:"ghudi", tendency:4, organ:"دل"},
+  {name:"دل کا فیل ہونا", mizaj:"ghudi", tendency:4, organ:"دل"},
+  {name:"دل کا پھیل جانا", mizaj:"ghudi", tendency:5, organ:"دل"},
+  {name:"دل کا پھولنا", mizaj:"asabi", tendency:6, organ:"دل"},
+
+  // ===== پستان (16) =====
+  {name:"پستان بڑے ہونا", mizaj:"asabi", tendency:1, organ:"پستان"},
+  {name:"دودھ زیادہ آنا", mizaj:"asabi", tendency:1, organ:"پستان"},
+  {name:"پستان کا کینسر", mizaj:"adalati", tendency:2, organ:"پستان"},
+  {name:"دودھ کی کمی", mizaj:"adalati", tendency:2, organ:"پستان"},
+  {name:"پستان کی خارش", mizaj:"adalati", tendency:2, organ:"پستان"},
+  {name:"پستان کا سکڑنا", mizaj:"adalati", tendency:2, organ:"پستان"},
+  {name:"پستان سے دودھ کی کمی", mizaj:"adalati", tendency:3, organ:"پستان"},
+  {name:"دائیں پستان کا ورم", mizaj:"adalati", tendency:3, organ:"پستان"},
+  {name:"پستان سے خون آنا", mizaj:"adalati", tendency:3, organ:"پستان"},
+  {name:"ورمِ پستان دائیں طرف", mizaj:"adalati", tendency:3, organ:"پستان"},
+  {name:"بریسٹ کینسر", mizaj:"ghudi", tendency:4, organ:"پستان"},
+  {name:"پستان کی سوزش", mizaj:"ghudi", tendency:5, organ:"پستان"},
+  {name:"پستان کا سکڑنا", mizaj:"ghudi", tendency:5, organ:"پستان"},
+  {name:"پستان کا ورم بائیں طرف", mizaj:"ghudi", tendency:5, organ:"پستان"},
+  {name:"پستان بڑے ہونا", mizaj:"asabi", tendency:6, organ:"پستان"},
+  {name:"دودھ زیادہ آنا", mizaj:"asabi", tendency:6, organ:"پستان"},
+
+  // ===== معدہ (28) =====
+  {name:"معدہ میں گڑبڑ", mizaj:"asabi", tendency:1, organ:"معدہ"},
+  {name:"معدہ ٹھنڈا ہونا", mizaj:"asabi", tendency:1, organ:"معدہ"},
+  {name:"بھوک نہ لگنا", mizaj:"asabi", tendency:1, organ:"معدہ"},
+  {name:"قے", mizaj:"asabi", tendency:1, organ:"معدہ"},
+  {name:"ہیضہ", mizaj:"asabi", tendency:1, organ:"معدہ"},
+  {name:"بدہضمی", mizaj:"asabi", tendency:1, organ:"معدہ"},
+  {name:"معدے کا درد", mizaj:"adalati", tendency:2, organ:"معدہ"},
+  {name:"ریاح گیس معدہ", mizaj:"adalati", tendency:2, organ:"معدہ"},
+  {name:"جھوٹی بھوک", mizaj:"adalati", tendency:2, organ:"معدہ"},
+  {name:"ہچکی", mizaj:"adalati", tendency:2, organ:"معدہ"},
+  {name:"جلنِ معدہ", mizaj:"adalati", tendency:2, organ:"معدہ"},
+  {name:"تبخیرِ معدہ", mizaj:"adalati", tendency:2, organ:"معدہ"},
+  {name:"ترش ڈکار", mizaj:"adalati", tendency:2, organ:"معدہ"},
+  {name:"ورمِ معدہ", mizaj:"adalati", tendency:3, organ:"معدہ"},
+  {name:"معدے کا درد", mizaj:"adalati", tendency:3, organ:"معدہ"},
+  {name:"معدہ کی جلن", mizaj:"adalati", tendency:3, organ:"معدہ"},
+  {name:"معدے کا السر", mizaj:"adalati", tendency:3, organ:"معدہ"},
+  {name:"معدے کا کینسر", mizaj:"adalati", tendency:3, organ:"معدہ"},
+  {name:"ہچکی", mizaj:"adalati", tendency:3, organ:"معدہ"},
+  {name:"بھوک شدید لگنا", mizaj:"adalati", tendency:3, organ:"معدہ"},
+  {name:"قے صفراوی", mizaj:"ghudi", tendency:4, organ:"معدہ"},
+  {name:"جلنِ معدہ", mizaj:"ghudi", tendency:4, organ:"معدہ"},
+  {name:"ضعفِ معدہ", mizaj:"ghudi", tendency:4, organ:"معدہ"},
+  {name:"معدے کی خرابی", mizaj:"ghudi", tendency:4, organ:"معدہ"},
+  {name:"صفراوی قے", mizaj:"ghudi", tendency:5, organ:"معدہ"},
+  {name:"ہر وقت بھوک کی خواہش", mizaj:"ghudi", tendency:5, organ:"معدہ"},
+  {name:"بھوک کا بند ہونا", mizaj:"asabi", tendency:6, organ:"معدہ"},
+  {name:"ہیضہ", mizaj:"asabi", tendency:6, organ:"معدہ"},
+
+  // ===== آنتیں و مقعد (30) =====
+  {name:"دست", mizaj:"asabi", tendency:1, organ:"آنتیں و مقعد"},
+  {name:"مقعد کا ڈھیلا ہونا", mizaj:"asabi", tendency:1, organ:"آنتیں و مقعد"},
+  {name:"شدید قبض", mizaj:"adalati", tendency:2, organ:"آنتیں و مقعد"},
+  {name:"درد قولنج", mizaj:"adalati", tendency:2, organ:"آنتیں و مقعد"},
+  {name:"آنتوں کی بندش", mizaj:"adalati", tendency:2, organ:"آنتیں و مقعد"},
+  {name:"بواسیرِ بادی", mizaj:"adalati", tendency:2, organ:"آنتیں و مقعد"},
+  {name:"بھگندر", mizaj:"adalati", tendency:2, organ:"آنتیں و مقعد"},
+  {name:"خونی دست", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"بواسیرِ خونی", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"ورمِ مقعد", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"ناسورِ مقعد", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"پیٹ کے کیڑے", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"چھوٹی آنت کا السر", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"بڑی آنت کا السر", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"خونی بواسیر", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"مقعد کا کینسر", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"بھگندر", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"ہرنیا", mizaj:"adalati", tendency:3, organ:"آنتیں و مقعد"},
+  {name:"آنتوں میں مروڑ", mizaj:"ghudi", tendency:4, organ:"آنتیں و مقعد"},
+  {name:"پیچش", mizaj:"ghudi", tendency:4, organ:"آنتیں و مقعد"},
+  {name:"ناسورِ مقعد", mizaj:"ghudi", tendency:4, organ:"آنتیں و مقعد"},
+  {name:"بھگندرِ مقعد", mizaj:"ghudi", tendency:4, organ:"آنتیں و مقعد"},
+  {name:"بڑی آنت کا کینسر", mizaj:"ghudi", tendency:4, organ:"آنتیں و مقعد"},
+  {name:"خونی پیچش", mizaj:"ghudi", tendency:4, organ:"آنتیں و مقعد"},
+  {name:"شدید پیچش", mizaj:"ghudi", tendency:5, organ:"آنتیں و مقعد"},
+  {name:"دائمی پیچش", mizaj:"ghudi", tendency:5, organ:"آنتیں و مقعد"},
+  {name:"بڑی آنت کا ورم", mizaj:"ghudi", tendency:5, organ:"آنتیں و مقعد"},
+  {name:"ناسور ہر قسم", mizaj:"ghudi", tendency:5, organ:"آنتیں و مقعد"},
+  {name:"سنگرہنی", mizaj:"asabi", tendency:6, organ:"آنتیں و مقعد"},
+  {name:"مروڑ کے ساتھ دست", mizaj:"asabi", tendency:6, organ:"آنتیں و مقعد"},
+
+  // ===== جگر و تلی (24) =====
+  {name:"جگر کا بڑھنا", mizaj:"asabi", tendency:1, organ:"جگر و تلی"},
+  {name:"تلی کا بڑھنا", mizaj:"asabi", tendency:1, organ:"جگر و تلی"},
+  {name:"ضعفِ جگر", mizaj:"asabi", tendency:1, organ:"جگر و تلی"},
+  {name:"جگر کا بڑھنا", mizaj:"adalati", tendency:2, organ:"جگر و تلی"},
+  {name:"تلی کا بڑھنا", mizaj:"adalati", tendency:2, organ:"جگر و تلی"},
+  {name:"کالا یرقان", mizaj:"adalati", tendency:2, organ:"جگر و تلی"},
+  {name:"ہیپاٹائٹس سی", mizaj:"adalati", tendency:2, organ:"جگر و تلی"},
+  {name:"فیٹی لیور", mizaj:"adalati", tendency:2, organ:"جگر و تلی"},
+  {name:"جگر کا بڑھنا", mizaj:"adalati", tendency:3, organ:"جگر و تلی"},
+  {name:"صفرا کی کمی", mizaj:"adalati", tendency:3, organ:"جگر و تلی"},
+  {name:"اختلاجِ جگر", mizaj:"adalati", tendency:3, organ:"جگر و تلی"},
+  {name:"جگر کی سوزش", mizaj:"ghudi", tendency:4, organ:"جگر و تلی"},
+  {name:"پیلا یرقان", mizaj:"ghudi", tendency:4, organ:"جگر و تلی"},
+  {name:"جگر میں پانی بھرنا", mizaj:"ghudi", tendency:4, organ:"جگر و تلی"},
+  {name:"خارشِ صفراوی", mizaj:"ghudi", tendency:4, organ:"جگر و تلی"},
+  {name:"ہیپاٹائٹس بی", mizaj:"ghudi", tendency:4, organ:"جگر و تلی"},
+  {name:"جگر کی سوزش", mizaj:"ghudi", tendency:5, organ:"جگر و تلی"},
+  {name:"جگر کا درد", mizaj:"ghudi", tendency:5, organ:"جگر و تلی"},
+  {name:"جگر کا ورم", mizaj:"ghudi", tendency:5, organ:"جگر و تلی"},
+  {name:"چھپاکی صفراوی", mizaj:"ghudi", tendency:5, organ:"جگر و تلی"},
+  {name:"ورمِ جگر کا بخار", mizaj:"ghudi", tendency:5, organ:"جگر و تلی"},
+  {name:"ضعفِ جگر", mizaj:"asabi", tendency:6, organ:"جگر و تلی"},
+  {name:"عظمِ طحال", mizaj:"asabi", tendency:6, organ:"جگر و تلی"},
+  {name:"ہیپاٹائٹس اے", mizaj:"asabi", tendency:6, organ:"جگر و تلی"},
+
+  // ===== گردہ و مثانہ (23) =====
+  {name:"ضعفِ گردہ", mizaj:"asabi", tendency:1, organ:"گردہ و مثانہ"},
+  {name:"بستر پر پیشاب کرنا", mizaj:"asabi", tendency:1, organ:"گردہ و مثانہ"},
+  {name:"بار بار پیشاب آنا", mizaj:"asabi", tendency:1, organ:"گردہ و مثانہ"},
+  {name:"گردہ ریحی درد", mizaj:"adalati", tendency:2, organ:"گردہ و مثانہ"},
+  {name:"پتھری گردہ", mizaj:"adalati", tendency:2, organ:"گردہ و مثانہ"},
+  {name:"پیشاب کا بند ہونا", mizaj:"adalati", tendency:2, organ:"گردہ و مثانہ"},
+  {name:"درد گردہ", mizaj:"adalati", tendency:3, organ:"گردہ و مثانہ"},
+  {name:"خونی پیشاب", mizaj:"adalati", tendency:3, organ:"گردہ و مثانہ"},
+  {name:"بول الدم", mizaj:"adalati", tendency:3, organ:"گردہ و مثانہ"},
+  {name:"گردے کا درد", mizaj:"ghudi", tendency:4, organ:"گردہ و مثانہ"},
+  {name:"مثانہ میں جلن", mizaj:"ghudi", tendency:4, organ:"گردہ و مثانہ"},
+  {name:"گردہ میں پتھری", mizaj:"ghudi", tendency:4, organ:"گردہ و مثانہ"},
+  {name:"پیشاب کا جلن سے قطرہ قطرہ آنا", mizaj:"ghudi", tendency:4, organ:"گردہ و مثانہ"},
+  {name:"پیشاب کی جگہ سوزش", mizaj:"ghudi", tendency:4, organ:"گردہ و مثانہ"},
+  {name:"گردے کی پتھری", mizaj:"ghudi", tendency:4, organ:"گردہ و مثانہ"},
+  {name:"پیشاب جل کر آنا", mizaj:"ghudi", tendency:5, organ:"گردہ و مثانہ"},
+  {name:"پیشاب میں پتھری", mizaj:"ghudi", tendency:5, organ:"گردہ و مثانہ"},
+  {name:"بائیں گردے میں درد", mizaj:"ghudi", tendency:5, organ:"گردہ و مثانہ"},
+  {name:"مثانہ میں جلن", mizaj:"ghudi", tendency:5, organ:"گردہ و مثانہ"},
+  {name:"رات کو بستر پر پیشاب", mizaj:"asabi", tendency:6, organ:"گردہ و مثانہ"},
+  {name:"ضعفِ گردہ", mizaj:"asabi", tendency:6, organ:"گردہ و مثانہ"},
+  {name:"گردے کی پتھری", mizaj:"asabi", tendency:6, organ:"گردہ و مثانہ"},
+  {name:"بار بار پیشاب آنا", mizaj:"asabi", tendency:6, organ:"گردہ و مثانہ"},
+
+  // ===== خصیہ و عضوِ تناسل (23) =====
+  {name:"ضعفِ خصیہ", mizaj:"asabi", tendency:1, organ:"خصیہ و عضوِ تناسل"},
+  {name:"جریان", mizaj:"asabi", tendency:1, organ:"خصیہ و عضوِ تناسل"},
+  {name:"خصیوں کا ٹپکنا", mizaj:"asabi", tendency:1, organ:"خصیہ و عضوِ تناسل"},
+  {name:"آتشک", mizaj:"asabi", tendency:1, organ:"خصیہ و عضوِ تناسل"},
+  {name:"انتشار کی کمی", mizaj:"asabi", tendency:1, organ:"خصیہ و عضوِ تناسل"},
+  {name:"جریانِ منی", mizaj:"asabi", tendency:1, organ:"خصیہ و عضوِ تناسل"},
+  {name:"نامردی", mizaj:"asabi", tendency:1, organ:"خصیہ و عضوِ تناسل"},
+  {name:"آتشکی جلدی سرخ موہکے", mizaj:"asabi", tendency:1, organ:"خصیہ و عضوِ تناسل"},
+  {name:"دائیں خصیہ کا درد", mizaj:"asabi", tendency:1, organ:"خصیہ و عضوِ تناسل"},
+  {name:"خصیہ کی خارش", mizaj:"adalati", tendency:2, organ:"خصیہ و عضوِ تناسل"},
+  {name:"خصیوں کا سکڑنا", mizaj:"adalati", tendency:2, organ:"خصیہ و عضوِ تناسل"},
+  {name:"احتلام", mizaj:"adalati", tendency:2, organ:"خصیہ و عضوِ تناسل"},
+  {name:"ورمِ خصیہ", mizaj:"adalati", tendency:3, organ:"خصیہ و عضوِ تناسل"},
+  {name:"خصیہ میں ریاح", mizaj:"adalati", tendency:3, organ:"خصیہ و عضوِ تناسل"},
+  {name:"خصیہ میں پانی بھرنا", mizaj:"ghudi", tendency:4, organ:"خصیہ و عضوِ تناسل"},
+  {name:"سرعتِ انزال", mizaj:"ghudi", tendency:4, organ:"خصیہ و عضوِ تناسل"},
+  {name:"انتشار کے ساتھ امساک کی کمی", mizaj:"ghudi", tendency:4, organ:"خصیہ و عضوِ تناسل"},
+  {name:"بائیں خصیہ میں درد", mizaj:"ghudi", tendency:5, organ:"خصیہ و عضوِ تناسل"},
+  {name:"سرعتِ انزال", mizaj:"ghudi", tendency:5, organ:"خصیہ و عضوِ تناسل"},
+  {name:"ضعفِ باہ کبدی", mizaj:"ghudi", tendency:5, organ:"خصیہ و عضوِ تناسل"},
+  {name:"سوزاک", mizaj:"ghudi", tendency:5, organ:"خصیہ و عضوِ تناسل"},
+  {name:"کجی قضیب بائیں طرف", mizaj:"ghudi", tendency:5, organ:"خصیہ و عضوِ تناسل"},
+  {name:"جریانِ منی", mizaj:"asabi", tendency:6, organ:"خصیہ و عضوِ تناسل"},
+
+  // ===== رحم و حیض (خواتین) (22) =====
+  {name:"بندشِ حیض", mizaj:"asabi", tendency:1, organ:"رحم و حیض (خواتین)"},
+  {name:"رحم کا ڈھیلا ہونا", mizaj:"asabi", tendency:1, organ:"رحم و حیض (خواتین)"},
+  {name:"لیکوریا اعصابی", mizaj:"asabi", tendency:1, organ:"رحم و حیض (خواتین)"},
+  {name:"رحم میں درد", mizaj:"adalati", tendency:2, organ:"رحم و حیض (خواتین)"},
+  {name:"رحم و شرمگاہ کی خارش", mizaj:"adalati", tendency:2, organ:"رحم و حیض (خواتین)"},
+  {name:"رحم کا سکڑنا", mizaj:"adalati", tendency:2, organ:"رحم و حیض (خواتین)"},
+  {name:"زخمِ رحم", mizaj:"adalati", tendency:3, organ:"رحم و حیض (خواتین)"},
+  {name:"لیکوریا رحم", mizaj:"adalati", tendency:3, organ:"رحم و حیض (خواتین)"},
+  {name:"کثرتِ حیض", mizaj:"adalati", tendency:3, organ:"رحم و حیض (خواتین)"},
+  {name:"ورمِ رحم", mizaj:"ghudi", tendency:4, organ:"رحم و حیض (خواتین)"},
+  {name:"بچہ دانی کا باہر نکلنا", mizaj:"ghudi", tendency:4, organ:"رحم و حیض (خواتین)"},
+  {name:"حیض کا مشکل سے آنا", mizaj:"ghudi", tendency:4, organ:"رحم و حیض (خواتین)"},
+  {name:"تنگیِ حیض", mizaj:"ghudi", tendency:4, organ:"رحم و حیض (خواتین)"},
+  {name:"رحم کی سوزش", mizaj:"ghudi", tendency:5, organ:"رحم و حیض (خواتین)"},
+  {name:"خصیۃ الرحم کی سوزش", mizaj:"ghudi", tendency:5, organ:"رحم و حیض (خواتین)"},
+  {name:"رحم باہر نکلنا", mizaj:"ghudi", tendency:5, organ:"رحم و حیض (خواتین)"},
+  {name:"رحم کا درد", mizaj:"ghudi", tendency:5, organ:"رحم و حیض (خواتین)"},
+  {name:"لیکوریا میں جلن", mizaj:"ghudi", tendency:5, organ:"رحم و حیض (خواتین)"},
+  {name:"لیکوریا", mizaj:"asabi", tendency:6, organ:"رحم و حیض (خواتین)"},
+  {name:"رحم کا دم گھٹنا", mizaj:"asabi", tendency:6, organ:"رحم و حیض (خواتین)"},
+  {name:"رحم کا باہر نکلنا", mizaj:"asabi", tendency:6, organ:"رحم و حیض (خواتین)"},
+  {name:"بندشِ خونِ حیض", mizaj:"asabi", tendency:6, organ:"رحم و حیض (خواتین)"},
+
+  // ===== جوڑ، ہڈیاں و پٹھے (18) =====
+  {name:"جوڑوں کا درد", mizaj:"asabi", tendency:1, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"بائیں طرف کا عرق النساء", mizaj:"asabi", tendency:1, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"ہڈیوں کا کینسر", mizaj:"asabi", tendency:1, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"جوڑوں کا سخت پتھر جیسا درد", mizaj:"adalati", tendency:2, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"کولہے کا درد", mizaj:"adalati", tendency:2, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"عرق النساء دائیں طرف", mizaj:"adalati", tendency:2, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"پٹھوں کا اکڑاؤ", mizaj:"adalati", tendency:2, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"کمر درد", mizaj:"adalati", tendency:2, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"پنڈلیوں میں درد", mizaj:"adalati", tendency:2, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"مہرے میں درد", mizaj:"adalati", tendency:2, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"گھٹنے کا درد", mizaj:"adalati", tendency:3, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"عرق النساء دائیں طرف", mizaj:"adalati", tendency:3, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"یورک ایسڈ", mizaj:"adalati", tendency:3, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"جوڑوں کا درد و سوزش", mizaj:"ghudi", tendency:4, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"جوڑوں کا درد", mizaj:"ghudi", tendency:4, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"پٹھوں کا کھچاؤ", mizaj:"ghudi", tendency:4, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"جوڑوں کا درد", mizaj:"asabi", tendency:6, organ:"جوڑ، ہڈیاں و پٹھے"},
+  {name:"عرق النساء دائیں طرف", mizaj:"asabi", tendency:6, organ:"جوڑ، ہڈیاں و پٹھے"},
+
+  // ===== جلد، بال و ناخن (30) =====
+  {name:"چیچک", mizaj:"asabi", tendency:1, organ:"جلد، بال و ناخن"},
+  {name:"خسرہ", mizaj:"asabi", tendency:1, organ:"جلد، بال و ناخن"},
+  {name:"سفید پھنسیاں", mizaj:"asabi", tendency:1, organ:"جلد، بال و ناخن"},
+  {name:"رال بہنا", mizaj:"asabi", tendency:1, organ:"جلد، بال و ناخن"},
+  {name:"ناخن سفید ہونا", mizaj:"asabi", tendency:1, organ:"جلد، بال و ناخن"},
+  {name:"برص", mizaj:"asabi", tendency:1, organ:"جلد، بال و ناخن"},
+  {name:"پلکوں کے بال گرنا", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"ناخن کا پھٹنا", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"ناخن کا پتلا ہونا", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"ناخن کا بیٹھنا", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"خارش", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"چنبل", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"جلد کا پھٹنا", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"جلدی خشکی", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"جلد کا کینسر", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"بالوں کا جھڑنا و ٹوٹنا", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"گنجا پن", mizaj:"adalati", tendency:2, organ:"جلد، بال و ناخن"},
+  {name:"پلکوں کے بال اڑنا", mizaj:"adalati", tendency:3, organ:"جلد، بال و ناخن"},
+  {name:"پلکوں کی خارش", mizaj:"adalati", tendency:3, organ:"جلد، بال و ناخن"},
+  {name:"خارش ٹانگوں پر", mizaj:"adalati", tendency:3, organ:"جلد، بال و ناخن"},
+  {name:"خارش تر", mizaj:"adalati", tendency:3, organ:"جلد، بال و ناخن"},
+  {name:"جلد کا زور پڑنا", mizaj:"ghudi", tendency:4, organ:"جلد، بال و ناخن"},
+  {name:"گنجا پن", mizaj:"ghudi", tendency:4, organ:"جلد، بال و ناخن"},
+  {name:"خارش", mizaj:"ghudi", tendency:4, organ:"جلد، بال و ناخن"},
+  {name:"دھدری", mizaj:"ghudi", tendency:4, organ:"جلد، بال و ناخن"},
+  {name:"زرد رنگ کی پھنسیاں", mizaj:"ghudi", tendency:5, organ:"جلد، بال و ناخن"},
+  {name:"جلد کی جلن دار پھنسیاں", mizaj:"ghudi", tendency:5, organ:"جلد، بال و ناخن"},
+  {name:"گنجا پن", mizaj:"asabi", tendency:6, organ:"جلد، بال و ناخن"},
+  {name:"خسرہ", mizaj:"asabi", tendency:6, organ:"جلد، بال و ناخن"},
+  {name:"دھدری", mizaj:"asabi", tendency:6, organ:"جلد، بال و ناخن"},
+
+  // ===== عمومی/پورے جسم کی بیماریاں (67) =====
+  {name:"درد اعصابہ", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"گہری نیند/غفلت کی نیند", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"سفید موتیا", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"نزدیک کی نظر کمزور", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"خون کی کمی", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"شوگر اعصابی", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"بائیں طرف کا فالج", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"لیوکیمیا", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"حملِ ضائع ہونا", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"بہرہ پن", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"کھانے کے بعد گیس", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ڈپریشن", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"بچوں کا سوکڑا", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"گونگے بہرے بھینگے بچے ہونا", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"مٹی کھانے کی خواہش", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"لو بلڈ پریشر", mizaj:"asabi", tendency:1, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"سینے کی جکڑن", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"سر کی کھال کی خشکی", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"کولیسٹرول", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ملیریا", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"تپ دق", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"تھیلیسیمیا", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"لقوہ", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ٹائیفائیڈ", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"رسولی", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"دبلاپن/موٹاپا", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ناف کا ٹلنا", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"گلٹی سخت", mizaj:"adalati", tendency:2, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"کن پیڑے", mizaj:"adalati", tendency:3, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ماہواری میں بہت زیادہ خون", mizaj:"adalati", tendency:3, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"خبیث رسولیاں", mizaj:"adalati", tendency:3, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"فالج دائیں طرف", mizaj:"adalati", tendency:3, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"سینے کی جلن", mizaj:"adalati", tendency:3, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ورمِ چہرہ", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"بچوں کے پیٹ میں کیڑے", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"انفکشن", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"یوریا بڑھنا", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"کریٹینائن بڑھنا", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ٹائیفائیڈ", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"السر", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"خون کی کمی", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"فالج بائیں طرف", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"پھوڑے", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"بلڈ پریشر ہائی", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ہاتھ پاؤں کی جلن", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"پانی والی رسولی", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"سسٹ", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"پتے کی پتھری", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ہاتھ پاؤں کا سن ہونا", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ہاتھ پاؤں میں سوجن", mizaj:"ghudi", tendency:4, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"درد سر", mizaj:"ghudi", tendency:5, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"بلغم کے اخراج میں دقت", mizaj:"ghudi", tendency:5, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"بلڈ پریشر", mizaj:"ghudi", tendency:5, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ماشرہ", mizaj:"ghudi", tendency:5, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"دائیں خصیے کا سکڑنا", mizaj:"ghudi", tendency:5, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"انتڑیوں کی سوزش کا بخار", mizaj:"ghudi", tendency:5, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"تپِ طاعون/انفکشن", mizaj:"ghudi", tendency:5, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"اونچا سننا", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"پیاس", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"میٹھی بلغم آنا", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ناف کا ٹلنا", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"شوگر", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"ٹائیفائیڈ", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"بلڈ پریشر لو", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"جسم کا پھول جانا", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"فالج", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+  {name:"موٹاپا", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
+
 ];
 
 // ---------- FLATTEN, SORT (Urdu alphabetical), AND ICON-TAG ALL DISEASES ----------
@@ -613,29 +1242,101 @@ function getIcon(name){
   return '🩺';
 }
 
-const allDiseases = diseaseList.map(d=> ({name:d.name, mizaj:d.mizaj, icon:getIcon(d.name)}));
-allDiseases.sort((a,b)=> urduCompare(a.name, b.name));
+const allDiseases = diseaseList.map(d=> ({name:d.name, mizaj:d.mizaj, tendency:d.tendency, organ:d.organ, icon:getIcon(d.name)}));
 
 const diseaseGrid = document.getElementById('diseaseGrid');
-diseaseGrid.className = 'disease-grid';
+diseaseGrid.className = '';
+diseaseGrid.style.cssText = 'display:flex; flex-direction:column; gap:10px; margin:20px 0 10px;';
 const diseaseIds = [];
+
+// اعضاء کے مطابق گروپ بندی کریں (مزاج/تحریک صارف کو نظر نہیں آئے گی، صرف اندرونی طور پر محفوظ)
+const organGroups = {};
+const organOrderList = [];
 allDiseases.forEach((d, i)=>{
   const did = `dis-${i}`;
-  diseaseIds.push({id:did, mizaj:d.mizaj, name:d.name});
-  const label = document.createElement('label');
-  label.className = 'symptom';
-  label.id = `wrap-${did}`;
-  label.innerHTML = `<input type="checkbox" id="${did}" onchange="toggleSymptom('${did}')"><span>${i+1}. ${d.icon} ${d.name}</span>`;
-  diseaseGrid.appendChild(label);
+  diseaseIds.push({id:did, mizaj:d.mizaj, tendency:d.tendency, name:d.name});
+  if(!organGroups[d.organ]){
+    organGroups[d.organ] = [];
+    organOrderList.push(d.organ);
+  }
+  organGroups[d.organ].push({...d, did, idx:i});
 });
-function toggleSymptom(id){
-  document.getElementById('wrap-'+id).classList.toggle('checked', document.getElementById(id).checked);
+
+function updateOrganSummary(organKey){
+  const selectedNames = organGroups[organKey]
+    .filter(item=> document.getElementById(item.did) && document.getElementById(item.did).checked)
+    .map(item=> item.name);
+  const summaryEl = document.getElementById(`organ-summary-${organKey}`);
+  if(summaryEl){
+    summaryEl.textContent = selectedNames.length ? selectedNames.join('، ') : '';
+    summaryEl.style.display = selectedNames.length ? 'block' : 'none';
+  }
 }
+
+function toggleOrganPanel(organKey){
+  const panel = document.getElementById(`organ-panel-${organKey}`);
+  const arrow = document.getElementById(`organ-arrow-${organKey}`);
+  const isOpen = panel.style.display === 'block';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
+}
+
+organOrderList.forEach((organKey, gi)=>{
+  const safeKey = organKey; // استعمال بطور id کا حصہ (اردو حروف بھی چل جاتے ہیں id میں)
+  const container = document.createElement('div');
+  container.className = 'organ-accordion';
+  container.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden;';
+
+  const headerBtn = document.createElement('div');
+  headerBtn.style.cssText = 'padding:14px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; color:var(--gold); font-weight:700;';
+  headerBtn.innerHTML = `<span>${organKey} کی تمام بیماریاں</span><span id="organ-arrow-${safeKey}">▾</span>`;
+  headerBtn.onclick = ()=> toggleOrganPanel(safeKey);
+  container.appendChild(headerBtn);
+
+  const summary = document.createElement('div');
+  summary.id = `organ-summary-${safeKey}`;
+  summary.style.cssText = 'display:none; padding:0 16px 12px; color:var(--text); font-size:.9rem;';
+  container.appendChild(summary);
+
+  const panel = document.createElement('div');
+  panel.id = `organ-panel-${safeKey}`;
+  panel.style.cssText = 'display:none; padding:10px 12px 14px; border-top:1px solid var(--border);';
+  const panelGrid = document.createElement('div');
+  panelGrid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:6px;';
+  organGroups[organKey].forEach(item=>{
+    const label = document.createElement('label');
+    label.className = 'symptom';
+    label.id = `wrap-${item.did}`;
+    label.innerHTML = `<input type="checkbox" id="${item.did}" onchange="toggleSymptom('${item.did}', '${safeKey}')"><span>${item.icon} ${item.name}</span>`;
+    panelGrid.appendChild(label);
+  });
+  panel.appendChild(panelGrid);
+  container.appendChild(panel);
+
+  diseaseGrid.appendChild(container);
+});
+
+function toggleSymptom(id, organKey){
+  document.getElementById('wrap-'+id).classList.toggle('checked', document.getElementById(id).checked);
+  if(organKey) updateOrganSummary(organKey);
+}
+
 function filterDiseases(){
   const q = document.getElementById('diseaseSearch').value.trim();
-  allDiseases.forEach((d, i)=>{
-    const wrap = document.getElementById(`wrap-dis-${i}`);
-    wrap.style.display = (!q || d.name.includes(q)) ? 'flex' : 'none';
+  organOrderList.forEach(organKey=>{
+    let anyMatch = false;
+    organGroups[organKey].forEach(item=>{
+      const wrap = document.getElementById(`wrap-${item.did}`);
+      const match = (!q || item.name.includes(q));
+      wrap.style.display = match ? 'flex' : 'none';
+      if(match) anyMatch = true;
+    });
+    const container = document.getElementById(`organ-panel-${organKey}`).parentElement;
+    container.style.display = anyMatch ? 'block' : 'none';
+    if(q && anyMatch){
+      document.getElementById(`organ-panel-${organKey}`).style.display = 'block';
+      document.getElementById(`organ-arrow-${organKey}`).textContent = '▴';
+    }
   });
 }
 
@@ -693,10 +1394,19 @@ function doseLookup(name){
 }
 const NO_INGREDIENTS = "اجزاء لیکچرز میں تفصیل سے نہیں دیے گئے — صرف نام اور استعمال مذکور ہے۔";
 const nuskheData = [
+  {name:`حاملہ خواتین کی کمزوری کے لڈو`, group:"ghudi", mizaj:`غدی اعصابی (نمبر 5)`, ingredients:`ناریل کی گری 1 کھوپرا + پھول مکھانہ 20 گرام + السی 5 گرام + بنولہ 1 تولہ + گوند کیکر (دیسی گھی میں فرائی کیا ہوا) + گڑ (لڈو بنانے کے لیے)۔`, benefit:`حمل کے دوران خون کی کمی، توانائی کی کمی، پٹھوں کی کمزوری، یا بچے کی پیدائش کے بعد ماں کا دودھ نہ بننا — ان سب کے لیے مفید۔ صرف 3 ماہ کے استعمال سے مکمل کمزوری ٹھیک ہو جاتی ہے۔`, dose:`3 سے 5 تولہ روزانہ، تین ماہ تک۔`},
+  {name:`مرہم غدی خارش (کافور)`, group:"ghudi", mizaj:`غدی (بیرونی استعمال)`, ingredients:`کافور 1 تولہ + پانی (پیسٹ بنانے کے لیے)۔`, benefit:`غدی خارش کے لیے مالش۔`, dose:`پیسٹ بنا کر متاثرہ جگہ پر مالش کریں۔ منہ اور آنکھوں سے بچائیں۔`},
+  {name:`مرہم غدی خارش (ملتانی مٹی)`, group:"ghudi", mizaj:`غدی (بیرونی استعمال)`, ingredients:`ملتانی مٹی (10 روپے کی) + پانی۔`, benefit:`غدی خارش کے لیے مالش۔`, dose:`پیسٹ بنا کر تھوڑی دیر خشک ہونے دیں، پھر تھوڑا پانی ملا کر خارش والی جگہ پر مالش کریں۔ منہ اور آنکھوں سے بچائیں۔`},
+  {name:`مرہم اعصابی خارش`, group:"asabi", mizaj:`اعصابی (بیرونی استعمال)`, ingredients:`نیلا تھوتھا 4 رتی + آدھا کلو پانی۔`, benefit:`اعصابی خارش کے لیے۔`, dose:`پانی میں حل کر کے خارش والی جگہ پر لگائیں۔ منہ اور آنکھوں سے بچائیں۔`},
+  {name:`مرہم عضلاتی اعصابی خارش`, group:"adalati", mizaj:`عضلاتی اعصابی (بیرونی استعمال)`, ingredients:`گندھک 100 گرام + 4 نمبر ملین + نیلا تھوتھا 1 تولہ + سرسوں کا تیل۔`, benefit:`عضلاتی اعصابی خارش کے لیے۔`, dose:`تمام اجزاء مکس کر کے لگائیں، پھر 15-20 منٹ دھوپ میں بیٹھیں۔`},
+  {name:`لیپ چہرے کے دانوں کے لیے`, group:"adalati", mizaj:`عضلاتی (بیرونی استعمال)`, ingredients:`رتن جوت 1 تولہ + ملتانی مٹی 5 تولہ + کافور 1 تولہ + پانی۔`, benefit:`عضلاتی تحریک کی وجہ سے چہرے پر نکلنے والے دانوں کے لیے (گوشت، فاسٹ فوڈ، کھٹی چیزیں، مصالحہ دار/چٹ پٹی غذاؤں کی کثرت سے ہوتے ہیں)۔`, dose:`پیسٹ بنا کر چہرے پر لگائیں۔ منہ اور آنکھوں سے بچائیں۔`},
+  {name:`چہرہ خوبصورت بنانے کی کریم`, group:"general", mizaj:`عمومی (بیرونی استعمال)`, ingredients:`صندل سفید + رال سفید + کافور + حسنِ یوسف — برابر وزن۔`, benefit:`چہرے کی خوبصورتی و نکھار کے لیے۔`, dose:`تمام اجزاء مکس کر کے کریم بنا لیں، چہرے پر لگائیں۔`},
+  {name:`صفرا نکالنے کا فارمولا`, group:"ghudi", mizaj:`غدی عضلاتی`, ingredients:`اعصابی کھار + 1 ملین (اعصابی عضلاتی ملین) 2 گولی۔`, benefit:`پیلا یرقان/ہیپاٹائٹس (نمبر 4 مریض) کے علاج کا پہلا مرحلہ — پہلے صفرا نکال کر جسم کی گرمی ختم کرنی ہے، اس کے بعد ہی ورم کی دوا (اکسیر ورم) 8-10 دن کے لیے دیں تو علاج مکمل ہوگا۔`, dose:`2 گولی، حسبِ ہدایت۔`},
+  {name:`انٹی سیپٹیئر (غدی)`, group:"ghudi", mizaj:`غدی`, ingredients:`سوہاگہ + گندھک آملہ + ریٹھا۔`, benefit:`غدی تحریک کے لیے انٹی سیپٹیئر — جسم میں خطرناک جراثیم بڑھ جانے (جیسے چنبل، داد، الرجی) کی صورت میں جراثیم ختم کرنے کے لیے استعمال ہوتی ہے۔ نوٹ: انٹی سیپٹک اور اینٹی بایوٹک میں فرق ہے — اینٹی بایوٹک جسم کے اندر بیکٹیریا ختم کرنے کی دوا ہے، انٹی سیپٹک جراثیم مارنے کے اصول پر مبنی دوا ہے۔`, dose:`دیگر متعلقہ نسخوں کے ساتھ ملا کر، تشخیص کے مطابق مقدار۔`},
   {name:`اعصابی کھار`, group:"asabi", mizaj:`اعصابی عضلاتی`, ingredients:`مٹھا سوڈا + سوہاگہ بریاں + بڑی الائچی + سجی کھار + ریوند خطائی — برابر وزن، 500mg کیپسول۔`, benefit:`پیشاب کی مقدار بڑھائے، جلن بند کرے، لو بلڈ پریشر کے لیے مفید۔ گردہ مثانہ کی پتھری میں حب سنگ دانہ کے ساتھ ملانے سے پتھری ریزہ ریزہ ہو کر نکلتی ہے۔ یہ اعصابی عضلاتی ملین کا متبادل ہے — اگر ملین دستیاب نہ ہو تو اعصابی کھار استعمال کریں۔ اگر یہ بھی نہ ملے تو متبادل نسخہ: سوہاگہ بریاں + قلمی شورہ مدبر + مٹھا سوڈا + ست ملٹھی + ریوند خطائی + سجی کھار۔`, dose:`500mg کیپسول، دن میں 3-4 بار۔`, warning:`اعصابی اور عضلاتی ادویات کو آپس میں ملانا نہیں ہے۔`},
   {name:`حب سورنجان`, group:"ghudi", mizaj:`غدی اعصابی`, ingredients:`سورنجاں شیریں + سورنجاں تلخ + اسگند ناگوری + پیپلی + خولنجاں + کنڈیاری کے بیج + سوڈا سلی سلاس + گوند کیکر — برابر وزن۔`, benefit:`جوڑوں کے درد، کمر درد، یورک ایسڈ کے دردوں کے لیے مفید دوا۔`, dose:`1 تا 2 گرام دن میں تین بار۔`},
   {name:`اکسیر بادیاں`, group:"ghudi", mizaj:`غدی اعصابی`, ingredients:`ہلدی خالص + ملٹھی + سونف — برابر وزن۔`, benefit:`خشک کھانسی، نزلہ زکام، آنتوں کا ورم، پھیپھڑوں کا ورم و سوزش، معدہ کی سوزش، گردہ و سوزاک، الرجی، سانس کی الرجی، پیشاب میں جلن کے لیے مفید۔`, dose:`دن میں تین بار۔`},
-  {name:`اکسیر ورم`, group:"ghudi", mizaj:`غدی اعصابی`, ingredients:`ہلدی 30 گرام + ملٹھی 30 گرام + سونف 30 گرام + ریوند خطائی 90 گرام + کشتہ ہڑتال ورقیہ 15 گرام۔`, benefit:`رحم کی سوزش، ورم، درد حیض، بے قاعدگیِ ایام، پانی کی تھیلیاں، جلن دار لیکوریا، کمر درد، رحم کی خارش میں بے حد مفید۔`, dose:`500mg۔`},
+  {name:`اکسیر ورم`, group:"ghudi", mizaj:`غدی اعصابی`, ingredients:`ہلدی 30 گرام + ملٹھی 30 گرام + سونف 30 گرام + ریوند خطائی 90 گرام + کشتہ ہڑتال ورقیہ 15 گرام۔`, benefit:`رحم کی سوزش، ورم، درد حیض، بے قاعدگیِ ایام، پانی کی تھیلیاں، جلن دار لیکوریا، کمر درد، رحم کی خارش میں بے حد مفید۔ جسم میں کہیں بھی (اعصابی، عضلاتی یا غدی) ورم ہو تو نمبر 5 (غدی اعصابی) سے مکمل علاج ہوتا ہے — جس تحریک کا بھی مریض ہو، ورم کا علاج ورم کی دوا سے ہی ہوگا۔ اگر بخار تین دن یا اس سے زیادہ رہے تو سمجھیں ورم ہو گیا ہے — پہلے مزاج کے مطابق بیماری کنٹرول کریں، بیماری کنٹرول ہونے کے بعد آخر میں ورم کی دوا دیں۔ اگر غدی تحریک کا ورم ہو (خصوصاً پیلا یرقان/ہیپاٹائٹس، نمبر 4) تو پہلے صفرا نکالیں اور گرمی ختم کریں، اس کے بعد 8-10 دن ورم کی دوا دیں تو علاج مکمل ہوگا۔`, dose:`گرمی کا فارمولا: اکسیر ورم + 5 اکسیر + 1 ملین + شربت بزوری (ٹھنڈا پانی کے ساتھ)۔ سردی کا فارمولا: اکسیر ورم + 5 اکسیر + 6 تریاق + شربت بزوری (گرم گرم)۔ 500mg۔`},
   {name:`حب کاکڑا سینگی`, group:"ghudi", mizaj:`غدی اعصابی`, ingredients:`تخم پیاز 50 گرام + دار چینی 50 گرام + کاکڑا سینگی 100 گرام۔`, benefit:`بلغم والی کھانسی اور دمہ میں مفید۔`, dose:`1000mg کیپسول۔ بچوں کے لیے آدھا گرام شہد میں ملا کر دیں۔`},
   {name:`اعصابی سوزش بخار`, group:"ghudi", mizaj:`غدی عضلاتی`, ingredients:`ہریڑ بریاں 30 گرام + گندھک آملہ 30 گرام + آملہ خشک 20 گرام۔`, benefit:`نئے نئے بخار کے لیے — جسم میں درد، سستی، بخار کی شدت سے دھڑکن تیز، پیشاب مقدار میں زیادہ، نبض موٹی چھوٹی گہرائی میں ہو۔`, dose:`500mg تا 1000mg۔`},
   {name:`اعصابی عضلاتی ملین (جدید)`, group:"asabi", mizaj:`اعصابی عضلاتی`, ingredients:`قلمی شورہ خالص 1 تولہ + جو کھار 1 تولہ + نوشادر ٹھیکری اصلی 1 تولہ + کاسنی 1 تولہ + گل سرخ 3 تولہ۔`, benefit:`پیشاب آور، ہائی بلڈ پریشر کنٹرول کرے، ورم اور استسقاء میں مفید۔ سنگ گردہ و مثانہ میں سنگ دانہ کے ساتھ مل کر پتھری خارج کرنے میں معاون۔`, dose:`4 رتی تا 1 ماشہ، دن میں 3-4 بار پانی سے۔ ورم کے مریض کو دو گولی دن میں تین بار۔`},
@@ -704,7 +1414,7 @@ const nuskheData = [
   {name:`اعصابی عضلاتی مسہل`, group:"asabi", mizaj:`اعصابی عضلاتی`, ingredients:`قلمی شورہ 2 تولہ + جو کھار + صندل سفید + گل سرخ + کالا دانہ 1.5 تولہ۔`, benefit:`تیز ترین اعصابی مسہل — صرف شدید صورتوں میں۔ غدی دمہ یا غدی موٹاپے میں شدید قبض کی صورت میں دیگر دواؤں کے ساتھ مفید۔ بندش بول میں بھی مفید ہے۔`, dose:`احتیاط سے، صرف شدید صورت میں۔`, warning:`صرف شدید صورت میں دیں۔ زیادہ مقدار سے پیٹ میں مروڑ، درد اور جلن ہو سکتی ہے — ایسی صورت میں عضلاتی اعصابی ملین کی دو گولیاں لسی دہی سے دیں۔`},
   {name:`اعصابی عضلاتی تریاق`, group:"asabi", mizaj:`اعصابی عضلاتی`, ingredients:`افیون 1 ماشہ + لوبان کوڑیا 1 تولہ + قند سفید 1 تولہ۔`, benefit:`دردوں کو فوری سکون — درد گردہ، درد جگر، سوزشی دردوں میں۔ خون بند کرے، پیچش و اسہال میں مفید۔ بچوں اور بوڑھوں کو ہرگز نہ دیں۔`, dose:`2 تا 4 رتی، تازہ پانی کے ساتھ۔`, warning:`بچوں اور بوڑھوں کو ہرگز استعمال نہ کرائیں (افیون کی موجودگی کی وجہ سے نقصان کا خطرہ)۔ غلطی سے دے چکے ہوں تو عضلاتی غدی مقوی معجون اور لونگ دار چینی کا قہوہ دیں۔ کسی عضلاتی دوا کے ساتھ ہرگز نہ ملائیں۔`},
   {name:`اعصابی عضلاتی روغن`, group:"asabi", mizaj:`اعصابی عضلاتی (بیرونی استعمال)`, ingredients:`مٹھا تیلیا 1 تولہ + کافور 2 تولہ + روغن تارپین 4 تولہ + شیر عشر 1 تولہ + کٹر آئل 1 پاؤ۔`, benefit:`جوڑوں کے درد، پٹھوں کے کھنچاؤ، عرق النساء میں مالش کے لیے مفید۔`, dose:`صرف بیرونی مالش۔`},
-  {name:`خمیرہ گاؤ زبان`, group:"asabi", mizaj:`اعصابی عضلاتی`, ingredients:`گاؤ زبان، گل گاؤ زبان، کشنیز خشک، ابریشم زرد، بہمن سرخ، بہمن سفید، صندل سفید، تخم بالنگو، تخم فرنجمشک، بادرنجویہ — ہر ایک 100 گرام۔`, benefit:`محرک دماغ و اعصاب، دماغی سستی و تسکین دور کرے، غدی فالج اور تسکینِ اعصاب میں مفید۔ گھبراہٹ و بے چینی میں فوری اثر۔`, dose:`ایک بڑا چمچہ دن میں تین بار (صبح دوپہر شام) نیم گرم دودھ سے۔`, warning:`تریاق تبخیر اور دیگر عضلاتی دواؤں کے ساتھ ہرگز استعمال نہ کریں۔`},
+  {name:`خمیرہ گاؤ زبان`, group:"asabi", mizaj:`اعصابی عضلاتی`, ingredients:`گاؤ زبان، گل گاؤ زبان، کشنیز خشک، ابریشم زرد، بہمن سرخ، بہمن سفید، صندل سفید، تخم بالنگو، تخم فرنجمشک، بادرنجویہ — ہر ایک 100 گرام۔`, benefit:`محرک دماغ و اعصاب، دماغی سستی و تسکین دور کرے، غدی فالج اور تسکینِ اعصاب میں مفید۔ گھبراہٹ و بے چینی میں فوری اثر۔ اگر مریض کا سپرم/مذی/منی سب معمول کے مطابق ہو مگر دماغی/اعصابی کمزوری محسوس ہو تو خمیرہ مروارید کے ساتھ ملا کر دیں۔`, dose:`ایک بڑا چمچہ دن میں تین بار (صبح دوپہر شام) نیم گرم دودھ سے۔ دماغی کمزوری کے لیے: خمیرہ گاؤ زبان + خمیرہ مروارید ملا کر۔`, warning:`تریاق تبخیر اور دیگر عضلاتی دواؤں کے ساتھ ہرگز استعمال نہ کریں۔`},
   {name:`مفرح شاہی (جوارش شاہی)`, group:"asabi", mizaj:`اعصابی عضلاتی`, ingredients:`مربہ آملہ + مربہ سیب + مربہ گاجر ہر ایک 100 گرام، کشنیز خشک + الائچی خورد + صندل سفید + گل سرخ ہر ایک 25 گرام، زرشک شیریں 50 گرام، چینی/شہد تین گنا۔`, benefit:`مفرح قلب، خفقان قلب کی خاص دوا، معدہ کی جلن دور کرے۔ بلڈ پریشر ہائی میں حب شفاء کے ساتھ مفید۔ فالج و لقوہ میں محرکِ اعصاب۔`, dose:`چھ ماشہ صبح شام، شدت میں تین بار بھی۔`, warning:`بلڈ پریشر لو والے مریض کو غلطی سے دیں تو بے چینی و گھبراہٹ بڑھ جائے گی — فوراً لونگ دار چینی یا اجوائن پودینہ کا قہوہ دیں۔`},
   {name:`اعصابی طلاء`, group:"asabi", mizaj:`اعصابی عضلاتی (بیرونی)`, ingredients:`عطر گلاب + عطر حنا + عطر مشک ہر ایک ایک حصہ، روغن صندل پانچ حصے۔`, benefit:`عضو تناسل کے سوئے اعصاب کو جگا کر تحریک پیدا کرتا ہے — جب عضلات ٹھیک ہوں لیکن اعصاب کمزور ہوں۔`, dose:`حشفہ چھوڑ کر ہلکی مالش۔`},
   {name:`عضلاتی اعصابی ملین`, group:"adalati", mizaj:`عضلاتی اعصابی — خشک سرد`, ingredients:`کرنجوہ 1 تولہ + آملہ 1 تولہ + پھٹکڑی بریاں 2 تولہ + ہلیلہ سیاہ بریاں 4 تولہ۔`, benefit:`رطوبتی امراض میں مفید — پکے پانی جیسے پاخانے، خون ملے پاخانے روکنے میں کارآمد۔ خرابی معدہ میں غدی عضلاتی ملین و تریاق تبخیر ساتھ ملا کر دیں تو دو ہفتوں میں ٹھیک۔`, dose:`تین گولی تک بیک وقت، بچوں کو نصف یا چوتھائی۔`, warning:`دل کے مریض، خون گاڑھا والے، اور عضلاتی دمہ کے مریض ہرگز استعمال نہ کریں (خون میں مزید گاڑھا پن پیدا کرتا ہے)۔ غدی اعصابی سے اعصابی عضلاتی مزاج کی دوائیں اس کے ساتھ ملانا منع ہے۔ غلطی سے استعمال ہو جائے تو اجوائن پودینہ یا زیرہ الائچی کا قہوہ دیں۔`},
@@ -742,7 +1452,7 @@ const nuskheData = [
   {name:`جوارش کمونی`, group:"ghudi", mizaj:`غدی عضلاتی`, ingredients:`سنڈھ 75 گرام + برگ سداب 100 گرام + خولنجاں 75 گرام + فلفل سیاہ 75 گرام + دار چینی 50 گرام + اجوائن دیسی 25 گرام + زیرہ سفید 100 گرام + سرکہ انگوری حسب ضرورت۔`, benefit:`معدہ کے امراض، ریاح گیس تبخیر میں تریاق تبخیر ہنگ والے ساتھ مفید۔ بلڈ پریشر لو میں مفید۔`, dose:`چھ ماشہ صبح شام، شدت میں 3-4 بار۔`, warning:`بلڈ پریشر ہائی والے مریض استعمال نہ کریں — اس کی بجائے مفرح/جوارش شاہی استعمال کریں۔`},
   {name:`نور العین`, group:"ghudi", mizaj:`غدی عضلاتی (بیرونی)`, ingredients:`ست پودینہ + ست کافور + نیلا تھوتھا + ایکری فلیون ہر ایک 1 رتی + گلیسرین 1 پاؤنڈ۔`, benefit:`آنکھ کی سرخی، خارش، پانی آنے کے لیے فوری اثر۔ کان کی خارش میں بھی۔ شیرخوار بچوں کی خارش کے لیے۔`, dose:`سرمہ کی طرح آنکھ میں یا قطرہ۔`, warning:`زیادہ مقدار آنکھ میں ڈالنے سے جلن ہو سکتی ہے — صرف چھوٹا سا قطرہ استعمال کریں۔`},
   {name:`غدی طلاء`, group:"ghudi", mizaj:`غدی عضلاتی (بیرونی)`, ingredients:`روغن جمالگوٹہ 1 تولہ + روغن اجوائن 3 تولہ + روغن خردل 2 تولہ۔`, benefit:`عضو تناسل کے غدد میں سکون، نامردی و ضعفِ باہ، جلق کی عادت چھڑانے کے لیے بہترین۔`, dose:`چند بوندیں عضو پر، پہلے دن کم مقدار۔`, warning:`بہت تیز اثر رکھتی ہے — پہلے دن بالکل کم مقدار میں لگائیں، دوسرے دن بڑھائیں۔ دانے یا چھالے پڑ جائیں تو دیسی گھی ہلدی میں ملا کر لگائیں۔`},
-  {name:`حب اکسیر جدید (حب کینسر)`, group:"ghudi", mizaj:`غدی عضلاتی`, ingredients:`رسکپور + دار چکنا + ہڑتال ورقیہ + پارہ ہر ایک 6 گرام + گندھک آملہ سار 100 گرام + اجوائن دیسی 300 گرام + آب مولی 1 کلو + بابچی 300 گرام۔`, benefit:`سرتاج دوا — مصفی جلد (خارش/پھوڑے/سوداوی مادے)، خطرناک زخم، سوزشی دردیں (عرق النساء) میں حب شفاء کے ساتھ۔`, dose:`1 گولی صبح دوپہر شام، احتیاط سے۔`, warning:`احتیاط سے استعمال کریں — صرف نوجوان و طاقتور مریض کے لیے موزوں، بلڈ پریشر ہائی والے مریض کو نہ دیں۔`},
+  {name:`حب اکسیر جدید (حب کینسر)`, group:"ghudi", mizaj:`غدی عضلاتی`, ingredients:`رسکپور + دار چکنا + ہڑتال ورقیہ + پارہ ہر ایک 6 گرام + گندھک آملہ سار 100 گرام + اجوائن دیسی 300 گرام + آب مولی 1 کلو + بابچی 300 گرام۔`, benefit:`سرتاج دوا — مصفی جلد (خارش/پھوڑے/سوداوی مادے)، خطرناک زخم، سوزشی دردیں (عرق النساء) میں حب شفاء کے ساتھ۔ چنبل، پھوڑے، پھنسیاں اور چوٹ لگنے میں بھی مفید۔ یہ اعصابی اور عضلاتی تحریکوں کے لیے انٹی سیپٹیئر (خطرناک جراثیم ختم کرنے والی) دوا ہے — اعصابی مریض کو بھی دی جا سکتی ہے۔ خطرناک جراثیم عضلاتی تحریک میں پیدا ہوتے ہیں اور غدی تحریک میں مرتے ہیں۔`, dose:`بوڑھے کو آدھی گولی صبح شام۔ نوجوان کو ایک گولی صبح شام۔ چھوٹے بچوں کو تین گولیاں گرائپ واٹر میں ڈال کر، چھان کر دیں۔`, warning:`احتیاط سے استعمال کریں — بلڈ پریشر ہائی والے مریض کو نہ دیں۔`},
   {name:`غدی اعصابی ملین و مسہل`, group:"ghudi", mizaj:`غدی اعصابی`, ingredients:`سنڈھ + کالی مرچ + نوشادر ہر ایک 1 تولہ + سنامکی 3 تولہ (مسہل کے لیے ریوند عصارہ بھی شامل کریں)۔`, benefit:`مقوی دماغ، بلڈ پریشر لو نہیں ہونے دیتا۔ ہیپاٹائٹس، قبض، اماس/سوجن میں مفید۔ حاملہ کو احتیاط سے۔`, dose:`1 گولی صبح دوپہر شام، اماس میں 2 گولی۔`, warning:`حاملہ عورت کو احتیاط سے دیں۔`},
   {name:`غدی اعصابی مقوی لبوب`, group:"ghudi", mizaj:`غدی اعصابی`, ingredients:`مغز چلغوزہ، اخروٹ، فندق، کنجد مقشر، خربوزہ، خیارین، پنبہ دانہ، ثعلب مصری، بادام شیریں، تخم گزر، تخم پیاز ہر ایک 2 تولہ + چینی۔`, benefit:`غدی عضلاتی علامات میں مفید، جگر و گردوں کو طاقت دے کر قوتِ باہ بڑھائے۔`, dose:`چھ تا نو ماشہ دن میں 2-3 بار۔`},
   {name:`غدی اعصابی اکسیر`, group:"ghudi", mizaj:`غدی اعصابی`, ingredients:`سنڈھ 4 تولہ + فلفل سیاہ 3 تولہ + نوشادر ٹھیکری 3 تولہ + ہڑتال ورقیہ 1 تولہ۔`, benefit:`غدی عضلاتی علامات فوراً ختم، پیشاب کی جلن و زردی ختم کرے۔ ہیپاٹائٹس کے مریضوں میں اعصابی غدی تریاق کے ساتھ ڈیڑھ سے تین ماہ میں رپورٹس نارمل۔`, dose:`2 تا 4 رتی دن میں 3-4 بار۔`},
@@ -775,11 +1485,12 @@ const nuskheData = [
   {name:`برائے غدی دم کشی`, group:"asabi", mizaj:`اعصابی غدی`, ingredients:`آک کا دودھ نصف کلو + کری کا بیج 1 پاؤ۔`, benefit:`غدی تحریک سے ہونے والی کھانسی اور دم کشی میں مفید۔`, dose:`250mg کیپسول صبح دوپہر شام ہمراہ عضلاتی اعصابی ملین و جوارش شاہی۔`},
   {name:`برائے پتھری پتہ`, group:"ghudi", mizaj:`غدی اعصابی`, ingredients:`سنڈھ + اجوائن + نوشادر + قلمی شورہ ہر ایک 50 گرام + ریوند خطائی 200 گرام + کشتہ حجرالیہود 5 گرام۔`, benefit:`پتے کی پتھریوں کو توڑ کر خارج کرنے میں اپنی مثال آپ۔`, dose:`5 رتی سفوف ہمراہ الائچی زیرہ سفید کی چائے۔`},
   {name:`ہڈی کی یخنی`, group:"general", mizaj:`عمومی غذائی نسخہ — کیلشیم سے بھرپور`, ingredients:`گوشت کی ہڈیاں (گودے والی) نصف کلو + نمک + کالی مرچ۔`, benefit:`غدی عضلاتی تحریک میں اعصابی دواؤں کا اثر بڑھائے۔ خون کی پیدائش تیز کرے — چھ ہفتے میں ہیموگلوبن ایک پوائنٹ بڑھتا ہے۔ سوزشی جوڑوں کے درد میں مفید۔`, dose:`ایک پیالی صبح دوپہر شام چائے کی طرح۔`},
-  {name:`شربت بزوری (ملٹی وٹامن)`, group:"ghudi", mizaj:`عمومی`, ingredients:`مکو 2 تولہ + کاسنی 2 تولہ + سونف 2 تولہ + جڑ سونف 4 تولہ + جڑ کاسنی 4 تولہ + ملٹھی 3 تولہ۔`, benefit:`خون سے صفرا خارج کرے، جلن، قارورہ و سلسل بول کی تکالیف ختم کرے۔ استسقاء میں بھی مفید۔`, dose:`ایک چمچ سفوف ڈیڑھ گلاس ہلکے گرم پانی میں اچھی طرح مکس کر کے 2 منٹ رکھ کر گرم گرم پئیں۔ گرمیوں کے موسم میں ٹھنڈے پانی سے حل کر کے دیں۔`},
+  {name:`شربت بزوری (ملٹی وٹامن)`, group:"ghudi", mizaj:`عمومی`, ingredients:`مکو 2 تولہ + کاسنی 2 تولہ + سونف 2 تولہ + جڑ سونف 4 تولہ + جڑ کاسنی 4 تولہ + ملٹھی 3 تولہ۔`, benefit:`خون سے صفرا خارج کرے، جلن، قارورہ و سلسل بول کی تکالیف ختم کرے۔ استسقاء میں بھی مفید۔ گڑ، چینی یا کسی بھی شربت سے میٹھا کیا جا سکتا ہے، یا اگر شربت پسند نہ ہو تو کیپسول میں بھر کر دی جا سکتی ہے۔ نمبر 2 مریض کو گرمی کے موسم میں نیم گرم کر کے دیں۔ نمبر 3 مریض کو ہمیشہ نیم گرم کر کے دیں چاہے موسم گرما ہی کیوں نہ ہو۔`, dose:`ایک چمچ سفوف ڈیڑھ گلاس ہلکے گرم پانی میں اچھی طرح مکس کر کے 2 منٹ رکھ کر گرم گرم پئیں۔ عام طور پر گرمیوں کے موسم میں ٹھنڈے پانی سے حل کر کے دیں (سوائے نمبر 2 و 3 کے، جنہیں نیم گرم دیں)۔`},
   {name:`طلا مجلوق (جوانی کا واپسی ٹکٹ)`, group:"general", mizaj:`عضلاتی غدی (بیرونی)`, ingredients:`شنگرف رومی 80 گرام + سم الفار سفید و سیاہ ہر ایک 30 گرام + براہِ کچلہ مدبر + پوست بیخ کنیر + ہینگ + لونگ + جائفل + جلوتری + گھونگچی سرخ + عقرقرحا + مغز جمالگوٹہ ہر ایک 50 گرام + بیر بہوٹی + خراطین ہر ایک 100 گرام + زردی بیضہ مرغ 50 عدد۔`, benefit:`جلق کے تمام عوارضات، لاغری، کمزوریِ انتشار دور کرے۔ 2-4 ہفتے میں مکمل ٹھیک کرتا ہے۔`, dose:`صرف دو تین قطرے رات سوتے وقت، حشفہ چھوڑ کر — مالش نہیں، صرف طلاء۔`, warning:`صرف لگانا ہے، مالش نہیں کرنی — ورنہ جلن ہوگی۔ حشفہ اور سیون (درز) کو چھوڑ کر لگائیں۔`}
 ];
 const nuskheContainer = document.getElementById('nuskheList');
 const nuskheCategoryOrder = ["اعصابی عضلاتی","عضلاتی اعصابی","عضلاتی غدی","غدی عضلاتی","غدی اعصابی","اعصابی غدی","عمومی"];
+const nuskheCategoryNumbers = {"اعصابی عضلاتی":1,"عضلاتی اعصابی":2,"عضلاتی غدی":3,"غدی عضلاتی":4,"غدی اعصابی":5,"اعصابی غدی":6};
 function getNuskhaCategory(n){
   const m = n.mizaj || "";
   for(const cat of nuskheCategoryOrder){
@@ -794,11 +1505,12 @@ function renderNuskhe(list){
   let html = '';
   nuskheCategoryOrder.forEach(cat=>{
     if(groups[cat].length === 0) return;
-    html += `<h3 style="color:var(--gold); margin-top:26px;">${cat}</h3>`;
+    const numLabel = nuskheCategoryNumbers[cat] ? ` (نمبر ${nuskheCategoryNumbers[cat]} مزاج)` : '';
+    html += `<h3 style="color:var(--gold); margin-top:26px;">${cat}${numLabel}</h3>`;
     html += groups[cat].map(n=>`
       <div class="nuskha-card">
         <h4>${n.name}</h4>
-        <span class="tag">مزاج: ${n.mizaj}</span>
+        <span class="tag">مزاج: ${n.mizaj}${nuskheCategoryNumbers[getNuskhaCategory(n)] ? ' — نمبر '+nuskheCategoryNumbers[getNuskhaCategory(n)]+' مزاج' : ''}</span>
         <p style="color:var(--gold-soft); margin-top:10px;"><b>اجزاء:</b> <span style="color:var(--text);">${n.ingredients}</span></p>
         <p style="color:var(--text); margin-top:8px;">${n.benefit}</p>
         <p style="color:var(--gold-soft); margin-top:8px;"><b>طریقہ استعمال:</b> <span style="color:var(--text);">${n.dose || doseLookup(n.name)}</span></p>
@@ -1727,6 +2439,14 @@ function computeMizaj(){
 }
 
 // ---------- TIE-BREAKER QUESTIONS ----------
+// مریض کو دکھانے کے وقت "فلاں دوا کے ساتھ نہ ملائیں" جیسی اندرونی رہنمائی چھپا دیں (یہ انتخاب کے وقت مدنظر رکھی جاتی ہے، مریض کو بتانے کی ضرورت نہیں)
+function stripCombinationWarning(warning){
+  if(!warning) return '';
+  const sentences = warning.split(/(?<=۔)/).filter(s=> s.trim().length);
+  const kept = sentences.filter(s=> !/ملانا منع|ہرگز نہ ملائیں|کے ساتھ.*نہ ملائیں|ملا کر.*نہ|نہ ملائیں/.test(s));
+  return kept.join(' ').trim();
+}
+
 const tieBreakers = {
   "asabi,adalati": [
     {q:"جسم کی جلد کیسی محسوس ہوتی ہے؟", a:"نرم اور ملائم", am:"asabi", b:"خشک اور کھردری", bm:"adalati"},
@@ -1774,9 +2494,52 @@ function renderMizajResult(totals, answered){
   }
 
   const dominant = sorted[0];
-  html += `<h3>تشخیصی نتیجہ: ${names[dominant]} مزاج</h3>
+
+  // منتخب کردہ علامات (تشخیصی سوالات کے جوابات) اور بیماریاں جمع کریں
+  const selectedSymptomLabels = [];
+  criteria.forEach(c=>{
+    if(selections[c.id] !== undefined){
+      selectedSymptomLabels.push(c.options[selections[c.id]].label);
+    }
+  });
+  const selectedDiseaseObjs = diseaseIds.filter(d=> document.getElementById(d.id).checked);
+  const selectedDiseaseNames = selectedDiseaseObjs.map(d=> d.name);
+
+  // ---------- نمبر والی تحریک (1 تا 6) کا تعین ----------
+  const numberToCategory = {1:"اعصابی عضلاتی", 2:"عضلاتی اعصابی", 3:"عضلاتی غدی", 4:"غدی عضلاتی", 5:"غدی اعصابی", 6:"اعصابی غدی"};
+  let patientNumber = null;
+  if(selections['taste'] !== undefined){
+    patientNumber = selections['taste'] + 1; // آپشن انڈیکس 0-5 سے نمبر 1-6
+  } else {
+    // اگر ذائقہ کا سوال جواب نہ دیا گیا ہو تو منتخب بیماریوں کے تحریک نمبر سے خودکار تعین کریں
+    const numbersInDominant = {asabi:[1,6], adalati:[2,3], ghudi:[4,5]}[dominant];
+    const tendencyVotes = {};
+    selectedDiseaseObjs.forEach(d=>{
+      if(d.tendency && numbersInDominant.indexOf(d.tendency) !== -1){
+        tendencyVotes[d.tendency] = (tendencyVotes[d.tendency] || 0) + 1;
+      }
+    });
+    const voteEntries = Object.entries(tendencyVotes).sort((a,b)=> b[1]-a[1]);
+    if(voteEntries.length > 0){
+      patientNumber = parseInt(voteEntries[0][0]);
+    }
+  }
+
+  const tendencyDisplayName = patientNumber ? numberToCategory[patientNumber] : names[dominant];
+  html += `<h3>تشخیصی نتیجہ: ${tendencyDisplayName} مزاج${patientNumber ? ' (نمبر '+patientNumber+')' : ''}</h3>
   <p style="color:var(--muted); margin-top:14px;">یہ نتیجہ ${answered} جوابات کی بنیاد پر ہے۔ جتنے زیادہ سوالات کے جواب دیں گے، نتیجہ اتنا ہی درست ہوگا۔</p>
   </div>`;
+
+  if(selectedSymptomLabels.length || selectedDiseaseNames.length){
+    html += `<div class="result-card" style="margin-top:16px;"><h3>آپ نے یہ بتایا ہے</h3>`;
+    if(selectedSymptomLabels.length){
+      html += `<p style="color:var(--gold-soft); margin-top:8px;"><b>علامات:</b> <span style="color:var(--text);">${selectedSymptomLabels.join('، ')}</span></p>`;
+    }
+    if(selectedDiseaseNames.length){
+      html += `<p style="color:var(--gold-soft); margin-top:8px;"><b>بیماریاں:</b> <span style="color:var(--text);">${selectedDiseaseNames.join('، ')}</span></p>`;
+    }
+    html += `</div>`;
+  }
 
   // علاج کا اصول: تحریک/تحلیل کے قانون کے مطابق مخالف مزاج کی دوا دی جاتی ہے
   // اعصابی مریض کو عضلاتی دوا، عضلاتی مریض کو غدی دوا، غدی مریض کو اعصابی دوا
@@ -1784,22 +2547,267 @@ function renderMizajResult(totals, answered){
   const treatGroup = treatmentMap[dominant];
   const maritalSel = selections['marital_status'];
   const maritalValue = maritalSel !== undefined ? maritalChoices[maritalSel].value : null;
-  const matchedHerbs = nuskheData.filter(n=>{
+
+  // ---------- نمبر والی تحریک کے مطابق موسمی علاج (نمبر پہلے سے طے ہو چکا ہے) ----------
+  let seasonNote = '';
+  let numberedCandidates = null;
+  if(patientNumber){
+    const month = new Date().getMonth() + 1; // 1-12
+    const isWinter = (month >= 9 || month <= 2);
+    const isExtremeSummer = (month === 6 || month === 7);
+    const isOldPatient = selections['patient_type'] === 1;
+
+    const winterOldMap = {1:[3,4], 2:[4,5], 3:[5,6], 4:[5,6,1], 5:[1,2], 6:[2,3]};
+    const summerMap = {1:[3,2], 2:[4,3], 3:[1,6], 4:[1,6], 5:[1,2], 6:[1,2]};
+
+    let treatNumbers = [];
+    if(isWinter){
+      if(isOldPatient){
+        treatNumbers = winterOldMap[patientNumber];
+        seasonNote = `سردیوں کا موسم — پرانے مریض کے اصول کے مطابق نمبر ${patientNumber} تحریک کا علاج نمبر ${treatNumbers.join('، ')} سے۔`;
+      } else {
+        // نیا مریض: آگے والی تینوں تحریکوں سے علاج
+        treatNumbers = [1,2,3].map(i=> ((patientNumber - 1 + i) % 6) + 1);
+        seasonNote = `سردیوں کا موسم — نئے مریض کے اصول کے مطابق نمبر ${patientNumber} تحریک کا علاج آگے والی تین تحریکوں یعنی نمبر ${treatNumbers.join('، ')} سے۔`;
+      }
+    } else {
+      // گرمیوں کا موسم
+      treatNumbers = summerMap[patientNumber] ? summerMap[patientNumber].slice() : [];
+      if((patientNumber === 5 || patientNumber === 6)){
+        if(isExtremeSummer){
+          seasonNote = `شدید گرمی (جون-جولائی) — نمبر ${patientNumber} تحریک کا علاج نمبر 1 اور 2 سے، ایک ساتھ ملا کر۔`;
+        } else {
+          // شدید گرمی نہ ہو تو 1 اور 2 کو ملانا نہیں چاہیے — الگ الگ دیں
+          seasonNote = `گرمیوں کا موسم (شدید گرمی نہیں) — نمبر ${patientNumber} تحریک کے لیے نمبر 1 اور 2 کو اکٹھا نہ ملائیں، دونوں فارمولے الگ الگ دیں (ورنہ اثر ضائع ہو جائے گا)۔`;
+        }
+      } else {
+        seasonNote = `گرمیوں کا موسم — نمبر ${patientNumber} تحریک کا علاج نمبر ${treatNumbers.join('، ')} سے۔`;
+      }
+    }
+
+    const treatCategories = treatNumbers.map(n=> numberToCategory[n]);
+    numberedCandidates = nuskheData.filter(n=>{
+      const cat = getNuskhaCategory(n);
+      if(treatCategories.indexOf(cat) === -1 && n.group !== 'general') return false;
+      if(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue) return false;
+      return true;
+    });
+    window.lastTreatNumbers = treatNumbers;
+  }
+
+  // ---------- ترجیحی درجہ بندی (priority cascade) — جب مریض کا مخصوص نمبر معلوم نہ ہو ----------
+  // 80% اصول: عضو کا مزاج معلوم ہو تو اسی مزاج کی دوا فوائد دیکھ کر دی جائے
+  const seasonalPriority = {
+    asabi:   {summer:[2,3,4], winter:[4,3,2]},
+    adalati: {summer:[5,6,4], winter:[4,5,6]},
+    ghudi:   {summer:[1,6,2], winter:[6,1,2]}
+  };
+  let priorityUsedCategory = null; // کس نمبر ترجیح سے دوا ملی
+  let cascadeCandidates = null;
+  if(patientNumber === null){
+    const monthC = new Date().getMonth() + 1;
+    const isWinterC = (monthC >= 9 || monthC <= 2);
+    const seasonKey = isWinterC ? 'winter' : 'summer';
+    const priorityList = seasonalPriority[dominant][seasonKey];
+
+    for(let pi=0; pi<priorityList.length; pi++){
+      const num = priorityList[pi];
+      const catName = numberToCategory[num];
+      let levelCandidates = nuskheData.filter(n=> getNuskhaCategory(n) === catName);
+      // اگر مریض غدی ہے اور نمبر 1 یا 2 سے علاج ہو رہا ہے تو دونوں اکٹھے نہ دیں
+      if(dominant === 'ghudi' && (num === 1 || num === 2)){
+        const otherNum = num === 1 ? 2 : 1;
+        // صرف اسی نمبر تک محدود رکھیں، دوسرے کو مکس نہ کریں (پہلے سے فلٹر شدہ ہے کیونکہ صرف catName سے میچ کر رہے ہیں)
+      }
+      if(n=> n.maritalOnly){ /* no-op placeholder to keep structure simple */ }
+      levelCandidates = levelCandidates.filter(n=> !(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue));
+
+      if(selectedDiseaseNames.length > 0){
+        const scored = levelCandidates.filter(n=> selectedDiseaseNames.some(dn=> n.benefit.indexOf(dn) !== -1 || n.name.indexOf(dn) !== -1));
+        if(scored.length > 0){
+          cascadeCandidates = scored.slice(0,4);
+          priorityUsedCategory = {num, catName};
+          break;
+        }
+        // اس ترجیح میں بیماری سے میچ نہ ملے تو اگلی ترجیح آزمائیں
+      } else {
+        // کوئی بیماری منتخب نہیں — پہلی ترجیح ہی استعمال کریں
+        cascadeCandidates = levelCandidates.slice(0,4);
+        priorityUsedCategory = {num, catName};
+        break;
+      }
+    }
+    // اگر کسی ترجیح میں بیماری سے میچ نہ ملا ہو تو پہلی ترجیح کی عمومی دوائیں دکھائیں
+    if(cascadeCandidates === null){
+      const firstNum = priorityList[0];
+      const firstCat = numberToCategory[firstNum];
+      cascadeCandidates = nuskheData.filter(n=> getNuskhaCategory(n) === firstCat && !(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue)).slice(0,4);
+      priorityUsedCategory = {num:firstNum, catName:firstCat};
+    }
+    seasonNote = `${isWinterC ? 'سردیوں' : 'گرمیوں'} کا موسم — عضو/بیماری کے فوائد سے مطابقت رکھنے والی دوا نمبر ${priorityUsedCategory.num} (${priorityUsedCategory.catName}) کی ترتیب سے منتخب کی گئی۔`;
+  }
+
+  let candidates = numberedCandidates !== null ? numberedCandidates : (cascadeCandidates !== null ? cascadeCandidates : nuskheData.filter(n=>{
     if((n.group === treatGroup || n.group === 'general') === false) return false;
     if(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue) return false;
     return true;
-  });
+  }));
+
+  // ہر دوا کو منتخب بیماریوں سے مطابقت کے مطابق سکور دیں (نمبر والے نظام کے لیے، کیسکیڈ نظام میں یہ پہلے ہی ہو چکا)
+  let usedFallback = false;
+  if(numberedCandidates !== null){
+    if(selectedDiseaseNames.length > 0){
+      const scored = candidates.map(n=>{
+        let score = 0;
+        selectedDiseaseNames.forEach(dn=>{
+          if(n.benefit.indexOf(dn) !== -1 || n.name.indexOf(dn) !== -1) score++;
+        });
+        return {n, score};
+      }).filter(x=> x.score > 0)
+        .sort((a,b)=> b.score - a.score)
+        .map(x=> x.n);
+      if(scored.length > 0){
+        candidates = scored.slice(0, 4);
+      } else {
+        candidates = candidates.slice(0, 4);
+        usedFallback = true;
+      }
+    } else {
+      candidates = candidates.slice(0, 4);
+      usedFallback = true;
+    }
+  } else if(cascadeCandidates !== null){
+    usedFallback = selectedDiseaseNames.length === 0;
+  }
+  const matchedHerbs = candidates;
+
+  // قبض کا خاص اصول: کمزور مریض کو مسہل کی بجائے ملین (3 گولیاں) دیں
+  const isWeakPatient = selections['weakness'] !== undefined || selectedAgeGroup === 'old';
+  const hasQabz = selectedDiseaseNames.some(dn=> dn.indexOf('قبض') !== -1) || selections['qabz'] !== undefined;
+  if(isWeakPatient && hasQabz){
+    for(let i=0;i<matchedHerbs.length;i++){
+      if(matchedHerbs[i].name.indexOf('مسہل') !== -1){
+        const cat = getNuskhaCategory(matchedHerbs[i]);
+        const milinReplacement = nuskheData.find(n=> n.name.indexOf('ملین') !== -1 && getNuskhaCategory(n) === cat);
+        if(milinReplacement){
+          matchedHerbs[i] = Object.assign({}, milinReplacement, {dose: '3 گولیاں (کمزور مریض کے لیے مسہل کی بجائے ملین تجویز کی گئی ہے)۔'});
+        }
+      }
+    }
+  }
+
   if(matchedHerbs.length){
-    html += `<div class="result-card" style="margin-top:16px;"><h3>علاج کے لیے تجویز کردہ دوائیاں (${names[treatGroup]} تحریک)</h3><p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">قانونِ مفرد اعضاء کے اصول کے مطابق ${names[dominant]} تحریک کا علاج ${names[treatGroup]} دواؤں سے کیا جاتا ہے۔</p>`;
+    const headerNum = patientNumber ? patientNumber : (priorityUsedCategory ? priorityUsedCategory.num : null);
+    html += `<div class="result-card" style="margin-top:16px;"><h3>علاج کے لیے تجویز کردہ دوائیاں${headerNum ? ' (نمبر '+headerNum+' تحریک)' : ' ('+names[treatGroup]+' تحریک)'}</h3><p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">${seasonNote ? seasonNote : 'قانونِ مفرد اعضاء کے اصول کے مطابق '+names[dominant]+' تحریک کا علاج '+names[treatGroup]+' دواؤں سے کیا جاتا ہے۔'} ${usedFallback ? '' : 'آپ کی منتخب بیماریوں کے مطابق بہترین دوائیاں دکھائی جا رہی ہیں۔'}</p><p style="color:var(--gold-soft); font-size:.85rem;">⚠ بچوں اور بوڑھوں کو ہمیشہ کم درجے کی (ہلکی) دوائی دینی چاہیے۔</p>`;
     matchedHerbs.forEach(n=>{
       html += `<div class="nuskha-card">
         <h4>${n.name}</h4>
-        <span class="tag">مزاج: ${n.mizaj}</span>
-        <p style="color:var(--text); margin-top:8px;">${n.benefit}</p>
-        <p style="color:var(--gold-soft); margin-top:6px;"><b>طریقہ استعمال:</b> <span style="color:var(--text);">${doseLookup(n.name)}</span></p>
+        <span class="tag">مزاج: ${n.mizaj}${nuskheCategoryNumbers[getNuskhaCategory(n)] ? ' — نمبر '+nuskheCategoryNumbers[getNuskhaCategory(n)]+' مزاج' : ''}</span>
+        <p style="color:var(--gold-soft); margin-top:8px;"><b>طریقہ استعمال:</b> <span style="color:var(--text);">${n.dose || doseLookup(n.name)}</span></p>
+        ${(function(){ const w = stripCombinationWarning(n.warning); return w ? `<p style="color:#e07a5f; margin-top:8px;"><b>⚠ احتیاط/نقصان:</b> <span style="color:var(--text);">${w}</span></p>` : ''; })()}
       </div>`;
     });
     html += `</div>`;
+  }
+
+  // اسی (علاج والے) مزاج کی غذائیں — ہمیشہ سادہ اصول کے مطابق: اعصابی→عضلاتی، عضلاتی→غدی، غدی→اعصابی
+  const ghizaGroup = treatGroup;
+  const ghizaPanel = document.getElementById('panel-' + ghizaGroup);
+  if(ghizaPanel){
+    html += `<div class="result-card" style="margin-top:16px;"><h3>${names[ghizaGroup]} مزاج کے مطابق غذائیں</h3><p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">علاج کے ساتھ ساتھ یہ غذائیں بھی مفید رہیں گی۔</p>${ghizaPanel.innerHTML}</div>`;
+  }
+
+  // بڑی عمر کے مریض کے لیے خودکار چٹنی تجویز
+  if(selectedAgeGroup === 'old'){
+    const chatniMap = {1:"مفرح شاہی یا مفرح جدید", 2:"اطریفل", 3:"معجون", 4:"جوارش", 5:"لبوب", 6:"خمیرہ"};
+    const chatniNumbers = patientNumber ? [patientNumber] : (numberToCategoryReverse => {
+      // اگر مخصوص نمبر معلوم نہ ہو تو دونوں ممکنہ نمبر بتا دیں (علاج والے مزاج کے مطابق)
+      const pairsByGroup = {asabi:[1,6], adalati:[2,3], ghudi:[4,5]};
+      return pairsByGroup[treatGroup] || [];
+    })();
+    const chatniList = chatniNumbers.map(n=> `نمبر ${n}: ${chatniMap[n]}`).join('، یا ');
+    html += `<div class="result-card" style="margin-top:16px;"><h3>بڑی عمر کے مریض کے لیے چٹنی</h3><p style="color:var(--text); font-size:.95rem;">مریض بڑی عمر کا ہے، اس لیے اصل علاج کے ساتھ چٹنی بھی ضرور دیں: <b style="color:var(--gold-soft);">${chatniList}</b>۔ چٹنی علاج کے آخری ہفتے سے شروع کریں اور باقی دوائیاں ختم ہونے کے بعد مزید ایک سے دو ہفتے جاری رکھیں۔</p></div>`;
+  }
+
+  // کمزور مریض کے لیے مقوی دوائی — نمبر 1، 3، 5 کی دوائیاں مقوی ہیں
+  if(isWeakPatient){
+    const tonicNumberMap = {asabi:1, adalati:3, ghudi:5};
+    const tonicNumber = tonicNumberMap[treatGroup];
+    const tonicCategory = numberToCategory[tonicNumber];
+    const tonicFormula = nuskheData.find(n=> getNuskhaCategory(n) === tonicCategory && (n.name.indexOf('اکسیر') !== -1 || n.name.indexOf('مقوی') !== -1));
+    if(tonicFormula){
+      html += `<div class="result-card" style="margin-top:16px;"><h3>کمزور مریض کے لیے مقوی دوائی</h3><p style="color:var(--text); font-size:.95rem;">مریض کمزور ہے، اس لیے ساتھ مقوی دوا بھی ضرور دیں (نمبر 1، 3، 5 کی دوائیاں فطرتاً مقوی ہوتی ہیں): <b style="color:var(--gold-soft);">${tonicFormula.name}</b> (نمبر ${tonicNumber})۔ خوراک: ${tonicFormula.dose || doseLookup(tonicFormula.name)}</p></div>`;
+    }
+
+    // کمزور مریض کے لیے پھل/ملٹی وٹامن کی تجویز — مریض کے اپنے مزاج کے مطابق
+    const fruitByMizaj = {
+      asabi: [
+        {name:'بادام', qty:'5-7 دانے (رات کو بھگو کر، صبح چھلکا اتار کر)'},
+        {name:'کھجور', qty:'3-4 دانے روزانہ'},
+        {name:'انجیر', qty:'2-3 دانے روزانہ'},
+        {name:'کیلا', qty:'1 عدد روزانہ'}
+      ],
+      adalati: [
+        {name:'سیب', qty:'1 عدد روزانہ'},
+        {name:'انگور', qty:'ایک مٹھی روزانہ'},
+        {name:'امرود', qty:'1 عدد روزانہ'},
+        {name:'ناشپاتی', qty:'1 عدد روزانہ (دستیاب موسم میں)'}
+      ],
+      ghudi: [
+        {name:'اخروٹ', qty:'2-3 دانے روزانہ'},
+        {name:'مالٹا یا کینو', qty:'1 عدد روزانہ'},
+        {name:'خربوزہ یا تربوز', qty:'گرمی کے موسم میں، مناسب مقدار میں'},
+        {name:'انار', qty:'1 عدد یا ایک گلاس تازہ رس'}
+      ]
+    };
+    const fruits = fruitByMizaj[dominant] || [];
+    if(fruits.length){
+      const fruitListHtml = fruits.map(f=> `<b style="color:var(--gold-soft);">${f.name}</b> — ${f.qty}`).join('<br>');
+      html += `<div class="result-card" style="margin-top:16px;"><h3>کمزور مریض کے لیے پھل و ملٹی وٹامن</h3><p style="color:var(--text); font-size:.95rem; margin-bottom:8px;">شربت بزوری بذاتِ خود ایک ملٹی وٹامن ہے۔ اس کے علاوہ ${names[dominant]} مزاج کے مطابق روزانہ یہ پھل بھی دیں:</p><p style="color:var(--text); font-size:.95rem;">${fruitListHtml}</p></div>`;
+    }
+  }
+
+  // پرانے مریض کے لیے انٹی بائیوٹک ضرور دیں
+  if(selections['patient_type'] === 1){
+    const antibioticMap = {
+      asabi: {name:"اعصابی عضلاتی ملین (جدید) — اعصابی انٹی بائیوٹک", search:"اعصابی عضلاتی ملین"},
+      adalati: {name:"تریاق تبخیر — عضلاتی انٹی بائیوٹک", search:"تریاق تبخیر"},
+      ghudi: {name:"غدی عضلاتی ملین یا غدی اعصابی ہاضم/ملین — غدی انٹی بائیوٹک", search:"غدی"}
+    };
+    const abInfo = antibioticMap[treatGroup];
+    if(abInfo){
+      html += `<div class="result-card" style="margin-top:16px;"><h3>پرانے مریض کے لیے انٹی بائیوٹک</h3><p style="color:var(--text); font-size:.95rem;">مریض پرانا (دیرینہ) ہے، اس لیے کوئی نہ کوئی انٹی بائیوٹک دوا ضرور دیں: <b style="color:var(--gold-soft);">${abInfo.name}</b>۔ نسخے کے صفحے پر تفصیل دیکھیں۔</p></div>`;
+    }
+  }
+
+  // اندرونی جراثیم/جلدی امراض (چنبل، خارش، الرجی) کے لیے اکسیر جدید
+  const skinKeywords = ['چنبل','خارش','الرجی','داد'];
+  const hasSkinIssue = selectedDiseaseNames.some(dn=> skinKeywords.some(k=> dn.indexOf(k) !== -1));
+  if(hasSkinIssue){
+    const exirJadeed = nuskheData.find(n=> n.name.indexOf('اکسیر جدید') !== -1);
+    if(exirJadeed && !matchedHerbs.some(n=> n.name === exirJadeed.name)){
+      html += `<div class="result-card" style="margin-top:16px;"><h3>جلدی/اندرونی جراثیم کے لیے خاص دوا</h3><p style="color:var(--text); font-size:.95rem;">چنبل، خارش یا الرجی کی صورت میں انٹی سیپٹیئر کے طور پر <b style="color:var(--gold-soft);">${exirJadeed.name}</b> دیں (مزاج کے مطابق مقدار)۔ خوراک: ${exirJadeed.dose}</p></div>`;
+    }
+  }
+
+  // ورم کا خاص علاج — نمبر 5 سے مکمل علاج، موسم کے مطابق فارمولا
+  const waramKeywords = ['ورم','سوزش','یرقان','ہیپاٹائٹس','سسٹ','گلٹی','رسولی','السر','فالج','لقوہ','کینسر','شوگر'];
+  const hasWaram = selectedDiseaseNames.some(dn=> waramKeywords.some(k=> dn.indexOf(k) !== -1));
+  if(hasWaram){
+    const month = new Date().getMonth() + 1;
+    const isWinterNow = (month >= 9 || month <= 2);
+    const hasYarqan = selectedDiseaseNames.some(dn=> dn.indexOf('یرقان') !== -1 || dn.indexOf('ہیپاٹائٹس') !== -1);
+    let waramHtml = `<div class="result-card" style="margin-top:16px;"><h3>ورم کا خاص علاج (نمبر 5)</h3>`;
+    if(hasYarqan){
+      waramHtml += `<p style="color:var(--text); font-size:.95rem;">پیلا یرقان/ہیپاٹائٹس کی صورت میں پہلے صفرا نکالیں اور گرمی ختم کریں: <b style="color:var(--gold-soft);">اعصابی کھار + 1 ملین (2 گولی)</b>۔ اس کے بعد 8-10 دن ورم کی دوا دیں تو علاج مکمل ہوگا۔</p>`;
+    }
+    if(isWinterNow){
+      waramHtml += `<p style="color:var(--text); font-size:.95rem; margin-top:8px;"><b>سردی کا فارمولا:</b> اکسیر ورم + 5 اکسیر + 6 تریاق + شربت بزوری (گرم گرم)۔</p>`;
+    } else {
+      waramHtml += `<p style="color:var(--text); font-size:.95rem; margin-top:8px;"><b>گرمی کا فارمولا:</b> اکسیر ورم + 5 اکسیر + 1 ملین + شربت بزوری (ٹھنڈا)۔</p>`;
+    }
+    waramHtml += `</div>`;
+    html += waramHtml;
   }
 
   resultDiv.innerHTML = html;
