@@ -3944,6 +3944,7 @@ function renderMizajResult(totals, answered){
     if(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue) return false;
     return true;
   }));
+  const aiCandidatePool = candidates.slice(); // AI انتخاب کے لیے مکمل فہرست (سلائس ہونے سے پہلے)
 
   // ہر دوا کو منتخب بیماریوں سے مطابقت کے مطابق سکور دیں (نمبر والے نظام کے لیے، کیسکیڈ نظام میں یہ پہلے ہی ہو چکا)
   let usedFallback = false;
@@ -3990,16 +3991,22 @@ function renderMizajResult(totals, answered){
 
   if(matchedHerbs.length){
     const headerNum = patientNumber ? patientNumber : (priorityUsedCategory ? priorityUsedCategory.num : null);
-    html += `<div class="result-card" style="margin-top:16px;"><h3>علاج کے لیے تجویز کردہ دوائیاں${headerNum ? ' (نمبر '+headerNum+' تحریک)' : ' ('+names[treatGroup]+' تحریک)'}</h3><p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">${seasonNote ? seasonNote : 'قانونِ مفرد اعضاء کے اصول کے مطابق '+names[dominant]+' تحریک کا علاج '+names[treatGroup]+' دواؤں سے کیا جاتا ہے۔'} ${usedFallback ? '' : 'آپ کی منتخب بیماریوں کے مطابق بہترین دوائیاں دکھائی جا رہی ہیں۔'}</p><p style="color:var(--gold-soft); font-size:.85rem;">⚠ بچوں اور بوڑھوں کو ہمیشہ کم درجے کی (ہلکی) دوائی دینی چاہیے۔</p>`;
-    matchedHerbs.forEach(n=>{
-      html += `<div class="nuskha-card">
-        <h4>${n.name}</h4>
-        <span class="tag">مزاج: ${n.mizaj}${nuskheCategoryNumbers[getNuskhaCategory(n)] ? ' — نمبر '+nuskheCategoryNumbers[getNuskhaCategory(n)]+' مزاج' : ''}</span>
-        <p style="color:var(--gold-soft); margin-top:8px;"><b>طریقہ استعمال:</b> <span style="color:var(--text);">${n.dose || doseLookup(n.name)}</span></p>
-        ${(function(){ const w = stripCombinationWarning(n.warning); return w ? `<p style="color:#e07a5f; margin-top:8px;"><b>⚠ احتیاط/نقصان:</b> <span style="color:var(--text);">${w}</span></p>` : ''; })()}
-      </div>`;
-    });
-    html += `</div>`;
+
+    // ---------- AI سے بہترین دوا کا انتخاب (علامات/بیماری کی بنیاد پر تیز ترین آرام) ----------
+    window.lastAIPool = aiCandidatePool.map(n=> ({name:n.name, mizaj:n.mizaj, benefit:n.benefit, dose:n.dose || doseLookup(n.name)}));
+    window.lastAIPatientInfo = {
+      mizajName: tendencyDisplayName,
+      patientNumber: headerNum,
+      symptoms: selectedSymptomLabels,
+      diseases: selectedDiseaseNames
+    };
+    html += `<div class="result-card" style="margin-top:16px;">
+      <h3>علاج کے لیے تجویز کردہ دوا${headerNum ? ' (نمبر '+headerNum+' تحریک)' : ' ('+names[treatGroup]+' تحریک)'}</h3>
+      <p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">${seasonNote ? seasonNote : 'قانونِ مفرد اعضاء کے اصول کے مطابق '+names[dominant]+' تحریک کا علاج '+names[treatGroup]+' دواؤں سے کیا جاتا ہے۔'}</p>
+      <p style="color:var(--gold-soft); font-size:.85rem;">⚠ بچوں اور بوڑھوں کو ہمیشہ کم درجے کی (ہلکی) دوائی دینی چاہیے۔</p>
+      <button class="btn" onclick="fetchAINuskha(this)" style="border-radius:24px; padding:10px 18px; font-size:.9rem; margin-top:8px;">AI سے بہترین دوا معلوم کریں</button>
+      <div id="ai-nuskha-result" style="margin-top:14px;"></div>
+    </div>`;
   }
 
   // اسی (علاج والے) مزاج کی غذائیں — ہمیشہ سادہ اصول کے مطابق: اعصابی→عضلاتی، عضلاتی→غدی، غدی→اعصابی
@@ -4105,6 +4112,58 @@ function renderMizajResult(totals, answered){
   resultDiv.innerHTML = html;
   resultDiv.scrollIntoView({behavior:'smooth'});
 }
+
+async function fetchAINuskha(btn){
+  const box = document.getElementById('ai-nuskha-result');
+  if(!box) return;
+  const pool = window.lastAIPool;
+  const info = window.lastAIPatientInfo;
+  if(!pool || !pool.length){
+    box.innerHTML = '<p style="color:#e07a5f;">دوائیوں کی فہرست دستیاب نہیں — پہلے دوبارہ تشخیص کریں۔</p>';
+    return;
+  }
+  if(btn) btn.disabled = true;
+  box.innerHTML = '<p style="color:var(--muted);">⏳ AI بہترین دوا تلاش کر رہا ہے...</p>';
+  try{
+    const res = await fetch('/api/select-nuskha', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        mizaj: info.mizajName,
+        patientNumber: info.patientNumber,
+        symptoms: info.symptoms,
+        diseases: info.diseases,
+        candidates: pool
+      })
+    });
+    if(!res.ok){
+      const errText = await res.text().catch(()=> '');
+      throw new Error('سرور کی خرابی: ' + res.status + (errText ? (' — ' + errText) : ''));
+    }
+    const data = await res.json();
+    if(!data || !data.selections || !data.selections.length){
+      box.innerHTML = '<p style="color:#e07a5f;">AI کوئی مناسب دوا تجویز نہیں کر سکا — اوپر دی گئی فہرست سے انتخاب کریں۔</p>';
+      return;
+    }
+    let outHtml = `<div style="border:1px solid var(--gold); border-radius:10px; padding:14px; background:rgba(212,175,55,0.06);">`;
+    outHtml += `<h4 style="color:var(--gold); margin-bottom:8px;">AI کی تجویز</h4>`;
+    data.selections.forEach(sel=>{
+      const match = pool.find(p=> p.name === sel.name);
+      outHtml += `<div class="nuskha-card" style="margin-top:8px;">
+        <h4>${sel.name}</h4>
+        ${match ? `<p style="color:var(--gold-soft); margin-top:6px;"><b>طریقہ استعمال:</b> <span style="color:var(--text);">${match.dose}</span></p>` : ''}
+        ${sel.reason ? `<p style="color:var(--text); margin-top:6px; font-size:.9rem;"><b>وجہ:</b> ${sel.reason}</p>` : ''}
+      </div>`;
+    });
+    outHtml += `</div>`;
+    box.innerHTML = outHtml;
+  }catch(err){
+    box.innerHTML = '<p style="color:#e07a5f;">AI سے رابطہ نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔<br><span style="font-size:.8rem; color:var(--muted);">('+ (err && err.message ? err.message : err) +')</span></p>';
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+
 function setTieAnswer(pairKey, i, choice, mizaj){
   tieBreakerAnswers[pairKey+'_'+i] = choice;
   const totals = window.lastMizajTotals;
