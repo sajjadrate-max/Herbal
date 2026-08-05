@@ -12,8 +12,24 @@
   --text:#f1ead9; --muted:#a9b0c9; --card:#111c40; --border:#26305c;
 }
 *{box-sizing:border-box;}
-body{margin:0; background:linear-gradient(180deg,var(--navy),var(--navy2) 40%,var(--navy)); color:var(--text);
-  font-family:'Noto Nastaliq Urdu','Amiri',serif; line-height:2;}
+body{margin:0; position:relative; color:var(--text);
+  font-family:'Noto Nastaliq Urdu','Amiri',serif; line-height:2;
+  background:
+    radial-gradient(900px 500px at 15% 0%, rgba(212,175,55,0.07), transparent 60%),
+    radial-gradient(700px 600px at 100% 15%, rgba(212,175,55,0.05), transparent 55%),
+    radial-gradient(1000px 700px at 50% 100%, rgba(20,32,72,0.9), transparent 60%),
+    linear-gradient(180deg,var(--navy),var(--navy2) 40%,var(--navy));
+  background-attachment: fixed, fixed, fixed, scroll;
+}
+body::before{
+  content:"";
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%23d4af37' stroke-width='1'%3E%3Cpath d='M30 160 Q42 120 30 80 Q18 50 30 15' /%3E%3Cpath d='M30 100 Q48 92 60 105' /%3E%3Cpath d='M30 100 Q12 92 0 105' /%3E%3Cpath d='M30 130 Q48 122 60 135' /%3E%3Cpath d='M30 130 Q12 122 0 135' /%3E%3Cpath d='M30 70 Q45 64 55 75' /%3E%3Cpath d='M30 70 Q15 64 5 75' /%3E%3Ccircle cx='30' cy='18' r='4'/%3E%3C/g%3E%3Cg fill='none' stroke='%23d4af37' stroke-width='.6' opacity='.7'%3E%3Ccircle cx='140' cy='60' r='22'/%3E%3Ccircle cx='140' cy='60' r='14'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat:repeat;
+  background-size:180px 180px;
+  opacity:0.05;
+}
+body > *{position:relative; z-index:1;}
 header{position:sticky; top:0; z-index:50; background:rgba(10,17,40,0.95); border-bottom:1px solid var(--border);
   backdrop-filter:blur(6px); padding:14px 20px; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px;}
 .brand{font-size:1.6rem; color:var(--gold); font-weight:700; text-decoration:none; font-family:'Poppins',sans-serif; letter-spacing:1px;}
@@ -3992,7 +4008,7 @@ function renderMizajResult(totals, answered){
   if(matchedHerbs.length){
     const headerNum = patientNumber ? patientNumber : (priorityUsedCategory ? priorityUsedCategory.num : null);
 
-    // ---------- AI سے بہترین دوا کا انتخاب (علامات/بیماری کی بنیاد پر تیز ترین آرام) ----------
+    // ---------- AI سے بہترین دوا کا خودکار انتخاب (علامات/بیماری کی بنیاد پر تیز ترین آرام) ----------
     window.lastAIPool = aiCandidatePool.map(n=> ({name:n.name, mizaj:n.mizaj, benefit:n.benefit, dose:n.dose || doseLookup(n.name)}));
     window.lastAIPatientInfo = {
       mizajName: tendencyDisplayName,
@@ -4004,8 +4020,7 @@ function renderMizajResult(totals, answered){
       <h3>علاج کے لیے تجویز کردہ دوا${headerNum ? ' (نمبر '+headerNum+' تحریک)' : ' ('+names[treatGroup]+' تحریک)'}</h3>
       <p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">${seasonNote ? seasonNote : 'قانونِ مفرد اعضاء کے اصول کے مطابق '+names[dominant]+' تحریک کا علاج '+names[treatGroup]+' دواؤں سے کیا جاتا ہے۔'}</p>
       <p style="color:var(--gold-soft); font-size:.85rem;">⚠ بچوں اور بوڑھوں کو ہمیشہ کم درجے کی (ہلکی) دوائی دینی چاہیے۔</p>
-      <button class="btn" onclick="fetchAINuskha(this)" style="border-radius:24px; padding:10px 18px; font-size:.9rem; margin-top:8px;">AI سے بہترین دوا معلوم کریں</button>
-      <div id="ai-nuskha-result" style="margin-top:14px;"></div>
+      <div id="ai-nuskha-result" style="margin-top:14px;"><p style="color:var(--muted);">⏳ بہترین دوا تلاش کی جا رہی ہے...</p></div>
     </div>`;
   }
 
@@ -4111,6 +4126,9 @@ function renderMizajResult(totals, answered){
 
   resultDiv.innerHTML = html;
   resultDiv.scrollIntoView({behavior:'smooth'});
+  if(window.lastAIPool && window.lastAIPool.length){
+    fetchAINuskha(null);
+  }
 }
 
 async function fetchAINuskha(btn){
