@@ -3866,7 +3866,7 @@ function renderMizajResult(totals, answered){
     const isOldPatient = selections['patient_type'] !== 0; // اگر نیا/پرانا نہ بتایا جائے تو پرانے مریض کے اصول کے مطابق مزاج منتخب کریں
 
     const winterOldMap = {1:[3,4], 2:[4,5], 3:[5,6], 4:[5,6,1], 5:[1,2], 6:[2,3]};
-    const summerMap = {1:[3,2], 2:[4,3], 3:[1,6], 4:[1,6], 5:[1,2], 6:[1,2]};
+    const summerMap = {1:[3,4], 2:[5,4], 3:[6,5], 4:[1,6], 5:[1,2], 6:[1,2]};
 
     let treatNumbers = [];
     if(isWinter){
@@ -4018,8 +4018,6 @@ function renderMizajResult(totals, answered){
     };
     html += `<div class="result-card" style="margin-top:16px;">
       <h3>علاج کے لیے تجویز کردہ دوا${headerNum ? ' (نمبر '+headerNum+' تحریک)' : ' ('+names[treatGroup]+' تحریک)'}</h3>
-      <p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">${seasonNote ? seasonNote : 'قانونِ مفرد اعضاء کے اصول کے مطابق '+names[dominant]+' تحریک کا علاج '+names[treatGroup]+' دواؤں سے کیا جاتا ہے۔'}</p>
-      <p style="color:var(--gold-soft); font-size:.85rem;">⚠ بچوں اور بوڑھوں کو ہمیشہ کم درجے کی (ہلکی) دوائی دینی چاہیے۔</p>
       <div id="ai-nuskha-result" style="margin-top:14px;"><p style="color:var(--muted);">⏳ بہترین دوا تلاش کی جا رہی ہے...</p></div>
     </div>`;
   }
@@ -4028,7 +4026,15 @@ function renderMizajResult(totals, answered){
   const ghizaGroup = treatGroup;
   const ghizaPanel = document.getElementById('panel-' + ghizaGroup);
   if(ghizaPanel){
-    html += `<div class="result-card" style="margin-top:16px;"><h3>${names[ghizaGroup]} مزاج کے مطابق غذائیں</h3><p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">علاج کے ساتھ ساتھ یہ غذائیں بھی مفید رہیں گی۔</p>${ghizaPanel.innerHTML}</div>`;
+    const foodListEl = ghizaPanel.querySelector('.food-list');
+    const foodListText = foodListEl ? foodListEl.textContent.replace(/^[^:]*غذائیں/, '').trim() : '';
+    window.lastAIFoods = foodListText ? foodListText.split(/[،,]/).map(s=> s.trim()).filter(Boolean) : [];
+    html += `<div class="result-card" style="margin-top:16px;">
+      <h3>${names[ghizaGroup]} مزاج کے مطابق غذائیں</h3>
+      <p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">علاج کے ساتھ ساتھ یہ غذائیں بھی مفید رہیں گی۔</p>
+      <div id="ai-food-result" style="margin-bottom:14px;"></div>
+      ${ghizaPanel.innerHTML}
+    </div>`;
   }
 
   // بڑی عمر کے مریض کے لیے خودکار چٹنی تجویز
@@ -4086,7 +4092,7 @@ function renderMizajResult(totals, answered){
     const antibioticMap = {
       asabi: {name:"اعصابی عضلاتی ملین (جدید) — اعصابی انٹی بیٹک", search:"اعصابی عضلاتی ملین"},
       adalati: {name:"تریاق تبخیر — عضلاتی انٹی بیٹک", search:"تریاق تبخیر"},
-      ghudi: {name:"غدی عضلاتی ملین یا غدی اعصابی ہاضم/ملین — غدی انٹی بیٹک", search:"غدی"}
+      ghudi: {name:"غدی عضلاتی ملین + حب اکسیر جدید (حب کینسر) — غدی انٹی بیٹک", search:"غدی عضلاتی ملین"}
     };
     const abInfo = antibioticMap[treatGroup];
     if(abInfo){
@@ -4126,7 +4132,7 @@ function renderMizajResult(totals, answered){
 
   resultDiv.innerHTML = html;
   resultDiv.scrollIntoView({behavior:'smooth'});
-  if(window.lastAIPool && window.lastAIPool.length){
+  if((window.lastAIPool && window.lastAIPool.length) || (window.lastAIFoods && window.lastAIFoods.length)){
     fetchAINuskha(null);
   }
 }
@@ -4140,19 +4146,24 @@ function isLiveDeployedPage(){
 
 async function fetchAINuskha(btn){
   const box = document.getElementById('ai-nuskha-result');
-  if(!box) return;
+  const foodBox = document.getElementById('ai-food-result');
+  if(!box && !foodBox) return;
   if(!isLiveDeployedPage()){
-    box.innerHTML = '<p style="color:var(--muted); font-size:.85rem;">یہ سہولت صرف لائیو ویب سائٹ پر کام کرتی ہے — فائل پیش نظارہ (preview) میں دستیاب نہیں۔</p>';
+    const msg = '<p style="color:var(--muted); font-size:.85rem;">یہ سہولت صرف لائیو ویب سائٹ پر کام کرتی ہے — فائل پیش نظارہ (preview) میں دستیاب نہیں۔</p>';
+    if(box) box.innerHTML = msg;
+    if(foodBox) foodBox.innerHTML = '';
     return;
   }
-  const pool = window.lastAIPool;
+  const pool = window.lastAIPool || [];
+  const foods = window.lastAIFoods || [];
   const info = window.lastAIPatientInfo;
-  if(!pool || !pool.length){
-    box.innerHTML = '<p style="color:#e07a5f;">دوائیوں کی فہرست دستیاب نہیں — پہلے دوبارہ تشخیص کریں۔</p>';
+  if(!pool.length && !foods.length){
+    if(box) box.innerHTML = '<p style="color:#e07a5f;">دوائیوں کی فہرست دستیاب نہیں — پہلے دوبارہ تشخیص کریں۔</p>';
     return;
   }
   if(btn) btn.disabled = true;
-  box.innerHTML = '<p style="color:var(--muted);">⏳ بہترین دوا تلاش کی جا رہی ہے...</p>';
+  if(box) box.innerHTML = '<p style="color:var(--muted);">⏳ بہترین دوا تلاش کی جا رہی ہے...</p>';
+  if(foodBox) foodBox.innerHTML = '<p style="color:var(--muted);">⏳ موزوں غذائیں تلاش کی جا رہی ہیں...</p>';
   try{
     const res = await fetch('/api/select-nuskha', {
       method: 'POST',
@@ -4162,7 +4173,8 @@ async function fetchAINuskha(btn){
         patientNumber: info.patientNumber,
         symptoms: info.symptoms,
         diseases: info.diseases,
-        candidates: pool
+        candidates: pool,
+        foods: foods
       })
     });
     if(!res.ok){
@@ -4170,24 +4182,46 @@ async function fetchAINuskha(btn){
       throw new Error('سرور کی خرابی: ' + res.status + (errText ? (' — ' + errText) : ''));
     }
     const data = await res.json();
-    if(!data || !data.selections || !data.selections.length){
-      box.innerHTML = '<p style="color:#e07a5f;">کوئی مناسب دوا تجویز نہیں ہو سکی — اوپر دی گئی فہرست سے انتخاب کریں۔</p>';
-      return;
+
+    if(box){
+      if(!data || !data.selections || !data.selections.length){
+        box.innerHTML = '<p style="color:#e07a5f;">کوئی مناسب دوا تجویز نہیں ہو سکی — اوپر دی گئی فہرست سے انتخاب کریں۔</p>';
+      } else {
+        let outHtml = `<div style="border:1px solid var(--gold); border-radius:10px; padding:14px; background:rgba(212,175,55,0.06);">`;
+        outHtml += `<h4 style="color:var(--gold); margin-bottom:8px;">تجویز کردہ دوا</h4>`;
+        data.selections.forEach(sel=>{
+          const match = pool.find(p=> p.name === sel.name);
+          outHtml += `<div class="nuskha-card" style="margin-top:8px;">
+            <h4>${sel.name}</h4>
+            ${match ? `<p style="color:var(--gold-soft); margin-top:6px;"><b>طریقہ استعمال:</b> <span style="color:var(--text);">${match.dose}</span></p>` : ''}
+            ${sel.reason ? `<p style="color:var(--text); margin-top:6px; font-size:.9rem;"><b>وجہ:</b> ${sel.reason}</p>` : ''}
+          </div>`;
+        });
+        outHtml += `</div>`;
+        box.innerHTML = outHtml;
+      }
     }
-    let outHtml = `<div style="border:1px solid var(--gold); border-radius:10px; padding:14px; background:rgba(212,175,55,0.06);">`;
-    outHtml += `<h4 style="color:var(--gold); margin-bottom:8px;">تجویز کردہ دوا</h4>`;
-    data.selections.forEach(sel=>{
-      const match = pool.find(p=> p.name === sel.name);
-      outHtml += `<div class="nuskha-card" style="margin-top:8px;">
-        <h4>${sel.name}</h4>
-        ${match ? `<p style="color:var(--gold-soft); margin-top:6px;"><b>طریقہ استعمال:</b> <span style="color:var(--text);">${match.dose}</span></p>` : ''}
-        ${sel.reason ? `<p style="color:var(--text); margin-top:6px; font-size:.9rem;"><b>وجہ:</b> ${sel.reason}</p>` : ''}
-      </div>`;
-    });
-    outHtml += `</div>`;
-    box.innerHTML = outHtml;
+
+    if(foodBox){
+      if(!data || !data.foodSelections || !data.foodSelections.length){
+        foodBox.innerHTML = '';
+      } else {
+        let foodHtml = `<div style="border:1px solid var(--gold); border-radius:10px; padding:14px; background:rgba(212,175,55,0.06);">`;
+        foodHtml += `<h4 style="color:var(--gold); margin-bottom:8px;">بیماری کے مطابق تجویز کردہ غذائیں</h4>`;
+        data.foodSelections.forEach(sel=>{
+          foodHtml += `<div style="margin-top:8px;">
+            <b style="color:var(--gold-soft);">${sel.name}</b>
+            ${sel.reason ? `<span style="color:var(--text); font-size:.88rem;"> — ${sel.reason}</span>` : ''}
+          </div>`;
+        });
+        foodHtml += `</div>`;
+        foodBox.innerHTML = foodHtml;
+      }
+    }
   }catch(err){
-    box.innerHTML = '<p style="color:#e07a5f;">دوا معلوم نہیں ہو سکی۔ براہ کرم دوبارہ کوشش کریں۔<br><span style="font-size:.8rem; color:var(--muted);">('+ (err && err.message ? err.message : err) +')</span></p>';
+    const errMsg = '<p style="color:#e07a5f;">دوا معلوم نہیں ہو سکی۔ براہ کرم دوبارہ کوشش کریں۔<br><span style="font-size:.8rem; color:var(--muted);">('+ (err && err.message ? err.message : err) +')</span></p>';
+    if(box) box.innerHTML = errMsg;
+    if(foodBox) foodBox.innerHTML = '';
   }finally{
     if(btn) btn.disabled = false;
   }
