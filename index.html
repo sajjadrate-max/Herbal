@@ -4081,16 +4081,16 @@ function renderMizajResult(totals, answered){
     }
   }
 
-  // پرانے مریض کے لیے انٹی بائیوٹک ضرور دیں (اگر نیا/پرانا نہ بتایا جائے تو بھی پرانا مریض تصور کریں)
+  // پرانے مریض کے لیے انٹی بیٹک ضرور دیں (اگر نیا/پرانا نہ بتایا جائے تو بھی پرانا مریض تصور کریں)
   if(selections['patient_type'] !== 0){
     const antibioticMap = {
-      asabi: {name:"اعصابی عضلاتی ملین (جدید) — اعصابی انٹی بائیوٹک", search:"اعصابی عضلاتی ملین"},
-      adalati: {name:"تریاق تبخیر — عضلاتی انٹی بائیوٹک", search:"تریاق تبخیر"},
-      ghudi: {name:"غدی عضلاتی ملین یا غدی اعصابی ہاضم/ملین — غدی انٹی بائیوٹک", search:"غدی"}
+      asabi: {name:"اعصابی عضلاتی ملین (جدید) — اعصابی انٹی بیٹک", search:"اعصابی عضلاتی ملین"},
+      adalati: {name:"تریاق تبخیر — عضلاتی انٹی بیٹک", search:"تریاق تبخیر"},
+      ghudi: {name:"غدی عضلاتی ملین یا غدی اعصابی ہاضم/ملین — غدی انٹی بیٹک", search:"غدی"}
     };
     const abInfo = antibioticMap[treatGroup];
     if(abInfo){
-      html += `<div class="result-card" style="margin-top:16px;"><h3>پرانے مریض کے لیے انٹی بائیوٹک</h3><p style="color:var(--text); font-size:.95rem;">مریض پرانا (دیرینہ) ہے، اس لیے کوئی نہ کوئی انٹی بائیوٹک دوا ضرور دیں: <b style="color:var(--gold-soft);">${abInfo.name}</b>۔ نسخے کے صفحے پر تفصیل دیکھیں۔</p></div>`;
+      html += `<div class="result-card" style="margin-top:16px;"><h3>پرانے مریض کے لیے انٹی بیٹک</h3><p style="color:var(--text); font-size:.95rem;">مریض پرانا (دیرینہ) ہے، اس لیے کوئی نہ کوئی انٹی بیٹک دوا ضرور دیں: <b style="color:var(--gold-soft);">${abInfo.name}</b>۔ نسخے کے صفحے پر تفصیل دیکھیں۔</p></div>`;
     }
   }
 
@@ -4131,9 +4131,20 @@ function renderMizajResult(totals, answered){
   }
 }
 
+function isLiveDeployedPage(){
+  // یہ فیچر صرف اصل ہوسٹ شدہ ویب سائٹ (http/https) پر کام کرے گا — فائل پیش نظارہ (preview) یا آف لائن حالت میں نہیں
+  try{
+    return (location.protocol === 'http:' || location.protocol === 'https:') && !!location.hostname;
+  }catch(e){ return false; }
+}
+
 async function fetchAINuskha(btn){
   const box = document.getElementById('ai-nuskha-result');
   if(!box) return;
+  if(!isLiveDeployedPage()){
+    box.innerHTML = '<p style="color:var(--muted); font-size:.85rem;">یہ سہولت صرف لائیو ویب سائٹ پر کام کرتی ہے — فائل پیش نظارہ (preview) میں دستیاب نہیں۔</p>';
+    return;
+  }
   const pool = window.lastAIPool;
   const info = window.lastAIPatientInfo;
   if(!pool || !pool.length){
