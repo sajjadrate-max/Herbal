@@ -1,0 +1,33 @@
+{
+  "name": "Herbal — قانونِ مفرد اعضاء",
+  "short_name": "Herbal",
+  "description": "قانونِ مفرد اعضاء کے مطابق مزاج کی تشخیص، نسخے اور علاج",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a1128",
+  "theme_color": "#0a1128",
+  "lang": "ur",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

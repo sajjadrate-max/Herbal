@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Herbal">
-<link rel="icon" href="icons/icon-192.png" type="image/png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Amiri:wght@400;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -3935,39 +3935,13 @@ function renderMizajResult(totals, answered){
     }
   }
 
-  if(selections['known_mizaj'] !== undefined && selectedDiseaseNames.length === 0){
+  if(matchedHerbs.length){
+    const headerNum = patientNumber ? patientNumber : (priorityUsedCategory ? priorityUsedCategory.num : null);
     const torMonth = new Date().getMonth() + 1;
     const torIsWinter = (torMonth >= 9 || torMonth <= 2);
-    // تریاق تبخیر کی قسم: غیر شادی شدہ = ہینگ والا؛ شادی شدہ اور بڑی عمر = ہینگ والا؛ شادی شدہ اور بڑی عمر نہیں = شنگرفی
-    const tiryaqType = (maritalValue === 'married' && selectedAgeGroup !== 'old') ? 'تریاق تبخیر (شنگرفی)' : 'تریاق تبخیر (ہینگ والا)';
-    const torFormulas = {
-      asabi: 'اعصابی کھار + 1 ملین + حب شفاء + شربت بزوری',
-      adalati: torIsWinter ? `3 ملین + حب صابر + ${tiryaqType}` : `2 ملین + حب صابر + ${tiryaqType}`,
-      ghudi: torIsWinter ? '5 ہاضم + 5 ملین' : 'جوارش کمونی + 5 ہاضم + سنگ دانہ مرغ'
-    };
-    const headerNum = patientNumber ? patientNumber : null;
-    window.lastAIPool = [];
-    window.lastAIPatientInfo = {
-      mizajName: tendencyDisplayName,
-      patientNumber: headerNum,
-      symptoms: selectedSymptomLabels,
-      diseases: selectedDiseaseNames,
-      age: (ageChoices.find(a=> a.group === selectedAgeGroup) || {}).label || null,
-      maritalStatus: maritalSel !== undefined ? maritalChoices[maritalSel].label : null,
-      diseaseDuration: selections['patient_type'] !== undefined ? patientTypeChoices[selections['patient_type']].label : null,
-      bloodPressure: (function(){ const c=criteria.find(c=>c.id==='bp'); return (c && selections['bp']!==undefined) ? c.options[selections['bp']].label : null; })(),
-      painTiming: (function(){ const c=criteria.find(c=>c.id==='joint_time'); return (c && selections['joint_time']!==undefined) ? c.options[selections['joint_time']].label : null; })(),
-      sugar: selections['sugar'] !== undefined ? sugarChoices[selections['sugar']].label : null,
-      qabz: (function(){ const c=criteria.find(c=>c.id==='has_qabz'); return (c && selections['has_qabz']!==undefined) ? c.options[selections['has_qabz']].label : null; })()
-    };
-    html += `<div class="result-card" style="margin-top:16px;">
-      <h3>تحریک توڑ فارمولہ${headerNum ? ' (نمبر '+headerNum+' تحریک)' : ' ('+names[treatGroup]+' تحریک)'}</h3>
-      <p style="color:var(--text); font-size:.95rem;"><b>${torFormulas[treatGroup]}</b></p>
-    </div>`;
-  } else if(matchedHerbs.length){
-    const headerNum = patientNumber ? patientNumber : (priorityUsedCategory ? priorityUsedCategory.num : null);
+    const tiryaqPreference = (maritalValue === 'married' && selectedAgeGroup !== 'old') ? 'شنگرفی' : 'ہینگ والا';
 
-    // ---------- AI سے بہترین دوا کا خودکار انتخاب (علامات/بیماری کی بنیاد پر تیز ترین آرام) ----------
+    // ---------- AI سے بہترین دوا کا خودکار انتخاب (علامات/بیماری کی بنیاد پر تیز ترین آرام؛ کوئی بیماری نہ ہو تو تحریک توڑ فارمولہ) ----------
     window.lastAIPool = aiCandidatePool.map(n=> ({name:n.name, mizaj:n.mizaj, benefit:n.benefit, dose:n.dose || doseLookup(n.name)}));
     const ageLabel = (ageChoices.find(a=> a.group === selectedAgeGroup) || {}).label || null;
     const maritalLabel = maritalSel !== undefined ? maritalChoices[maritalSel].label : null;
@@ -3990,7 +3964,10 @@ function renderMizajResult(totals, answered){
       bloodPressure: bpLabel,
       painTiming: painTimeLabel,
       sugar: sugarLabel,
-      qabz: qabzLabel
+      qabz: qabzLabel,
+      season: torIsWinter ? 'سردی' : 'گرمی',
+      tiryaqPreference: tiryaqPreference,
+      treatGroup: treatGroup
     };
     html += `<div class="result-card" style="margin-top:16px;">
       <h3>علاج کے لیے تجویز کردہ دوا${headerNum ? ' (نمبر '+headerNum+' تحریک)' : ' ('+names[treatGroup]+' تحریک)'}</h3>
@@ -4158,7 +4135,11 @@ async function fetchAINuskha(btn){
         bloodPressure: info.bloodPressure,
         painTiming: info.painTiming,
         sugar: info.sugar,
-        qabz: info.qabz
+        qabz: info.qabz,
+        season: info.season,
+        tiryaqPreference: info.tiryaqPreference,
+        treatGroup: info.treatGroup,
+        hasDiseaseOrSymptom: (info.diseases && info.diseases.length > 0) || (info.symptoms && info.symptoms.length > 0)
       })
     });
     if(!res.ok){
@@ -4222,7 +4203,7 @@ function setTieAnswer(pairKey, i, choice, mizaj){
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
 }
 </script>
