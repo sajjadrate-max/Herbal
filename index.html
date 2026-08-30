@@ -154,23 +154,17 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   </div>
   <div class="rule-box"><b>ماخذ برائے نسخے، خوراک اور طریقہ علاج:</b> تشریح فارماکوپیا بالمفرد اعضاء — حکیم محمد عارف دنیا پوری۔</div>
 
-  <div class="rule-box">جو علامات مریض میں موجود ہوں انہیں متعلقہ کالم میں منتخب کریں۔ جتنی زیادہ علامات منتخب ہوں گی، تشخیص اتنی ہی درست ہوگی۔ جو علامت معلوم نہ ہو، اسے چھوڑ دیں — کوئی حرج نہیں، تشخیص باقی جوابات سے مکمل ہو جائے گی۔</div>
+  <h2 style="text-align:center; font-weight:700; color:var(--gold); margin:24px 0 14px;">مریض کی علامت</h2>
+  <div class="rule-box">اپنی تکلیف اپنے الفاظ میں بتائیں — سسٹم خود بخود صرف وہی اضافی سوالات پوچھے گا جو آپ کی درست تشخیص کے لیے ضروری ہوں، پھر مکمل نسخہ تجویز کرے گا۔</div>
 
-  <div id="mizajFabBtn" style="position:fixed; bottom:56px; right:16px; z-index:60;">
-    <button class="btn" onclick="computeMizaj()" style="box-shadow:0 4px 14px rgba(0,0,0,0.5); padding:14px 22px; font-size:.95rem; border-radius:30px;">مزاج کی تشخیص اور علاج</button>
+  <div id="chatStartBox" style="text-align:center; margin:24px 0;">
+    <button class="btn" onclick="startChatDiagnosis()" style="border-radius:30px; padding:14px 30px;">تشخیص شروع کریں</button>
   </div>
 
-  <h2 style="text-align:center; font-weight:700; color:var(--gold); margin:24px 0 14px;">مریض کی علامت</h2>
-  <h3 style="color:var(--gold-soft); text-align:center; margin-bottom:6px;">لازمی معلومات <span style="color:#e0524f;">*</span></h3>
-  <div id="requiredFieldsContainer"></div>
-  <h3 style="color:var(--gold-soft); text-align:center; margin:20px 0 6px;">دیگر علامات (اختیاری)</h3>
-  <div id="optionalFieldsContainer"></div>
-  <div id="criteriaContainer"></div>
-
-  <h3 style="color:var(--gold); margin-top:30px;">بیماریاں</h3>
-  <div class="rule-box">نیچے اعضاء کے مطابق بیماریوں کے بٹن ہیں۔ جو عضو متاثر ہو اس کا بٹن دبا کر فہرست میں سے مریض کی بیماری/علامت منتخب کریں۔ جتنی بیماریاں معلوم ہوں اتنی منتخب کر لیں — جو معلوم نہ ہو یا یقین نہ ہو، اسے چھوڑ دیں، کوئی مسئلہ نہیں ہوگا۔</div>
-  <input class="search" id="diseaseSearch" placeholder="بیماری تلاش کریں..." onkeyup="filterDiseases()">
-  <div class="mizaj-columns" id="diseaseGrid"></div>
+  <div id="chatDiagnosisBox" style="display:none; max-width:640px; margin:0 auto;">
+    <div id="chatMessages" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px; max-height:60vh; overflow-y:auto; padding:4px;"></div>
+    <div id="chatInputArea"></div>
+  </div>
 
   <div id="mizajResult" style="margin-top:24px;"></div>
 </section>
@@ -379,250 +373,183 @@ const criteria = [
     ]}
 ];
 
-const cc = document.getElementById('optionalFieldsContainer');
-const requiredFieldsContainer = document.getElementById('requiredFieldsContainer');
-const requiredCriteriaIds = ['bp'];
+// ---------- FIELD DATA (لازمی معلومات + مزاج کے سوالات کی تعریفیں — اب چیٹ پر مبنی تشخیصی نظام میں استعمال ہوتی ہیں) ----------
 const selections = {};
-function toggleCriteriaPanel(cid){
-  const panel = document.getElementById(`crit-panel-${cid}`);
-  const arrow = document.getElementById(`crit-arrow-${cid}`);
-  const isOpen = panel.style.display === 'block';
-  panel.style.display = isOpen ? 'none' : 'block';
-  if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
-}
-criteria.forEach(c=>{
-  const container = document.createElement('div');
-  container.id = `crit-container-${c.id}`;
-  container.className = 'organ-accordion';
-  container.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:10px;';
-
-  const headerBtn = document.createElement('div');
-  headerBtn.style.cssText = 'padding:14px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; color:var(--gold); font-weight:700;';
-  headerBtn.innerHTML = `<span>${c.title}</span><span id="crit-arrow-${c.id}">▾</span>`;
-  headerBtn.onclick = ()=> toggleCriteriaPanel(c.id);
-  container.appendChild(headerBtn);
-
-  const summary = document.createElement('div');
-  summary.id = `crit-summary-${c.id}`;
-  summary.style.cssText = 'display:none; padding:0 16px 12px; color:var(--text); font-size:.9rem;';
-  container.appendChild(summary);
-
-  const panel = document.createElement('div');
-  panel.id = `crit-panel-${c.id}`;
-  panel.style.cssText = 'display:none; padding:10px 12px 14px; border-top:1px solid var(--border);';
-  const optWrap = document.createElement('div');
-  optWrap.className = 'diag-boxes';
-  optWrap.id = `opts-${c.id}`;
-  if(c.options.length === 2){
-    optWrap.style.cssText = 'display:flex; justify-content:center; gap:10px;';
-  }
-  c.options.forEach((opt, i)=>{
-    const box = document.createElement('div');
-    box.className = 'diag-box';
-    box.id = `opt-${c.id}-${i}`;
-    box.onclick = ()=> selectOption(c.id, i);
-    box.innerHTML = `<span class="opt-text">${opt.label}</span>`;
-    if(c.options.length === 2){
-      box.style.cssText += 'flex:0 1 160px;';
-    }
-    optWrap.appendChild(box);
-  });
-  panel.appendChild(optWrap);
-  container.appendChild(panel);
-
-  (requiredCriteriaIds.includes(c.id) ? requiredFieldsContainer : cc).appendChild(container);
-});
-const fieldOptionLabels = {};
-function selectOption(cid, idx){
-  selections[cid] = idx;
-  document.querySelectorAll(`[id^="opt-${cid}-"]`).forEach(el=>el.classList.remove('selected'));
-  document.getElementById(`opt-${cid}-${idx}`).classList.add('selected');
-  const c = criteria.find(x=> x.id === cid);
-  const optLabels = c ? c.options : fieldOptionLabels[cid];
-  const summaryEl = document.getElementById(`crit-summary-${cid}`) || document.getElementById(`field-summary-${cid}`);
-  if(optLabels && summaryEl){
-    summaryEl.textContent = optLabels[idx].label;
-    summaryEl.style.display = 'block';
-  }
-  const critContainer = document.getElementById(`crit-container-${cid}`) || document.getElementById(`field-container-${cid}`);
-  if(critContainer) critContainer.style.border = '';
-}
-
-// ---------- EXTRA FIELDS AS ACCORDION PANELS (عمر، دل کی دھڑکن، بیماری کی مدت، ازدواجی حیثیت، شوگر، قبض) ----------
-function toggleFieldPanel(fid){
-  const panel = document.getElementById(`field-panel-${fid}`);
-  const arrow = document.getElementById(`field-arrow-${fid}`);
-  const isOpen = panel.style.display === 'block';
-  panel.style.display = isOpen ? 'none' : 'block';
-  if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
-}
-function makeFieldAccordion(fid, title, required, flexBoxes, targetContainer){
-  const container = document.createElement('div');
-  container.id = `field-container-${fid}`;
-  container.className = 'organ-accordion';
-  container.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:10px;';
-
-  const headerBtn = document.createElement('div');
-  headerBtn.style.cssText = 'padding:14px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; color:var(--gold); font-weight:700;';
-  headerBtn.innerHTML = `<span>${title}${required ? ' <span style="color:#e0524f;">*</span>' : ''}</span><span id="field-arrow-${fid}">▾</span>`;
-  headerBtn.onclick = ()=> toggleFieldPanel(fid);
-  container.appendChild(headerBtn);
-
-  const summary = document.createElement('div');
-  summary.id = `field-summary-${fid}`;
-  summary.style.cssText = 'display:none; padding:0 16px 12px; color:var(--text); font-size:.9rem;';
-  container.appendChild(summary);
-
-  const panel = document.createElement('div');
-  panel.id = `field-panel-${fid}`;
-  panel.style.cssText = 'display:none; padding:10px 12px 14px; border-top:1px solid var(--border);';
-  const optWrap = document.createElement('div');
-  optWrap.className = 'diag-boxes';
-  optWrap.id = `opts-${fid}`;
-  if(flexBoxes){
-    optWrap.style.cssText = 'display:flex; justify-content:center; gap:10px;';
-  }
-  panel.appendChild(optWrap);
-  container.appendChild(panel);
-  targetContainer.appendChild(container);
-}
-makeFieldAccordion('age', 'عمر کتنی ہے', true, false, requiredFieldsContainer);
-makeFieldAccordion('patient_type', 'بیماری کب سے ہے', false, true, cc);
-makeFieldAccordion('marital_status', 'ازدواجی حیثیت', true, true, requiredFieldsContainer);
-makeFieldAccordion('sugar', 'شوگر ہے یا نہیں', true, true, requiredFieldsContainer);
-makeFieldAccordion('pulse_rate', 'دل کی دھڑکن ایک منٹ میں کتنی ہے', false, false, cc);
-
-// ---------- اگر مزاج پہلے سے معلوم/کنفرم ہے تو یہاں سے منتخب کریں (تمام تشخیصی سوالات چھوڑ کر) ----------
-makeFieldAccordion('known_mizaj', 'اگر آپ کو اپنا مزاج پہلے سے معلوم ہے تو یہاں منتخب کریں', false, false, requiredFieldsContainer);
-const knownMizajOpts = document.getElementById('opts-known_mizaj');
-knownMizajOpts.style.cssText = 'display:flex; flex-direction:column; gap:8px;';
-const knownMizajChoices = [
-  {label:'نمبر 1 — اعصابی عضلاتی'},
-  {label:'نمبر 2 — عضلاتی اعصابی'},
-  {label:'نمبر 3 — عضلاتی غدی'},
-  {label:'نمبر 4 — غدی عضلاتی'},
-  {label:'نمبر 5 — غدی اعصابی'},
-  {label:'نمبر 6 — اعصابی غدی'}
-];
-knownMizajChoices.forEach((opt, i)=>{
-  const box = document.createElement('div');
-  box.className = 'diag-box';
-  box.id = `opt-known_mizaj-${i}`;
-  box.onclick = ()=> selectOption('known_mizaj', i);
-  box.innerHTML = `<span class="opt-text">${opt.label}</span>`;
-  knownMizajOpts.appendChild(box);
-});
-fieldOptionLabels['known_mizaj'] = knownMizajChoices;
-
-
-// ---------- HEART RATE TABLE (age selects range group, pulse boxes show numbers) ----------
-const pulseRanges = {
-  young: {asabi:[56,61], adalati:[86,91], ghudi:[71,81]},
-  middle: {asabi:[45,50], adalati:[75,80], ghudi:[55,65]},
-  old: {asabi:[40,45], adalati:[70,80], ghudi:[50,55]}
-};
-let selectedAgeGroup = 'middle';
-let ageAnswered = false;
-
-const ageOpts = document.getElementById('opts-age');
 const ageChoices = [
   {label:'15 سے 20 سال', group:'young'},
   {label:'30 سے 45 سال', group:'middle'},
   {label:'50 سال سے اوپر', group:'old'}
 ];
-ageChoices.forEach((a, i)=>{
-  const box = document.createElement('div');
-  box.className = 'diag-box';
-  box.id = `opt-age-${i}`;
-  box.onclick = ()=>{
-    selectedAgeGroup = a.group;
-    ageAnswered = true;
-    document.getElementById('field-container-age').style.border = '';
-    const ageSummary = document.getElementById('field-summary-age');
-    if(ageSummary){ ageSummary.textContent = a.label; ageSummary.style.display = 'block'; }
-    document.querySelectorAll(`[id^="opt-age-"]`).forEach(el=>el.classList.remove('selected'));
-    box.classList.add('selected');
-    renderPulseBoxes();
-  };
-  box.innerHTML = `<span class="opt-text">${a.label}</span>`;
-  ageOpts.appendChild(box);
-});
-
-const pulseOpts = document.getElementById('opts-pulse_rate');
-const pulseOrder = ['asabi','adalati','ghudi'];
-function renderPulseBoxes(){
-  const prevSelection = selections['pulse_rate'];
-  pulseOpts.innerHTML = '';
-  pulseOrder.forEach((mizaj, i)=>{
-    const [lo,hi] = pulseRanges[selectedAgeGroup][mizaj];
-    const box = document.createElement('div');
-    box.className = 'diag-box';
-    box.id = `opt-pulse_rate-${i}`;
-    box.onclick = ()=> selectPulseOption(i, mizaj);
-    box.innerHTML = `<span class="opt-text">${lo} سے ${hi}</span>`;
-    if(prevSelection === i) box.classList.add('selected');
-    pulseOpts.appendChild(box);
-  });
-}
-function selectPulseOption(idx, mizaj){
-  selections['pulse_rate'] = idx;
-  pulseSelectionMizaj = mizaj;
-  document.querySelectorAll(`[id^="opt-pulse_rate-"]`).forEach(el=>el.classList.remove('selected'));
-  document.getElementById(`opt-pulse_rate-${idx}`).classList.add('selected');
-}
-let pulseSelectionMizaj = null;
-renderPulseBoxes();
-
-// ---------- PATIENT TYPE (نیا / پرانا) ----------
-const patientTypeOpts = document.getElementById('opts-patient_type');
 const patientTypeChoices = [
   {label:'نیا مریض', mizaj:null},
   {label:'پرانا مریض', mizaj:'ghudi'}
 ];
-patientTypeChoices.forEach((opt, i)=>{
-  const box = document.createElement('div');
-  box.className = 'diag-box';
-  box.id = `opt-patient_type-${i}`;
-  box.style.cssText = 'flex:0 1 160px;';
-  box.onclick = ()=> selectOption('patient_type', i);
-  box.innerHTML = `<span class="opt-text">${opt.label}</span>`;
-  patientTypeOpts.appendChild(box);
-});
-fieldOptionLabels['patient_type'] = patientTypeChoices;
-
-// ---------- MARITAL STATUS (شادی شدہ / غیر شادی شدہ) ----------
-const maritalOpts = document.getElementById('opts-marital_status');
 const maritalChoices = [
   {label:'شادی شدہ', value:'married'},
   {label:'غیر شادی شدہ', value:'unmarried'}
 ];
-maritalChoices.forEach((opt, i)=>{
-  const box = document.createElement('div');
-  box.className = 'diag-box';
-  box.id = `opt-marital_status-${i}`;
-  box.style.cssText = 'flex:0 1 160px;';
-  box.onclick = ()=> selectOption('marital_status', i);
-  box.innerHTML = `<span class="opt-text">${opt.label}</span>`;
-  maritalOpts.appendChild(box);
-});
-fieldOptionLabels['marital_status'] = maritalChoices;
-
-// ---------- شوگر ہے یا نہیں ----------
-const sugarOpts = document.getElementById('opts-sugar');
 const sugarChoices = [
   {label:'شوگر ہے', value:'yes'},
   {label:'شوگر نہیں ہے', value:'no'}
 ];
-sugarChoices.forEach((opt, i)=>{
-  const box = document.createElement('div');
-  box.className = 'diag-box';
-  box.id = `opt-sugar-${i}`;
-  box.style.cssText = 'flex:0 1 160px;';
-  box.onclick = ()=> selectOption('sugar', i);
-  box.innerHTML = `<span class="opt-text">${opt.label}</span>`;
-  sugarOpts.appendChild(box);
-});
-fieldOptionLabels['sugar'] = sugarChoices;
+let selectedAgeGroup = 'middle';
+let ageAnswered = false;
+
+// ---------- چیٹ پر مبنی تشخیصی نظام: مریض کی تکلیف پہلے آزاد الفاظ میں لی جاتی ہے، پھر لازمی معلومات (عمر/ازدواجی حیثیت/شوگر/بلڈ پریشر) ترتیب سے پوچھی جاتی ہیں، اور اس کے بعد AI خود فیصلہ کرتا ہے کہ باقی تشخیصی سوالات میں سے کون سے واقعی ضروری ہیں ----------
+window.chatComplaints = [];
+let chatAskedIds = new Set();
+let chatQuestionCount = 0;
+let aiQuestionsAsked = 0;
+const AI_CHAT_MAX_QUESTIONS = 6;
+const REQUIRED_CHAT_SEQUENCE = ['age','marital_status','sugar','bp'];
+
+function stripHtml(s){ return (s || '').replace(/<[^>]+>/g, '').trim(); }
+
+function startChatDiagnosis(){
+  window.chatComplaints = [];
+  Object.keys(selections).forEach(k=> delete selections[k]);
+  selectedAgeGroup = 'middle';
+  ageAnswered = false;
+  chatAskedIds = new Set();
+  chatQuestionCount = 0;
+  aiQuestionsAsked = 0;
+  document.getElementById('chatStartBox').style.display = 'none';
+  document.getElementById('chatDiagnosisBox').style.display = 'block';
+  document.getElementById('chatMessages').innerHTML = '';
+  document.getElementById('mizajResult').innerHTML = '';
+  addChatMessage('bot', 'السلام علیکم! آپ کو کیا تکلیف یا علامت ہے؟ اپنے الفاظ میں تفصیل سے بتائیں۔');
+  renderChatTextInput();
+}
+
+function addChatMessage(who, text){
+  const wrap = document.getElementById('chatMessages');
+  const bubble = document.createElement('div');
+  bubble.style.cssText = who === 'bot'
+    ? 'align-self:flex-start; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:10px 16px; max-width:88%; color:var(--text);'
+    : 'align-self:flex-end; background:rgba(212,175,55,0.15); border:1px solid var(--gold); border-radius:14px; padding:10px 16px; max-width:88%; color:var(--gold-soft);';
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+  bubble.scrollIntoView({behavior:'smooth', block:'end'});
+}
+
+function renderChatTextInput(){
+  const area = document.getElementById('chatInputArea');
+  area.innerHTML = `<div style="display:flex; gap:8px; margin-top:6px;">
+    <input type="text" id="chatTextInput" class="search" style="margin-bottom:0; flex:1;" placeholder="یہاں لکھیں...">
+    <button class="btn" onclick="handleChatTextSubmit()">بھیجیں</button>
+  </div>`;
+  const inputEl = document.getElementById('chatTextInput');
+  inputEl.focus();
+  inputEl.addEventListener('keydown', e=>{ if(e.key === 'Enter') handleChatTextSubmit(); });
+}
+
+function handleChatTextSubmit(){
+  const input = document.getElementById('chatTextInput');
+  const val = input.value;
+  if(!val || !val.trim()) return;
+  document.getElementById('chatInputArea').innerHTML = '';
+  addChatMessage('user', val.trim());
+  window.chatComplaints.push(val.trim());
+  proceedAfterAnswer();
+}
+
+function askRequiredField(id){
+  let field;
+  if(id === 'age') field = {id:'age', title:'عمر کتنی ہے', options: ageChoices.map(a=> a.label)};
+  else if(id === 'marital_status') field = {id:'marital_status', title:'ازدواجی حیثیت', options: maritalChoices.map(a=> a.label)};
+  else if(id === 'sugar') field = {id:'sugar', title:'شوگر ہے یا نہیں', options: sugarChoices.map(a=> a.label)};
+  else if(id === 'bp'){ const c = criteria.find(x=> x.id === 'bp'); field = {id:'bp', title: stripHtml(c.title), options: c.options.map(o=> o.label)}; }
+  askStructuredQuestion(field);
+}
+
+function askStructuredQuestion(field){
+  chatQuestionCount++;
+  chatAskedIds.add(field.id);
+  addChatMessage('bot', field.title);
+  const area = document.getElementById('chatInputArea');
+  area.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; justify-content:center;';
+  field.options.forEach((label, idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'btn secondary';
+    btn.type = 'button';
+    btn.textContent = label;
+    btn.onclick = ()=> handleStructuredAnswer(field, idx, label);
+    wrap.appendChild(btn);
+  });
+  area.appendChild(wrap);
+}
+
+function handleStructuredAnswer(field, idx, label){
+  document.getElementById('chatInputArea').innerHTML = '';
+  addChatMessage('user', label);
+  if(field.id === 'age'){
+    selectedAgeGroup = ageChoices[idx].group;
+    ageAnswered = true;
+  } else {
+    selections[field.id] = idx;
+  }
+  proceedAfterAnswer();
+}
+
+function proceedAfterAnswer(){
+  const nextRequired = REQUIRED_CHAT_SEQUENCE.find(id=> !chatAskedIds.has(id));
+  if(nextRequired){
+    askRequiredField(nextRequired);
+    return;
+  }
+  fetchNextChatQuestion();
+}
+
+function buildAnsweredSummaryText(){
+  const parts = [];
+  criteria.forEach(c=>{
+    if(selections[c.id] !== undefined) parts.push(`${stripHtml(c.title)}: ${c.options[selections[c.id]].label}`);
+  });
+  if(selections['patient_type'] !== undefined) parts.push(`بیماری کب سے ہے: ${patientTypeChoices[selections['patient_type']].label}`);
+  return parts;
+}
+
+async function fetchNextChatQuestion(){
+  if(aiQuestionsAsked >= AI_CHAT_MAX_QUESTIONS){ finishChatAndDiagnose(); return; }
+  if(typeof isLiveDeployedPage === 'function' && !isLiveDeployedPage()){ finishChatAndDiagnose(); return; }
+  const pool = criteria
+    .filter(c=> c.id !== 'bp' && !chatAskedIds.has(c.id))
+    .map(c=> ({id:c.id, title:stripHtml(c.title), options:c.options.map(o=> o.label)}));
+  if(!chatAskedIds.has('patient_type')) pool.push({id:'patient_type', title:'بیماری کب سے ہے', options: patientTypeChoices.map(o=> o.label)});
+  if(!pool.length){ finishChatAndDiagnose(); return; }
+
+  document.getElementById('chatInputArea').innerHTML = '<p style="color:var(--muted); text-align:center;">⏳...</p>';
+  try{
+    const res = await fetch('/api/chat-question', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        complaint: window.chatComplaints.join(' — '),
+        answeredSoFar: buildAnsweredSummaryText(),
+        pool: pool,
+        questionsAskedSoFar: aiQuestionsAsked
+      })
+    });
+    if(!res.ok) throw new Error('status ' + res.status);
+    const data = await res.json();
+    if(data && !data.done && data.next && pool.some(f=> f.id === data.next)){
+      const field = pool.find(f=> f.id === data.next);
+      aiQuestionsAsked++;
+      askStructuredQuestion(field);
+    } else {
+      finishChatAndDiagnose();
+    }
+  }catch(err){
+    finishChatAndDiagnose();
+  }
+}
+
+function finishChatAndDiagnose(){
+  document.getElementById('chatInputArea').innerHTML = '<p style="color:var(--muted); text-align:center;">⏳ آپ کے جوابات کی بنیاد پر تشخیص تیار کی جا رہی ہے...</p>';
+  computeMizajFromChat();
+}
 
 // ---------- DISEASES (grouped by primary mizaj they point toward) ----------
 const diseaseList = [
@@ -1176,102 +1103,6 @@ function getIcon(name){
 }
 
 const allDiseases = diseaseList.map(d=> ({name:d.name, mizaj:d.mizaj, tendency:d.tendency, organ:d.organ, icon:getIcon(d.name)}));
-
-const diseaseGrid = document.getElementById('diseaseGrid');
-diseaseGrid.className = '';
-diseaseGrid.style.cssText = 'display:flex; flex-direction:column; gap:10px; margin:20px 0 10px;';
-const diseaseIds = [];
-
-// اعضاء کے مطابق گروپ بندی کریں (مزاج/تحریک صارف کو نظر نہیں آئے گی، صرف اندرونی طور پر محفوظ)
-const organGroups = {};
-const organOrderList = [];
-allDiseases.forEach((d, i)=>{
-  const did = `dis-${i}`;
-  diseaseIds.push({id:did, mizaj:d.mizaj, tendency:d.tendency, name:d.name});
-  if(!organGroups[d.organ]){
-    organGroups[d.organ] = [];
-    organOrderList.push(d.organ);
-  }
-  organGroups[d.organ].push({...d, did, idx:i});
-});
-
-function updateOrganSummary(organKey){
-  const selectedNames = organGroups[organKey]
-    .filter(item=> document.getElementById(item.did) && document.getElementById(item.did).checked)
-    .map(item=> item.name);
-  const summaryEl = document.getElementById(`organ-summary-${organKey}`);
-  if(summaryEl){
-    summaryEl.textContent = selectedNames.length ? selectedNames.join('، ') : '';
-    summaryEl.style.display = selectedNames.length ? 'block' : 'none';
-  }
-}
-
-function toggleOrganPanel(organKey){
-  const panel = document.getElementById(`organ-panel-${organKey}`);
-  const arrow = document.getElementById(`organ-arrow-${organKey}`);
-  const isOpen = panel.style.display === 'block';
-  panel.style.display = isOpen ? 'none' : 'block';
-  if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
-}
-
-organOrderList.forEach((organKey, gi)=>{
-  const safeKey = organKey; // استعمال بطور id کا حصہ (اردو حروف بھی چل جاتے ہیں id میں)
-  const container = document.createElement('div');
-  container.className = 'organ-accordion';
-  container.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden;';
-
-  const headerBtn = document.createElement('div');
-  headerBtn.style.cssText = 'padding:14px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; color:var(--gold); font-weight:700;';
-  headerBtn.innerHTML = `<span>${organKey} کی تمام بیماریاں</span><span id="organ-arrow-${safeKey}">▾</span>`;
-  headerBtn.onclick = ()=> toggleOrganPanel(safeKey);
-  container.appendChild(headerBtn);
-
-  const summary = document.createElement('div');
-  summary.id = `organ-summary-${safeKey}`;
-  summary.style.cssText = 'display:none; padding:0 16px 12px; color:var(--text); font-size:.9rem;';
-  container.appendChild(summary);
-
-  const panel = document.createElement('div');
-  panel.id = `organ-panel-${safeKey}`;
-  panel.style.cssText = 'display:none; padding:10px 12px 14px; border-top:1px solid var(--border);';
-  const panelGrid = document.createElement('div');
-  panelGrid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:6px;';
-  organGroups[organKey].forEach(item=>{
-    const label = document.createElement('label');
-    label.className = 'symptom';
-    label.id = `wrap-${item.did}`;
-    label.innerHTML = `<input type="checkbox" id="${item.did}" onchange="toggleSymptom('${item.did}', '${safeKey}')"><span>${item.icon} ${item.name}</span>`;
-    panelGrid.appendChild(label);
-  });
-  panel.appendChild(panelGrid);
-  container.appendChild(panel);
-
-  diseaseGrid.appendChild(container);
-});
-
-function toggleSymptom(id, organKey){
-  document.getElementById('wrap-'+id).classList.toggle('checked', document.getElementById(id).checked);
-  if(organKey) updateOrganSummary(organKey);
-}
-
-function filterDiseases(){
-  const q = document.getElementById('diseaseSearch').value.trim();
-  organOrderList.forEach(organKey=>{
-    let anyMatch = false;
-    organGroups[organKey].forEach(item=>{
-      const wrap = document.getElementById(`wrap-${item.did}`);
-      const match = (!q || item.name.includes(q));
-      wrap.style.display = match ? 'flex' : 'none';
-      if(match) anyMatch = true;
-    });
-    const container = document.getElementById(`organ-panel-${organKey}`).parentElement;
-    container.style.display = anyMatch ? 'block' : 'none';
-    if(q && anyMatch){
-      document.getElementById(`organ-panel-${organKey}`).style.display = 'block';
-      document.getElementById(`organ-arrow-${organKey}`).textContent = '▴';
-    }
-  });
-}
 
 // ---------- TREATMENT FORMULAS (reference, sourced from lectures) ----------
 // ---------- MEDICINE DOSAGE FREQUENCY (دن میں کتنی بار) ----------
@@ -3585,48 +3416,10 @@ function runDiseaseSearch(){
 }
 
 
-// ---------- COMPUTE MIZAJ ----------
-function computeMizaj(){
-  const requiredChecks = [
-    {ok: ageAnswered, id:'age', prefix:'field', msg:'مریض کی عمر منتخب کریں'},
-    {ok: selections['marital_status'] !== undefined, id:'marital_status', prefix:'field', msg:'ازدواجی حیثیت منتخب کریں'},
-    {ok: selections['sugar'] !== undefined, id:'sugar', prefix:'field', msg:'شوگر ہے یا نہیں، یہ منتخب کریں'},
-    {ok: selections['bp'] !== undefined, id:'bp', prefix:'crit', msg:'بلڈ پریشر منتخب کریں'}
-  ];
-  for(const req of requiredChecks){
-    if(!req.ok){
-      const panel = document.getElementById(`${req.prefix}-panel-${req.id}`);
-      const arrow = document.getElementById(`${req.prefix}-arrow-${req.id}`);
-      if(panel && panel.style.display !== 'block'){
-        panel.style.display = 'block';
-        if(arrow) arrow.textContent = '▴';
-      }
-      const target = document.getElementById(`${req.prefix}-container-${req.id}`);
-      if(target){
-        target.style.border = '2px solid #e0524f';
-        target.style.borderRadius = '10px';
-        target.scrollIntoView({behavior:'smooth', block:'center'});
-      }
-      const resultDiv = document.getElementById('mizajResult');
-      resultDiv.innerHTML = `<div class="result-card" style="border-color:#e0524f;"><h3 style="color:#e0524f;">پہلے یہ علامت بتائیں</h3><p style="color:var(--text);">${req.msg} — پھر آگے بڑھیں۔</p></div>`;
-      return;
-    }
-  }
-
+// ---------- COMPUTE MIZAJ (چیٹ سے جمع کیے گئے جوابات سے) ----------
+function computeMizajFromChat(){
   let totals = {asabi:0, adalati:0, ghudi:0};
   let answered = 0;
-
-  if(selections['known_mizaj'] !== undefined){
-    const numberToDominant = {1:'asabi', 2:'adalati', 3:'adalati', 4:'ghudi', 5:'ghudi', 6:'asabi'};
-    const num = selections['known_mizaj'] + 1;
-    totals[numberToDominant[num]] = 1;
-    answered = 1;
-    window.forcedPatientNumber = num;
-    window.lastMizajTotals = totals;
-    window.lastMizajAnswered = answered;
-    renderMizajResult(totals, answered);
-    return;
-  }
 
   criteria.forEach(c=>{
     if(selections[c.id] !== undefined){
@@ -3636,31 +3429,10 @@ function computeMizaj(){
     }
   });
 
-  if(selections['pulse_rate'] !== undefined && pulseSelectionMizaj){
-    answered++;
-    totals[pulseSelectionMizaj] += 1;
-  }
-
   if(selections['patient_type'] !== undefined){
     answered++;
     const pt = patientTypeChoices[selections['patient_type']];
     if(pt.mizaj) totals[pt.mizaj] += 1;
-  }
-
-  diseaseIds.forEach(d=>{
-    if(document.getElementById(d.id).checked){
-      answered++;
-      if(d.mizaj !== 'all') totals[d.mizaj] += 1;
-    }
-  });
-
-  const names = {asabi:"اعصابی", adalati:"عضلاتی", ghudi:"غدی"};
-  const resultDiv = document.getElementById('mizajResult');
-
-  if(answered === 0){
-    resultDiv.innerHTML = '<div class="result-card"><h3>کوئی جواب منتخب نہیں کیا گیا</h3><p style="color:var(--muted);">براہ کرم اوپر کم از کم چند سوالات کے جواب دیں۔</p></div>';
-    resultDiv.scrollIntoView({behavior:'smooth'});
-    return;
   }
 
   window.lastMizajTotals = totals;
@@ -3678,7 +3450,7 @@ function stripCombinationWarning(warning){
 }
 
 const tieBreakers = {
-  "asabi,adalati": [
+  "adalati,asabi": [
     {q:"جسم کی جلد کیسی محسوس ہوتی ہے؟", a:"نرم اور ملائم", am:"asabi", b:"خشک اور کھردری", bm:"adalati"},
     {q:"دل کی دھڑکن کیسی رہتی ہے؟", a:"سست، کمزور", am:"asabi", b:"تیز، زوردار", bm:"adalati"},
     {q:"پیاس کیسی لگتی ہے؟", a:"کم پیاس", am:"asabi", b:"زیادہ پیاس", bm:"adalati"}
@@ -3734,8 +3506,8 @@ function renderMizajResult(totals, answered){
       selectedSymptomLabels.push(c.options[selections[c.id]].label);
     }
   });
-  const selectedDiseaseObjs = diseaseIds.filter(d=> document.getElementById(d.id).checked);
-  const selectedDiseaseNames = selectedDiseaseObjs.map(d=> d.name);
+  const selectedDiseaseObjs = [];
+  const selectedDiseaseNames = (window.chatComplaints || []).slice();
 
   // ---------- نمبر والی تحریک (1 تا 6) کا تعین ----------
   const numberToCategory = {1:"اعصابی عضلاتی", 2:"عضلاتی اعصابی", 3:"عضلاتی غدی", 4:"غدی عضلاتی", 5:"غدی اعصابی", 6:"اعصابی غدی"};
@@ -3786,138 +3558,10 @@ function renderMizajResult(totals, answered){
   const maritalSel = selections['marital_status'];
   const maritalValue = maritalSel !== undefined ? maritalChoices[maritalSel].value : null;
 
-  // ---------- نمبر والی تحریک کے مطابق موسمی علاج (نمبر پہلے سے طے ہو چکا ہے) ----------
-  let seasonNote = '';
-  let numberedCandidates = null;
-  if(patientNumber){
-    const month = new Date().getMonth() + 1; // 1-12
-    const isWinter = (month >= 9 || month <= 2);
-    const isExtremeSummer = (month === 6 || month === 7);
-    const isOldPatient = selections['patient_type'] !== 0; // اگر نیا/پرانا نہ بتایا جائے تو پرانے مریض کے اصول کے مطابق مزاج منتخب کریں
-
-    const winterOldMap = {1:[3,4], 2:[4,5], 3:[5,6], 4:[5,6,1], 5:[1,2], 6:[2,3]};
-    const summerMap = {1:[3,4], 2:[5,4], 3:[6,5], 4:[1,6], 5:[1,2], 6:[1,2]};
-
-    let treatNumbers = [];
-    if(isWinter){
-      if(isOldPatient){
-        treatNumbers = winterOldMap[patientNumber];
-        seasonNote = `سردیوں کا موسم — پرانے مریض کے اصول کے مطابق نمبر ${patientNumber} تحریک کا علاج نمبر ${treatNumbers.join('، ')} سے۔`;
-      } else {
-        // نیا مریض: آگے والی تینوں تحریکوں سے علاج
-        treatNumbers = [1,2,3].map(i=> ((patientNumber - 1 + i) % 6) + 1);
-        seasonNote = `سردیوں کا موسم — نئے مریض کے اصول کے مطابق نمبر ${patientNumber} تحریک کا علاج آگے والی تین تحریکوں یعنی نمبر ${treatNumbers.join('، ')} سے۔`;
-      }
-    } else {
-      // گرمیوں کا موسم
-      treatNumbers = summerMap[patientNumber] ? summerMap[patientNumber].slice() : [];
-      if((patientNumber === 5 || patientNumber === 6)){
-        if(isExtremeSummer){
-          seasonNote = `شدید گرمی (جون-جولائی) — نمبر ${patientNumber} تحریک کا علاج نمبر 1 اور 2 سے، ایک ساتھ ملا کر۔`;
-        } else {
-          // شدید گرمی نہ ہو تو 1 اور 2 کو ملانا نہیں چاہیے — الگ الگ دیں
-          seasonNote = `گرمیوں کا موسم (شدید گرمی نہیں) — نمبر ${patientNumber} تحریک کے لیے نمبر 1 اور 2 کو اکٹھا نہ ملائیں، دونوں فارمولے الگ الگ دیں (ورنہ اثر ضائع ہو جائے گا)۔`;
-        }
-      } else {
-        seasonNote = `گرمیوں کا موسم — نمبر ${patientNumber} تحریک کا علاج نمبر ${treatNumbers.join('، ')} سے۔`;
-      }
-    }
-
-    const treatCategories = treatNumbers.map(n=> numberToCategory[n]);
-    numberedCandidates = nuskheData.filter(n=>{
-      const cat = getNuskhaCategory(n);
-      if(treatCategories.indexOf(cat) === -1 && n.group !== 'general') return false;
-      if(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue) return false;
-      return true;
-    });
-    window.lastTreatNumbers = treatNumbers;
-  }
-
-  // ---------- ترجیحی درجہ بندی (priority cascade) — جب مریض کا مخصوص نمبر معلوم نہ ہو ----------
-  // 80% اصول: عضو کا مزاج معلوم ہو تو اسی مزاج کی دوا فوائد دیکھ کر دی جائے
-  const seasonalPriority = {
-    asabi:   {summer:[2,3,4], winter:[4,3,2]},
-    adalati: {summer:[5,6,4], winter:[4,5,6]},
-    ghudi:   {summer:[1,6,2], winter:[6,1,2]}
-  };
-  let priorityUsedCategory = null; // کس نمبر ترجیح سے دوا ملی
-  let cascadeCandidates = null;
-  if(patientNumber === null){
-    const monthC = new Date().getMonth() + 1;
-    const isWinterC = (monthC >= 9 || monthC <= 2);
-    const seasonKey = isWinterC ? 'winter' : 'summer';
-    const priorityList = seasonalPriority[dominant][seasonKey];
-
-    for(let pi=0; pi<priorityList.length; pi++){
-      const num = priorityList[pi];
-      const catName = numberToCategory[num];
-      let levelCandidates = nuskheData.filter(n=> getNuskhaCategory(n) === catName);
-      // اگر مریض غدی ہے اور نمبر 1 یا 2 سے علاج ہو رہا ہے تو دونوں اکٹھے نہ دیں
-      if(dominant === 'ghudi' && (num === 1 || num === 2)){
-        const otherNum = num === 1 ? 2 : 1;
-        // صرف اسی نمبر تک محدود رکھیں، دوسرے کو مکس نہ کریں (پہلے سے فلٹر شدہ ہے کیونکہ صرف catName سے میچ کر رہے ہیں)
-      }
-      if(n=> n.maritalOnly){ /* no-op placeholder to keep structure simple */ }
-      levelCandidates = levelCandidates.filter(n=> !(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue));
-
-      if(selectedDiseaseNames.length > 0){
-        const scored = levelCandidates.filter(n=> selectedDiseaseNames.some(dn=> n.benefit.indexOf(dn) !== -1 || n.name.indexOf(dn) !== -1));
-        if(scored.length > 0){
-          cascadeCandidates = scored.slice(0,4);
-          priorityUsedCategory = {num, catName};
-          break;
-        }
-        // اس ترجیح میں بیماری سے میچ نہ ملے تو اگلی ترجیح آزمائیں
-      } else {
-        // کوئی بیماری منتخب نہیں — پہلی ترجیح ہی استعمال کریں
-        cascadeCandidates = levelCandidates.slice(0,4);
-        priorityUsedCategory = {num, catName};
-        break;
-      }
-    }
-    // اگر کسی ترجیح میں بیماری سے میچ نہ ملا ہو تو پہلی ترجیح کی عمومی دوائیں دکھائیں
-    if(cascadeCandidates === null){
-      const firstNum = priorityList[0];
-      const firstCat = numberToCategory[firstNum];
-      cascadeCandidates = nuskheData.filter(n=> getNuskhaCategory(n) === firstCat && !(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue)).slice(0,4);
-      priorityUsedCategory = {num:firstNum, catName:firstCat};
-    }
-    seasonNote = `${isWinterC ? 'سردیوں' : 'گرمیوں'} کا موسم — عضو/بیماری کے فوائد سے مطابقت رکھنے والی دوا نمبر ${priorityUsedCategory.num} (${priorityUsedCategory.catName}) کی ترتیب سے منتخب کی گئی۔`;
-  }
-
-  let candidates = numberedCandidates !== null ? numberedCandidates : (cascadeCandidates !== null ? cascadeCandidates : nuskheData.filter(n=>{
-    if((n.group === treatGroup || n.group === 'general') === false) return false;
-    if(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue) return false;
-    return true;
-  }));
-  const aiCandidatePool = candidates.slice(); // AI انتخاب کے لیے مکمل فہرست (سلائس ہونے سے پہلے)
-
-  // ہر دوا کو منتخب بیماریوں سے مطابقت کے مطابق سکور دیں (نمبر والے نظام کے لیے، کیسکیڈ نظام میں یہ پہلے ہی ہو چکا)
-  let usedFallback = false;
-  if(numberedCandidates !== null){
-    if(selectedDiseaseNames.length > 0){
-      const scored = candidates.map(n=>{
-        let score = 0;
-        selectedDiseaseNames.forEach(dn=>{
-          if(n.benefit.indexOf(dn) !== -1 || n.name.indexOf(dn) !== -1) score++;
-        });
-        return {n, score};
-      }).filter(x=> x.score > 0)
-        .sort((a,b)=> b.score - a.score)
-        .map(x=> x.n);
-      if(scored.length > 0){
-        candidates = scored.slice(0, 4);
-      } else {
-        candidates = candidates.slice(0, 4);
-        usedFallback = true;
-      }
-    } else {
-      candidates = candidates.slice(0, 4);
-      usedFallback = true;
-    }
-  } else if(cascadeCandidates !== null){
-    usedFallback = selectedDiseaseNames.length === 0;
-  }
+  // ---------- مزاج/موسم کی بنیاد پر نسخوں کی پیشگی چھانٹی ختم — اب تمام نسخے AI کو بھیجے جاتے ہیں تاکہ ----------
+  // علامات/بیماری سے حقیقی مطابقت رکھنے والا نسخہ کسی بھی مزاج کیٹیگری سے آ سکے (صرف شادی کی حقیقی طبی پابندی برقرار رکھی گئی ہے)
+  const candidates = nuskheData.filter(n=> !(n.maritalOnly && maritalValue && n.maritalOnly !== maritalValue));
+  const aiCandidatePool = candidates.slice(); // AI انتخاب کے لیے مکمل فہرست
   const matchedHerbs = candidates;
 
   // قبض کا خاص اصول: کمزور مریض کو مسہل کی بجائے ملین (3 گولیاں) دیں
@@ -3936,7 +3580,7 @@ function renderMizajResult(totals, answered){
   }
 
   if(matchedHerbs.length){
-    const headerNum = patientNumber ? patientNumber : (priorityUsedCategory ? priorityUsedCategory.num : null);
+    const headerNum = patientNumber || null;
     const torMonth = new Date().getMonth() + 1;
     const torIsWinter = (torMonth >= 9 || torMonth <= 2);
     const tiryaqPreference = (maritalValue === 'married' && selectedAgeGroup !== 'old') ? 'شنگرفی' : 'ہینگ والا';
