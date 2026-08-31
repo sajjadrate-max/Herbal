@@ -164,6 +164,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   <div id="chatDiagnosisBox" style="display:none; max-width:640px; margin:0 auto;">
     <div id="chatMessages" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px; max-height:60vh; overflow-y:auto; padding:4px;"></div>
     <div id="chatInputArea"></div>
+    <div id="chatQuestionsBatch" style="display:none; margin-top:10px;"></div>
   </div>
 
   <div id="mizajResult" style="margin-top:24px;"></div>
@@ -395,13 +396,8 @@ const sugarChoices = [
 let selectedAgeGroup = 'middle';
 let ageAnswered = false;
 
-// ---------- چیٹ پر مبنی تشخیصی نظام: مریض کی تکلیف پہلے آزاد الفاظ میں لی جاتی ہے، پھر لازمی معلومات (عمر/ازدواجی حیثیت/شوگر/بلڈ پریشر) ترتیب سے پوچھی جاتی ہیں، اور اس کے بعد AI خود فیصلہ کرتا ہے کہ باقی تشخیصی سوالات میں سے کون سے واقعی ضروری ہیں ----------
+// ---------- چیٹ پر مبنی تشخیصی نظام: مریض کی تکلیف پہلے آزاد الفاظ میں لی جاتی ہے، پھر AI ایک ہی بار میں فیصلہ کرتا ہے کہ کون سے سوالات ضروری ہیں، اور وہ تمام سوالات (لازمی معلومات سمیت) ایک ساتھ دکھائے جاتے ہیں — ایک ایک کر کے نہیں ----------
 window.chatComplaints = [];
-let chatAskedIds = new Set();
-let chatQuestionCount = 0;
-let aiQuestionsAsked = 0;
-const AI_CHAT_MAX_QUESTIONS = 6;
-const REQUIRED_CHAT_SEQUENCE = ['age','marital_status','sugar','bp'];
 
 function stripHtml(s){ return (s || '').replace(/<[^>]+>/g, '').trim(); }
 
@@ -410,12 +406,11 @@ function startChatDiagnosis(){
   Object.keys(selections).forEach(k=> delete selections[k]);
   selectedAgeGroup = 'middle';
   ageAnswered = false;
-  chatAskedIds = new Set();
-  chatQuestionCount = 0;
-  aiQuestionsAsked = 0;
   document.getElementById('chatStartBox').style.display = 'none';
   document.getElementById('chatDiagnosisBox').style.display = 'block';
   document.getElementById('chatMessages').innerHTML = '';
+  document.getElementById('chatQuestionsBatch').style.display = 'none';
+  document.getElementById('chatQuestionsBatch').innerHTML = '';
   document.getElementById('mizajResult').innerHTML = '';
   addChatMessage('bot', 'السلام علیکم! آپ کو کیا تکلیف یا علامت ہے؟ اپنے الفاظ میں تفصیل سے بتائیں۔');
   renderChatTextInput();
@@ -450,104 +445,136 @@ function handleChatTextSubmit(){
   document.getElementById('chatInputArea').innerHTML = '';
   addChatMessage('user', val.trim());
   window.chatComplaints.push(val.trim());
-  proceedAfterAnswer();
+  fetchAllQuestions();
 }
 
-function askRequiredField(id){
-  let field;
-  if(id === 'age') field = {id:'age', title:'عمر کتنی ہے', options: ageChoices.map(a=> a.label)};
-  else if(id === 'marital_status') field = {id:'marital_status', title:'ازدواجی حیثیت', options: maritalChoices.map(a=> a.label)};
-  else if(id === 'sugar') field = {id:'sugar', title:'شوگر ہے یا نہیں', options: sugarChoices.map(a=> a.label)};
-  else if(id === 'bp'){ const c = criteria.find(x=> x.id === 'bp'); field = {id:'bp', title: stripHtml(c.title), options: c.options.map(o=> o.label)}; }
-  askStructuredQuestion(field);
+function buildRequiredFields(){
+  const bpCrit = criteria.find(c=> c.id === 'bp');
+  return [
+    {id:'age', title:'عمر کتنی ہے', required:true, options: ageChoices.map(a=> a.label)},
+    {id:'marital_status', title:'ازدواجی حیثیت', required:true, options: maritalChoices.map(a=> a.label)},
+    {id:'sugar', title:'شوگر ہے یا نہیں', required:true, options: sugarChoices.map(a=> a.label)},
+    {id:'bp', title: stripHtml(bpCrit.title).replace(/\*$/, '').trim(), required:true, options: bpCrit.options.map(o=> o.label)}
+  ];
 }
 
-function askStructuredQuestion(field){
-  chatQuestionCount++;
-  chatAskedIds.add(field.id);
-  addChatMessage('bot', field.title);
-  const area = document.getElementById('chatInputArea');
-  area.innerHTML = '';
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; justify-content:center;';
-  field.options.forEach((label, idx)=>{
-    const btn = document.createElement('button');
-    btn.className = 'btn secondary';
-    btn.type = 'button';
-    btn.textContent = label;
-    btn.onclick = ()=> handleStructuredAnswer(field, idx, label);
-    wrap.appendChild(btn);
-  });
-  area.appendChild(wrap);
+function buildOptionalPool(){
+  const pool = criteria
+    .filter(c=> c.id !== 'bp')
+    .map(c=> ({id:c.id, title:stripHtml(c.title), required:false, options:c.options.map(o=> o.label)}));
+  pool.push({id:'patient_type', title:'بیماری کب سے ہے', required:false, options: patientTypeChoices.map(o=> o.label)});
+  return pool;
 }
 
-function handleStructuredAnswer(field, idx, label){
+async function fetchAllQuestions(){
+  addChatMessage('bot', 'شکریہ! ذرا رکیں، متعلقہ سوالات تیار کیے جا رہے ہیں۔');
+  document.getElementById('chatInputArea').innerHTML = '<p style="color:var(--muted); text-align:center;">⏳...</p>';
+
+  const optionalPool = buildOptionalPool();
+  let selectedOptionalIds = [];
+
+  if(typeof isLiveDeployedPage !== 'function' || isLiveDeployedPage()){
+    try{
+      const res = await fetch('/api/chat-question', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          complaint: window.chatComplaints.join(' — '),
+          pool: optionalPool
+        })
+      });
+      if(res.ok){
+        const data = await res.json();
+        if(data && Array.isArray(data.questions)){
+          selectedOptionalIds = data.questions.filter(id=> optionalPool.some(f=> f.id === id));
+        }
+      }
+    }catch(err){ /* ناکامی کی صورت میں صرف لازمی سوالات دکھائے جائیں گے */ }
+  }
+
+  const optionalFields = optionalPool.filter(f=> selectedOptionalIds.includes(f.id));
   document.getElementById('chatInputArea').innerHTML = '';
-  addChatMessage('user', label);
+  renderQuestionBatch([...buildRequiredFields(), ...optionalFields]);
+}
+
+function renderQuestionBatch(fields){
+  const batch = document.getElementById('chatQuestionsBatch');
+  batch.innerHTML = '';
+  batch.style.display = 'block';
+
+  const intro = document.createElement('p');
+  intro.style.cssText = 'color:var(--muted); text-align:center; margin-bottom:14px;';
+  intro.textContent = 'براہ کرم نیچے دیے گئے سوالات کے جواب دیں، پھر "تشخیص مکمل کریں" دبائیں۔';
+  batch.appendChild(intro);
+
+  fields.forEach(field=>{
+    const card = document.createElement('div');
+    card.className = 'rule-box';
+    card.id = `batch-card-${field.id}`;
+    card.style.marginBottom = '12px';
+
+    const title = document.createElement('p');
+    title.style.cssText = 'margin-bottom:10px; color:var(--gold-soft); font-weight:700;';
+    title.textContent = field.title + (field.required ? ' *' : '');
+    card.appendChild(title);
+
+    const optWrap = document.createElement('div');
+    optWrap.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px;';
+    field.options.forEach((label, idx)=>{
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn secondary';
+      btn.textContent = label;
+      btn.onclick = ()=> selectBatchOption(field, idx, btn);
+      optWrap.appendChild(btn);
+    });
+    card.appendChild(optWrap);
+    batch.appendChild(card);
+  });
+
+  const warnEl = document.createElement('p');
+  warnEl.id = 'batchWarning';
+  warnEl.style.cssText = 'color:#e0524f; text-align:center; margin-top:10px; display:none;';
+  batch.appendChild(warnEl);
+
+  const submitBtn = document.createElement('button');
+  submitBtn.type = 'button';
+  submitBtn.className = 'btn';
+  submitBtn.style.cssText = 'display:block; margin:16px auto 0; border-radius:24px; padding:12px 30px;';
+  submitBtn.textContent = 'تشخیص مکمل کریں';
+  submitBtn.onclick = submitQuestionBatch;
+  batch.appendChild(submitBtn);
+
+  batch.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function selectBatchOption(field, idx, btnEl){
+  const card = document.getElementById(`batch-card-${field.id}`);
+  card.querySelectorAll('button').forEach(b=>{ b.style.borderColor = ''; b.style.background = ''; });
+  btnEl.style.borderColor = 'var(--gold)';
+  btnEl.style.background = 'rgba(212,175,55,0.15)';
   if(field.id === 'age'){
     selectedAgeGroup = ageChoices[idx].group;
     ageAnswered = true;
   } else {
     selections[field.id] = idx;
   }
-  proceedAfterAnswer();
 }
 
-function proceedAfterAnswer(){
-  const nextRequired = REQUIRED_CHAT_SEQUENCE.find(id=> !chatAskedIds.has(id));
-  if(nextRequired){
-    askRequiredField(nextRequired);
+function submitQuestionBatch(){
+  const missing = [];
+  if(!ageAnswered) missing.push('عمر');
+  if(selections['marital_status'] === undefined) missing.push('ازدواجی حیثیت');
+  if(selections['sugar'] === undefined) missing.push('شوگر');
+  if(selections['bp'] === undefined) missing.push('بلڈ پریشر');
+  if(missing.length){
+    const warnEl = document.getElementById('batchWarning');
+    warnEl.textContent = 'براہ کرم یہ لازمی سوالات ضرور مکمل کریں: ' + missing.join('، ');
+    warnEl.style.display = 'block';
+    warnEl.scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
-  fetchNextChatQuestion();
-}
-
-function buildAnsweredSummaryText(){
-  const parts = [];
-  criteria.forEach(c=>{
-    if(selections[c.id] !== undefined) parts.push(`${stripHtml(c.title)}: ${c.options[selections[c.id]].label}`);
-  });
-  if(selections['patient_type'] !== undefined) parts.push(`بیماری کب سے ہے: ${patientTypeChoices[selections['patient_type']].label}`);
-  return parts;
-}
-
-async function fetchNextChatQuestion(){
-  if(aiQuestionsAsked >= AI_CHAT_MAX_QUESTIONS){ finishChatAndDiagnose(); return; }
-  if(typeof isLiveDeployedPage === 'function' && !isLiveDeployedPage()){ finishChatAndDiagnose(); return; }
-  const pool = criteria
-    .filter(c=> c.id !== 'bp' && !chatAskedIds.has(c.id))
-    .map(c=> ({id:c.id, title:stripHtml(c.title), options:c.options.map(o=> o.label)}));
-  if(!chatAskedIds.has('patient_type')) pool.push({id:'patient_type', title:'بیماری کب سے ہے', options: patientTypeChoices.map(o=> o.label)});
-  if(!pool.length){ finishChatAndDiagnose(); return; }
-
-  document.getElementById('chatInputArea').innerHTML = '<p style="color:var(--muted); text-align:center;">⏳...</p>';
-  try{
-    const res = await fetch('/api/chat-question', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        complaint: window.chatComplaints.join(' — '),
-        answeredSoFar: buildAnsweredSummaryText(),
-        pool: pool,
-        questionsAskedSoFar: aiQuestionsAsked
-      })
-    });
-    if(!res.ok) throw new Error('status ' + res.status);
-    const data = await res.json();
-    if(data && !data.done && data.next && pool.some(f=> f.id === data.next)){
-      const field = pool.find(f=> f.id === data.next);
-      aiQuestionsAsked++;
-      askStructuredQuestion(field);
-    } else {
-      finishChatAndDiagnose();
-    }
-  }catch(err){
-    finishChatAndDiagnose();
-  }
-}
-
-function finishChatAndDiagnose(){
-  document.getElementById('chatInputArea').innerHTML = '<p style="color:var(--muted); text-align:center;">⏳ آپ کے جوابات کی بنیاد پر تشخیص تیار کی جا رہی ہے...</p>';
+  document.getElementById('chatQuestionsBatch').innerHTML = '<p style="color:var(--muted); text-align:center;">⏳ آپ کے جوابات کی بنیاد پر تشخیص تیار کی جا رہی ہے...</p>';
   computeMizajFromChat();
 }
 
