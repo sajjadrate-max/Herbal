@@ -1,7 +1,7 @@
 // sw.js — Herbal | قانونِ مفرد اعضاء
 // مقصد: سائٹ کو آف لائن اور ایپ کی طرح انسٹال کے قابل بنانا
 
-const CACHE_NAME = 'herbal-cache-v1';
+const CACHE_NAME = 'herbal-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -35,7 +35,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// فیچ: پہلے کیش سے دیں (آف لائن کام کرے)، ساتھ ساتھ نیٹ ورک سے تازہ کاپی بھی لے کر کیش اپڈیٹ کریں
+// فیچ: نیٹ ورک کو ترجیح دیں (تازہ ترین کوڈ ہمیشہ ملے)، صرف آف لائن ہونے کی صورت میں کیش سے دیں
 // نوٹ: /api/ کالز کبھی کیش نہ کریں (دوا کا جواب ہمیشہ تازہ ہونا چاہیے)
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
@@ -51,16 +51,12 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const networkFetch = fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-        }
-        return networkResponse;
-      }).catch(() => cachedResponse);
-
-      return cachedResponse || networkFetch;
-    })
+    fetch(event.request).then((networkResponse) => {
+      if (networkResponse && networkResponse.status === 200) {
+        const responseClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+      }
+      return networkResponse;
+    }).catch(() => caches.match(event.request))
   );
 });
