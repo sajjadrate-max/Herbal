@@ -161,15 +161,34 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   </div>
 
   <h2 style="text-align:center; font-weight:700; color:var(--gold); margin:24px 0 14px;">مریض کی علامت</h2>
+
+  <div id="freeComplaintBox" style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:20px;">
+    <h3 style="color:var(--gold-soft); text-align:center; margin-bottom:8px;">پہلے اپنی مکمل تکلیف لکھیں</h3>
+    <p style="color:var(--muted); font-size:.85rem; text-align:center; margin-bottom:10px;">اپنی بیماری/تکلیف ایک ہی بار تفصیل سے لکھیں — اس کے مطابق آگے صرف وہی سوالات پوچھے جائیں گے جو آپ کی تکلیف سے متعلق ہوں۔</p>
+    <textarea id="freeComplaintText" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--gold); background:rgba(255,255,255,0.05); color:var(--text); font-family:inherit; font-size:1rem;" placeholder="مثلاً: مجھے دو ہفتوں سے خشک کھانسی ہے، رات کو زیادہ ہوتی ہے..."></textarea>
+    <div style="text-align:center; margin-top:12px;">
+      <button class="btn" onclick="analyzeComplaint()" style="border-radius:20px; padding:10px 24px; font-size:.95rem;">آگے بڑھیں</button>
+      <button class="btn" onclick="skipComplaintAnalysis()" style="border-radius:20px; padding:10px 24px; font-size:.9rem; background:transparent; border:1px solid var(--gold); margin-right:8px;">تمام سوالات خود دیکھیں</button>
+    </div>
+    <p id="complaintAnalysisStatus" style="color:var(--muted); font-size:.85rem; text-align:center; margin-top:8px;"></p>
+  </div>
+
+  <div id="diagnosisFieldsWrap" style="display:none;">
   <h3 style="color:var(--gold-soft); text-align:center; margin-bottom:6px;">لازمی معلومات <span style="color:#e0524f;">*</span></h3>
   <div id="requiredFieldsContainer"></div>
   <h3 style="color:var(--gold-soft); text-align:center; margin:20px 0 6px;">دیگر علامات (اختیاری)</h3>
   <div id="optionalFieldsContainer"></div>
   <div id="criteriaContainer"></div>
+  </div>
 
   <h3 style="color:var(--gold); margin-top:30px;">بیماریاں</h3>
   <div class="rule-box">نیچے اعضاء کے مطابق بیماریوں کے بٹن ہیں۔ جو عضو متاثر ہو اس کا بٹن دبا کر فہرست میں سے مریض کی بیماری/علامت منتخب کریں۔ جتنی بیماریاں معلوم ہوں اتنی منتخب کر لیں — جو معلوم نہ ہو یا یقین نہ ہو، اسے چھوڑ دیں، کوئی مسئلہ نہیں ہوگا۔</div>
   <input class="search" id="diseaseSearch" placeholder="بیماری تلاش کریں..." onkeyup="filterDiseases()">
+  <div id="diseaseApiSearchBox" style="display:none; margin:10px 0; text-align:center;">
+    <p style="color:var(--muted); font-size:.85rem; margin-bottom:8px;">یہ بیماری فہرست میں نہیں ملی۔ اسے نوٹ کر کے جائزے کے لیے بھیج دیا جائے گا — علاج آپ کی بتائی گئی دیگر علامات کے مطابق تجویز ہوگا۔</p>
+    <button class="btn" onclick="searchDiseaseViaAPI()" style="border-radius:20px; padding:8px 20px; font-size:.9rem;">نوٹ کر لیں</button>
+  </div>
+  <div id="diseaseApiResultBox" style="margin:10px 0;"></div>
   <div class="mizaj-columns" id="diseaseGrid"></div>
 
   <div id="mizajResult" style="margin-top:24px;"></div>
@@ -493,7 +512,7 @@ makeFieldAccordion('sugar', 'شوگر ہے یا نہیں', true, true, requiredF
 makeFieldAccordion('pulse_rate', 'دل کی دھڑکن ایک منٹ میں کتنی ہے', false, false, cc);
 
 // ---------- اگر مزاج پہلے سے معلوم/کنفرم ہے تو یہاں سے منتخب کریں (تمام تشخیصی سوالات چھوڑ کر) ----------
-makeFieldAccordion('known_mizaj', 'اگر آپ کو اپنا مزاج پہلے سے معلوم ہے تو یہاں منتخب کریں', false, false, requiredFieldsContainer);
+makeFieldAccordion('known_mizaj', 'اپنا مزاج منتخب کریں (اختیاری)', false, false, requiredFieldsContainer);
 const knownMizajOpts = document.getElementById('opts-known_mizaj');
 knownMizajOpts.style.cssText = 'display:flex; flex-direction:column; gap:8px;';
 const knownMizajChoices = [
@@ -513,6 +532,78 @@ knownMizajChoices.forEach((opt, i)=>{
   knownMizajOpts.appendChild(box);
 });
 fieldOptionLabels['known_mizaj'] = knownMizajChoices;
+
+// ---------- مریض کی مکمل تکلیف (فری ٹیکسٹ) پڑھ کر صرف متعلقہ سوالات دکھانا ----------
+window.freeComplaintText = '';
+const optionalQuestionDefs = criteria
+  .filter(c => !requiredCriteriaIds.includes(c.id))
+  .map(c => ({ id: c.id, title: c.title.replace(/<[^>]+>/g, '').trim() }))
+  .concat([
+    { id: 'patient_type', title: 'بیماری کب سے ہے' },
+    { id: 'pulse_rate', title: 'دل کی دھڑکن ایک منٹ میں کتنی ہے' }
+  ]);
+
+function showAllDiagnosisFields(){
+  document.querySelectorAll('#optionalFieldsContainer > div').forEach(el=> el.style.display = '');
+  document.getElementById('diagnosisFieldsWrap').style.display = '';
+}
+
+function showOnlyRelevantFields(relevantIds){
+  const idSet = new Set(relevantIds || []);
+  optionalQuestionDefs.forEach(q=>{
+    const critEl = document.getElementById(`crit-container-${q.id}`);
+    const fieldEl = document.getElementById(`field-container-${q.id}`);
+    const el = critEl || fieldEl;
+    if(el) el.style.display = idSet.has(q.id) ? '' : 'none';
+  });
+  document.getElementById('diagnosisFieldsWrap').style.display = '';
+}
+
+function isLiveDeployedPageForComplaint(){
+  try{
+    return (location.protocol === 'http:' || location.protocol === 'https:') && !!location.hostname;
+  }catch(e){ return false; }
+}
+
+async function analyzeComplaint(){
+  const text = document.getElementById('freeComplaintText').value.trim();
+  const statusEl = document.getElementById('complaintAnalysisStatus');
+  if(!text){
+    if(statusEl) statusEl.textContent = 'براہ کرم پہلے اپنی تکلیف لکھیں، یا "تمام سوالات خود دیکھیں" پر کلک کریں۔';
+    return;
+  }
+  window.freeComplaintText = text;
+  if(!isLiveDeployedPageForComplaint()){
+    if(statusEl) statusEl.textContent = 'یہ سہولت صرف لائیو ویب سائٹ پر کام کرتی ہے — تمام سوالات دکھائے جا رہے ہیں۔';
+    showAllDiagnosisFields();
+    return;
+  }
+  if(statusEl) statusEl.textContent = '⏳ آپ کی تکلیف کے مطابق ضروری سوالات تلاش کیے جا رہے ہیں...';
+  try{
+    const res = await fetch('/api/select-questions', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ complaint: text, questions: optionalQuestionDefs })
+    });
+    if(!res.ok) throw new Error('سرور کی خرابی: ' + res.status);
+    const data = await res.json();
+    const relevantIds = (data && Array.isArray(data.relevantIds) && data.relevantIds.length) ? data.relevantIds : ['weakness','face','pulse'];
+    showOnlyRelevantFields(relevantIds);
+    if(statusEl) statusEl.textContent = 'نیچے صرف آپ کی تکلیف سے متعلق سوالات دکھائے گئے ہیں۔';
+    document.getElementById('diagnosisFieldsWrap').scrollIntoView({behavior:'smooth'});
+  }catch(err){
+    if(statusEl) statusEl.textContent = 'سوالات فلٹر نہیں ہو سکے — تمام سوالات دکھائے جا رہے ہیں۔';
+    showAllDiagnosisFields();
+  }
+}
+
+function skipComplaintAnalysis(){
+  window.freeComplaintText = document.getElementById('freeComplaintText').value.trim();
+  showAllDiagnosisFields();
+  const statusEl = document.getElementById('complaintAnalysisStatus');
+  if(statusEl) statusEl.textContent = '';
+  document.getElementById('diagnosisFieldsWrap').scrollIntoView({behavior:'smooth'});
+}
 
 
 // ---------- HEART RATE TABLE (age selects range group, pulse boxes show numbers) ----------
@@ -1123,6 +1214,12 @@ const diseaseList = [
   {name:"فالج", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
   {name:"موٹاپا", mizaj:"asabi", tendency:6, organ:"عمومی/پورے جسم کی بیماریاں"},
 
+  {name:"انفکشن", mizaj:"adalati", tendency:2, organ:"متفرق (کسی خاص عضو سے مخصوص نہیں)"},
+  {name:"پس سل", mizaj:"ghudi", tendency:4, organ:"متفرق (کسی خاص عضو سے مخصوص نہیں)"},
+  {name:"جراثیم", mizaj:"adalati", tendency:3, organ:"متفرق (کسی خاص عضو سے مخصوص نہیں)"},
+  {name:"منی کی کمی", mizaj:"asabi", tendency:1, organ:"متفرق (کسی خاص عضو سے مخصوص نہیں)"},
+  {name:"مادہ منویہ کی کمی (ٹیسٹوسٹیرون کی کمی)", mizaj:"asabi", tendency:6, organ:"متفرق (کسی خاص عضو سے مخصوص نہیں)"},
+
 ];
 
 // ---------- FLATTEN, SORT (Urdu alphabetical), AND ICON-TAG ALL DISEASES ----------
@@ -1256,6 +1353,7 @@ function toggleSymptom(id, organKey){
 
 function filterDiseases(){
   const q = document.getElementById('diseaseSearch').value.trim();
+  let anyMatchOverall = false;
   organOrderList.forEach(organKey=>{
     let anyMatch = false;
     organGroups[organKey].forEach(item=>{
@@ -1264,6 +1362,7 @@ function filterDiseases(){
       wrap.style.display = match ? 'flex' : 'none';
       if(match) anyMatch = true;
     });
+    if(anyMatch) anyMatchOverall = true;
     const container = document.getElementById(`organ-panel-${organKey}`).parentElement;
     container.style.display = anyMatch ? 'block' : 'none';
     if(q && anyMatch){
@@ -1271,6 +1370,49 @@ function filterDiseases(){
       document.getElementById(`organ-arrow-${organKey}`).textContent = '▴';
     }
   });
+  const apiBox = document.getElementById('diseaseApiSearchBox');
+  if(apiBox) apiBox.style.display = (q && !anyMatchOverall) ? 'block' : 'none';
+  if(q && !anyMatchOverall){
+    document.getElementById('diseaseApiResultBox').innerHTML = '';
+  }
+}
+
+function isLiveDeployedPageForDisease(){
+  try{
+    return (location.protocol === 'http:' || location.protocol === 'https:') && !!location.hostname;
+  }catch(e){ return false; }
+}
+
+window.unmatchedDiseaseTerms = [];
+
+async function searchDiseaseViaAPI(){
+  const q = document.getElementById('diseaseSearch').value.trim();
+  const resultBox = document.getElementById('diseaseApiResultBox');
+  if(!q) return;
+  if(!isLiveDeployedPageForDisease()){
+    resultBox.innerHTML = '<p style="color:var(--muted); font-size:.85rem;">یہ سہولت صرف لائیو ویب سائٹ پر کام کرتی ہے۔</p>';
+    return;
+  }
+  resultBox.innerHTML = '<p style="color:var(--muted); font-size:.85rem;">⏳ نوٹ کیا جا رہا ہے...</p>';
+  window.unmatchedDiseaseTerms.push(q);
+  try{
+    await fetch('/api/notify-disease', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ diseaseName: q })
+    }).catch(()=>{});
+  }catch(e){}
+  resultBox.innerHTML = `<div style="border:1px solid var(--gold); border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; background:rgba(212,175,55,0.06);">
+    <span style="color:var(--text); font-size:.9rem;">📝 نوٹ کر لیا گیا: <b style="color:var(--gold-soft);">${q}</b> — آپ کی بتائی گئی دیگر علامات کے مطابق علاج تجویز کیا جائے گا۔</span>
+    <button onclick="removeUnmatchedDisease('${q}', this)" style="background:none; border:none; color:#e07a5f; font-size:1.1rem; cursor:pointer;">✕</button>
+  </div>`;
+}
+
+function removeUnmatchedDisease(term, btn){
+  const idx = window.unmatchedDiseaseTerms.indexOf(term);
+  if(idx !== -1) window.unmatchedDiseaseTerms.splice(idx, 1);
+  const resultBox = document.getElementById('diseaseApiResultBox');
+  if(resultBox) resultBox.innerHTML = '';
 }
 
 // ---------- TREATMENT FORMULAS (reference, sourced from lectures) ----------
@@ -3734,6 +3876,12 @@ function renderMizajResult(totals, answered){
       selectedSymptomLabels.push(c.options[selections[c.id]].label);
     }
   });
+  if(window.freeComplaintText){
+    selectedSymptomLabels.push(window.freeComplaintText);
+  }
+  if(window.unmatchedDiseaseTerms && window.unmatchedDiseaseTerms.length){
+    window.unmatchedDiseaseTerms.forEach(t=> selectedSymptomLabels.push(t));
+  }
   const selectedDiseaseObjs = diseaseIds.filter(d=> document.getElementById(d.id).checked);
   const selectedDiseaseNames = selectedDiseaseObjs.map(d=> d.name);
 
