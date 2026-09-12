@@ -29,6 +29,16 @@ export default async function handler(req, res) {
   try {
     const { mizaj, patientNumber, symptoms, diseases, candidates, foods, age, maritalStatus, diseaseDuration, bloodPressure, painTiming, sugar, qabz, deficiencyAnswers } = req.body || {};
 
+    const patientFactText = [
+      age ? `عمر: ${age}` : null,
+      maritalStatus ? `ازدواجی حیثیت: ${maritalStatus}` : null,
+      diseaseDuration ? `بیماری کب سے ہے: ${diseaseDuration}` : null,
+      bloodPressure ? `بلڈ پریشر: ${bloodPressure}` : null,
+      painTiming ? `تکلیف کس وقت زیادہ ہوتی ہے: ${painTiming}` : null,
+      sugar ? `شوگر: ${sugar}` : null,
+      qabz ? `قبض کی کیفیت: ${qabz}` : null
+    ].filter(Boolean).join('\n');
+
     if (!Array.isArray(candidates) || candidates.length === 0) {
       return res.status(400).json({ error: 'دواؤں کی فہرست (candidates) خالی یا غلط ہے۔' });
     }
@@ -72,7 +82,7 @@ export default async function handler(req, res) {
 5) نیچے دی گئی غذاؤں کی فہرست میں سے صرف وہی 5 سے 8 غذائیں منتخب کریں جو مریض کی بتائی گئی بیماری/علامات کے لیے روایتی حکمت کے مطابق خاص طور پر مفید ہوں۔ فہرست سے باہر کوئی غذا تجویز نہ کریں۔ اگر غذاؤں کی فہرست نہ دی گئی ہو یا کوئی خاص میل نہ کھائے تو خالی "foodSelections": [] واپس کریں۔
 
 جسمانی ضروریات کی کمی (nutrient deficiency) کی تشخیص کا اصول:
-6) مریض کی بتائی گئی علامات/بیماریوں کو غور سے پڑھ کر معلوم کریں کہ آیا ان میں سے کسی مانوس طبی تعلق کی بنیاد پر درج ذیل 10 اقسام میں سے کسی چیز کی کمی کا حقیقی امکان ظاہر ہوتا ہے:
+6) صرف علامات/بیماریوں تک محدود نہ رہیں — مریض سے پوچھے گئے تمام سوالات کے جوابات (عمر، ازدواجی حیثیت، بیماری نئی/پرانی، بلڈ پریشر، درد کا وقت، شوگر، قبض کی کیفیت — جو بھی نیچے دیا گیا ہو) کو بھی غور سے مدنظر رکھیں، کیونکہ ان میں سے ہر جواب کسی کمی کی نشاندہی میں مدد دے سکتا ہے (مثلاً: قبض کا ہونا → فائبر/پانی کی کمی کا امکان؛ بلڈ پریشر کا غیر متوازن ہونا → الیکٹرولائٹس کی کمی کا امکان؛ بڑی عمر یا پرانا/دائمی مریض ہونا → پروٹین/امینو ایسڈز/کیلشیم کی کمی کا امکان زیادہ ہوتا ہے)۔ ان تمام جوابات اور علامات/بیماریوں کو ملا کر غور کریں کہ آیا درج ذیل 10 اقسام میں سے کسی چیز کی کمی کا حقیقی امکان ظاہر ہوتا ہے:
    - وٹامنز (A، B، C، D، E، K وغیرہ)
    - معدنیات (آئرن، زنک، کیلشیم، میگنیشیم وغیرہ)
    - پروٹین
@@ -97,11 +107,9 @@ export default async function handler(req, res) {
       : null;
 
     const userPrompt = `مریض کا مزاج: ${mizaj || 'نامعلوم'}${patientNumber ? ' (نمبر ' + patientNumber + ')' : ''}
-عمر: ${age || 'نامعلوم'}
-بیماری کب سے ہے (نئی/پرانی): ${diseaseDuration || 'نامعلوم'}
 علامات: ${symptomsText}
 بیماریاں: ${diseasesText}
-${deficiencyAnswersText ? ('\nمریض کے اضافی جوابات (کمی کی تشخیص کے لیے پوچھے گئے سوالات کے جواب):\n' + deficiencyAnswersText + '\n') : ''}
+${patientFactText ? ('\nمریض سے پوچھے گئے دیگر سوالات کے جوابات (کمی کی تشخیص کے لیے بھی مدنظر رکھیں):\n' + patientFactText + '\n') : ''}${deficiencyAnswersText ? ('\nمریض کے اضافی جوابات (کمی کی تشخیص کے لیے پوچھے گئے سوالات کے جواب):\n' + deficiencyAnswersText + '\n') : ''}
 دستیاب دواؤں کی فہرست:
 ${limitedCandidates.map((c, i) => `${i + 1}. ${c.name} — مزاج: ${c.mizaj} — فوائد: ${c.benefit}`).join('\n')}
 
