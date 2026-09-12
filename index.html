@@ -2819,8 +2819,31 @@ renderHerbs(herbsDB);
 
 
 // ---------- PDF.js WORKER SETUP (used by PDF multi-search tool) ----------
+const PDF_WORKER_SOURCES = [
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+  'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
+];
 if(typeof pdfjsLib !== 'undefined'){
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_SOURCES[0];
+}
+// اگر worker سکرپٹ لوڈ نہ ہو سکے تو مختلف ذرائع آزمائیں، اور آخر میں worker کے بغیر (سست مگر قابلِ اعتماد) طریقہ استعمال کریں
+async function pdfGetDocumentRobust(source){
+  if(typeof pdfjsLib === 'undefined') throw new Error('pdfjsLib لوڈ نہیں ہوئی');
+  let lastErr = null;
+  for(let i=0;i<PDF_WORKER_SOURCES.length;i++){
+    try{
+      pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_SOURCES[i];
+      return await pdfjsLib.getDocument(source).promise;
+    }catch(err){ lastErr = err; }
+  }
+  // آخری کوشش: worker کے بغیر (fake worker) — تھوڑا سست لیکن نیٹ ورک پر منحصر نہیں
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    return await pdfjsLib.getDocument(source).promise;
+  }catch(err2){
+    throw lastErr || err2;
+  }
 }
 
 function escapeHtmlSearch(str){
@@ -3628,7 +3651,7 @@ async function pmProcessFile(file){
       return;
     }
     const buf = await file.arrayBuffer();
-    const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    const doc = await pdfGetDocumentRobust({ data: buf });
     const pages = [];
     for(let i=1;i<=doc.numPages;i++){
       const page = await doc.getPage(i);
@@ -3652,7 +3675,8 @@ async function pmProcessFile(file){
       ocrBtn.addEventListener('click', ocrBtn._origHandler);
     }
   }catch(err){
-    pmSetRowStatus(row, 'فائل نہیں پڑھی جا سکی', '#e0524f');
+    console.error('PDF read error:', err);
+    pmSetRowStatus(row, 'فائل نہیں پڑھی جا سکی: ' + (err && err.message ? err.message : 'نامعلوم خرابی'), '#e0524f');
   }
   pmSearchBtnEl.disabled = pmLibrary.length === 0;
 }
@@ -3925,7 +3949,7 @@ async function hzProcessFile(file){
       return;
     }
     const buf = await file.arrayBuffer();
-    const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    const doc = await pdfGetDocumentRobust({ data: buf });
     const pages = [];
     for(let i=1;i<=doc.numPages;i++){
       const page = await doc.getPage(i);
@@ -3949,7 +3973,8 @@ async function hzProcessFile(file){
       ocrBtn.addEventListener('click', ocrBtn._origHandler);
     }
   }catch(err){
-    hzSetRowStatus(row, 'فائل نہیں پڑھی جا سکی', '#e0524f');
+    console.error('PDF read error:', err);
+    hzSetRowStatus(row, 'فائل نہیں پڑھی جا سکی: ' + (err && err.message ? err.message : 'نامعلوم خرابی'), '#e0524f');
   }
   hzSearchBtnEl.disabled = hzLibrary.length === 0;
 }
