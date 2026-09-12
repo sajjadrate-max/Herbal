@@ -182,13 +182,14 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   <div id="combinedWrap" style="display:none; background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:20px;">
     <div id="diagnosisFieldsWrap">
     <h3 style="color:var(--gold-soft); text-align:center; margin-bottom:6px;">تمام علامات</h3>
+    <p style="color:var(--muted); font-size:.8rem; text-align:center; margin-bottom:10px;">جو علامت یقینی طور پر موجود ہو صرف اسی کو منتخب کریں — غیر یقینی یا نامعلوم علامت کو چھوڑ دیں۔</p>
     <div id="optionalFieldsContainer"></div>
     <div id="criteriaContainer"></div>
     </div>
 
     <div id="diseaseSectionWrap" style="display:none;">
     <h3 style="color:var(--gold); margin-top:24px; padding-top:16px; border-top:1px solid var(--border); text-align:center;">تمام بیماریاں</h3>
-    <div class="rule-box">نیچے اعضاء کے مطابق بیماریوں کے بٹن ہیں۔ جو عضو متاثر ہو اس کا بٹن دبا کر فہرست میں سے مریض کی بیماری/علامت منتخب کریں۔ جتنی بیماریاں معلوم ہوں اتنی منتخب کر لیں — جو معلوم نہ ہو یا یقین نہ ہو، اسے چھوڑ دیں، کوئی مسئلہ نہیں ہوگا۔</div>
+    <div class="rule-box">نیچے اعضاء کے مطابق بیماریوں کے بٹن ہیں۔ جو عضو متاثر ہو اس کا بٹن دبا کر فہرست میں سے مریض کی بیماری/علامت منتخب کریں۔ جو بیماری یقینی طور پر موجود ہو صرف اسی کو منتخب کریں — جو معلوم نہ ہو یا یقین نہ ہو، اسے چھوڑ دیں، کوئی مسئلہ نہیں ہوگا۔</div>
     <input class="search" id="diseaseSearch" placeholder="بیماری تلاش کریں..." onkeyup="filterDiseases()">
     <div id="diseaseApiSearchBox" style="display:none; margin:10px 0; text-align:center;">
       <p style="color:var(--muted); font-size:.85rem; margin-bottom:8px;">یہ بیماری فہرست میں نہیں ملی۔ اسے نوٹ کر کے جائزے کے لیے بھیج دیا جائے گا — علاج آپ کی بتائی گئی دیگر علامات کے مطابق تجویز ہوگا۔</p>
