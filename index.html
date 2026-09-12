@@ -154,21 +154,26 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   </div>
   <div class="rule-box"><b>ماخذ برائے نسخے، خوراک اور طریقہ علاج:</b> تشریح فارماکوپیا بالمفرد اعضاء — حکیم محمد عارف دنیا پوری۔</div>
 
-  <div class="rule-box">جو علامات مریض میں موجود ہوں انہیں متعلقہ کالم میں منتخب کریں۔ جتنی زیادہ علامات منتخب ہوں گی، تشخیص اتنی ہی درست ہوگی۔ جو علامت معلوم نہ ہو، اسے چھوڑ دیں — کوئی حرج نہیں، تشخیص باقی جوابات سے مکمل ہو جائے گی۔</div>
+  <div style="text-align:center; margin-bottom:18px;">
+    <div id="knownMizajContainer" style="max-width:420px; margin:0 auto 10px;"></div>
+    <p style="color:var(--muted); font-size:.9rem;">اگر آپ کو اپنا مزاج معلوم ہو تو اوپر تکون پر کلک کر کے مزاج منتخب کریں۔ معلوم نہیں تو چھوڑ دیں، ویسے ہی جو علامات، بیماری وغیرہ آپ لکھیں گے اسی کو مدنظر رکھ کر مزاج بتا دیا جائے گا۔<br><br>اب نیچے اپنی مکمل تکلیف، علامات، بیماری وغیرہ لکھیں۔</p>
+  </div>
 
-  <h2 style="text-align:center; font-weight:700; color:var(--gold); margin:24px 0 14px;">مریض کی علامت</h2>
+  <h3 style="color:var(--gold-soft); text-align:center; margin-bottom:8px;">اپنی مکمل تکلیف لکھیں</h3>
 
   <div id="freeComplaintBox" style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:20px;">
-    <h3 style="color:var(--gold-soft); text-align:center; margin-bottom:8px;">پہلے اپنی مکمل تکلیف لکھیں</h3>
-    <p style="color:var(--muted); font-size:.85rem; text-align:center; margin-bottom:10px;">اپنی بیماری/تکلیف ایک ہی بار تفصیل سے لکھیں — اس کے مطابق آگے صرف وہی سوالات پوچھے جائیں گے جو آپ کی تکلیف سے متعلق ہوں۔</p>
+    <p style="color:var(--muted); font-size:.85rem; text-align:center; margin-bottom:10px;">اپنی بیماری، تکلیف اور علامات تفصیل سے لکھیں — بس اتنا کافی ہے۔</p>
     <textarea id="freeComplaintText" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--gold); background:rgba(255,255,255,0.05); color:var(--text); font-family:inherit; font-size:1rem;" placeholder="مثلاً: مجھے دو ہفتوں سے خشک کھانسی ہے، رات کو زیادہ ہوتی ہے..."></textarea>
+
     <div style="text-align:center; margin-top:12px;">
-      <button class="btn" onclick="analyzeComplaint()" style="border-radius:20px; padding:10px 24px; font-size:.95rem; white-space:nowrap;">تشخیص اور علاج طریقہ 1</button>
+      <button class="btn" onclick="analyzeComplaint()" style="border-radius:20px; padding:10px 24px; font-size:.95rem; white-space:nowrap;">تشخیص اور علاج</button>
+      <div style="margin-top:8px;">
+        <span onclick="toggleMethodInfo('1')" style="cursor:pointer; color:var(--gold-soft); font-size:.85rem; user-select:none;">استعمال کا طریقہ <span id="method-arrow-1">▾</span></span>
+      </div>
+      <p id="method-info-1" style="display:none; color:var(--muted); font-size:.85rem; text-align:right; margin-top:8px; line-height:1.9;">سب سے پہلے اوپر خانے میں اپنی بیماری، تکلیف، علامات وغیرہ تفصیل سے لکھیں — جتنی زیادہ تفصیل ہوگی، تشخیص اتنی ہی درست ہوگی۔ اس کے بعد یہ بٹن دبائیں۔ آپ کی تحریر کو خود بخود پڑھا جائے گا: جو بیماریاں آپ نے لکھی ہوں وہ خودکار طور پر شناخت ہو کر منتخب ہو جائیں گی، اور اگر کوئی بات مزید واضح کرنے کی ضرورت ہو تو صرف وہی اضافی سوالات دکھائے جائیں گے جو واقعی ضروری ہوں (ممکن ہے ایک بھی سوال نہ آئے)۔ ان سوالات کے جواب دینے کے بعد، یا اگر پہلے ہی معلومات کافی ہوں تو فوراً، آپ کے مزاج کے مطابق تشخیص کی جائے گی اور دوائی بتائی جائے گی۔</p>
     </div>
-    <div style="text-align:center; margin-top:12px;">
-      <button class="btn" onclick="startMethod2()" style="border-radius:20px; padding:10px 24px; font-size:.95rem; white-space:nowrap; background:transparent; border:1px solid var(--gold); color:var(--gold-soft);">تشخیص اور علاج طریقہ نمبر 2</button>
-    </div>
-    <p id="complaintAnalysisStatus" style="color:var(--muted); font-size:.85rem; text-align:center; margin-top:8px;"></p>
+
+    <p id="complaintAnalysisStatus" style="color:var(--muted); font-size:.85rem; text-align:center; margin-top:12px;"></p>
     <div id="mizajFabBtn" style="display:none; text-align:center; margin-top:14px;">
       <button class="btn" onclick="computeMizaj()" style="box-shadow:0 4px 14px rgba(0,0,0,0.5); padding:14px 22px; font-size:.95rem; border-radius:30px;">مزاج کی تشخیص اور علاج</button>
     </div>
@@ -521,7 +526,13 @@ makeFieldAccordion('sugar', 'شوگر ہے یا نہیں', false, true, cc);
 makeFieldAccordion('pulse_rate', 'دل کی دھڑکن ایک منٹ میں کتنی ہے', false, false, cc);
 
 // ---------- اگر مزاج پہلے سے معلوم/کنفرم ہے تو یہاں سے منتخب کریں (تمام تشخیصی سوالات چھوڑ کر) ----------
-makeFieldAccordion('known_mizaj', 'اپنا مزاج منتخب کریں (اختیاری)', false, false, cc);
+makeFieldAccordion('known_mizaj', 'اپنا مزاج خود منتخب کریں', false, false, document.getElementById('knownMizajContainer'));
+{
+  const headerEl = document.querySelector('#field-container-known_mizaj > div');
+  if(headerEl) headerEl.style.justifyContent = 'center';
+  const titleSpan = headerEl ? headerEl.querySelector('span') : null;
+  if(titleSpan) titleSpan.style.marginLeft = '8px';
+}
 const knownMizajOpts = document.getElementById('opts-known_mizaj');
 knownMizajOpts.style.cssText = 'display:flex; flex-direction:column; gap:8px;';
 const knownMizajChoices = [
@@ -580,7 +591,7 @@ async function analyzeComplaint(){
   const text = document.getElementById('freeComplaintText').value.trim();
   const statusEl = document.getElementById('complaintAnalysisStatus');
   if(!text){
-    if(statusEl) statusEl.textContent = 'براہ کرم پہلے اپنی تکلیف لکھیں، یا نیچے "تشخیص اور علاج طریقہ نمبر 2" پر کلک کریں۔';
+    if(statusEl) statusEl.textContent = 'براہ کرم پہلے اپنی تکلیف لکھیں۔';
     return;
   }
   window.freeComplaintText = text;
@@ -629,14 +640,15 @@ async function analyzeComplaint(){
   }
 }
 
-// ---------- طریقہ نمبر 2: تمام علامات + تمام بیماریاں ایک ساتھ (دستی) ----------
-function startMethod2(){
-  window.freeComplaintText = document.getElementById('freeComplaintText').value.trim();
-  showAllDiagnosisFields();
-  document.getElementById('diseaseSectionWrap').style.display = '';
-  const statusEl = document.getElementById('complaintAnalysisStatus');
-  if(statusEl) statusEl.textContent = '';
-  document.getElementById('combinedWrap').scrollIntoView({behavior:'smooth'});
+// ---------- (طریقہ نمبر 2 کا سسٹم ہٹا دیا گیا ہے) ----------
+// ---------- ہر طریقے کے نیچے "استعمال کا طریقہ" کھولنا/بند کرنا ----------
+function toggleMethodInfo(n){
+  const info = document.getElementById(`method-info-${n}`);
+  const arrow = document.getElementById(`method-arrow-${n}`);
+  if(!info) return;
+  const isOpen = info.style.display === 'block';
+  info.style.display = isOpen ? 'none' : 'block';
+  if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
 }
 
 
