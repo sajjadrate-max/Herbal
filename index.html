@@ -252,6 +252,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
 <section class="page-section" id="page-nuskhe">
   <h2 class="section-title">نسخے — مزاج کے مطابق مکمل حوالہ</h2>
   <div class="note">ماخذ: تشریح فارماکوپیا بالمفرد اعضاء — حکیم محمد عارف دنیا پوری۔ مکمل کتاب کے تمام چھ مزاج (اعصابی عضلاتی، عضلاتی اعصابی، عضلاتی غدی، غدی عضلاتی، غدی اعصابی، اعصابی غدی) اور خصوصی نسخے شامل ہیں — 86 نسخے۔</div>
+  <input class="search" id="nuskheSearch" placeholder="کسی دوائی کا نام لکھیں، یا کسی بیماری کا نام لکھ کر دیکھیں کون کون سی ادویات اس کے لیے ہیں..." onkeyup="filterNuskhe()">
   <div id="nuskheList"></div>
 
 </section>
@@ -2728,7 +2729,20 @@ function renderNuskhe(list){
 }
 function filterNuskhe(){
   const q = document.getElementById('nuskheSearch').value.trim();
-  renderNuskhe(q ? nuskheData.filter(n=> n.name.includes(q) || n.benefit.includes(q) || n.ingredients.includes(q)) : nuskheData);
+  if(!q){ renderNuskhe(nuskheData); return; }
+  const isWordChar = ch => !!ch && /[\u0600-\u06FF\u0750-\u077F]/.test(ch);
+  const hasWord = (text, term) => {
+    let from = 0;
+    while(true){
+      const idx = text.indexOf(term, from);
+      if(idx === -1) return false;
+      const before = idx > 0 ? text[idx-1] : '';
+      const after = idx + term.length < text.length ? text[idx + term.length] : '';
+      if(!isWordChar(before) && !isWordChar(after)) return true;
+      from = idx + 1;
+    }
+  };
+  renderNuskhe(nuskheData.filter(n=> hasWord(n.name, q) || hasWord(n.benefit, q) || hasWord(n.ingredients, q)));
 }
 renderNuskhe(nuskheData);
 
