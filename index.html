@@ -3980,7 +3980,7 @@ function pmRenderDeleteList(){
   });
 }
 
-async function pmProcessFile(file, fromStorage){
+async function pmProcessFile(file, fromStorage, cachedPages){
   // ایک ہی نام کی فائل دوبارہ اپ لوڈ نہ ہو — پہلے سے موجود ہو تو صرف اطلاع دے دیں
   if(!fromStorage && pmLibrary.some(f=> f.fileName === file.name)){
     const existingRow = pmRowsByName[file.name];
@@ -4004,19 +4004,27 @@ async function pmProcessFile(file, fromStorage){
       return;
     }
     const doc = await pdfGetDocumentRobust(file);
-    const pages = [];
-    for(let i=1;i<=doc.numPages;i++){
-      const page = await doc.getPage(i);
-      const content = await page.getTextContent();
-      const text = content.items.map(it=>it.str).join(' ');
-      pages.push({ pageNum:i, text, ocr:false });
-      pmSetRowStatus(row, `صفحہ ${i} / ${doc.numPages}`);
+    let pages = [];
+    // اگر پہلے سے محفوظ شدہ متن (بشمول OCR سے نکالا گیا متن) موجود ہو تو دوبارہ نکالنے کی بجائے وہی استعمال کریں —
+    // اس سے OCR کا نتیجہ ہر بار صفحہ کھلنے/سائٹ اپ ڈیٹ ہونے پر بھی برقرار رہتا ہے، دوبارہ OCR نہیں کرنا پڑتا
+    if(Array.isArray(cachedPages) && cachedPages.length === doc.numPages){
+      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr }));
+      pmSetRowStatus(row, `محفوظ شدہ متن سے لوڈ ہو رہی ہے... (${doc.numPages} صفحات)`);
+    } else {
+      for(let i=1;i<=doc.numPages;i++){
+        const page = await doc.getPage(i);
+        const content = await page.getTextContent();
+        const text = content.items.map(it=>it.str).join(' ');
+        pages.push({ pageNum:i, text, ocr:false });
+        pmSetRowStatus(row, `صفحہ ${i} / ${doc.numPages}`);
+      }
     }
-    const fileEntry = { fileName:file.name, pages, pdfDoc:doc };
+    const fileEntry = { fileName:file.name, pages, pdfDoc:doc, file };
     pmLibrary.push(fileEntry);
     // نئی اپ لوڈ کی گئی فائل کو مستقل محفوظ کر دیں — اگلی بار صفحہ کھلنے پر یا index.html اپ ڈیٹ ہونے پر بھی موجود رہے گی
+    // (متن بھی ساتھ محفوظ کیا جاتا ہے تاکہ OCR کا نتیجہ بھی ہمیشہ کے لیے برقرار رہے)
     if(!fromStorage){
-      herbalIdbPut('pmFiles', { fileName:file.name, blob:file, addedAt:Date.now() }).catch(err=>{
+      herbalIdbPut('pmFiles', { fileName:file.name, blob:file, pages, addedAt:Date.now() }).catch(err=>{
         console.error('pm persistent save failed:', err);
         const s = row.querySelector('.pm-status');
         if(s) s.textContent += ' — (نوٹ: جگہ کم ہونے کی وجہ سے یہ فائل مستقل محفوظ نہیں ہو سکی، ابھی صرف اسی سیشن میں تلاش کے لیے دستیاب ہے)';
@@ -4056,7 +4064,7 @@ pmSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') pmRunSearch
     const records = await herbalIdbGetAll('pmFiles');
     for(const rec of records){
       const file = new File([rec.blob], rec.fileName, { type: 'application/pdf' });
-      await pmProcessFile(file, true);
+      await pmProcessFile(file, true, rec.pages);
     }
   }catch(e){ console.error('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
 })();
@@ -4184,11 +4192,16 @@ async function pmRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
       currentDone++;
     }
     await worker.terminate();
+    // OCR سے نکالا گیا متن مستقل محفوظ کر دیں — تاکہ صفحہ دوبارہ کھلنے یا سائٹ اپ ڈیٹ ہونے پر بھی
+    // دوبارہ OCR نہ کرنا پڑے اور سرچ ہمیشہ کام کرتی رہے
+    try{
+      await herbalIdbPut('pmFiles', { fileName:fileEntry.fileName, blob:fileEntry.file, pages:fileEntry.pages, addedAt:Date.now() });
+    }catch(e){ console.error('OCR متن محفوظ نہیں ہو سکا:', e); }
     if(cancelled){
-      progressEl.textContent = `روک دیا گیا — ${currentDone}/${currentTotal} صفحات پر OCR ہو چکا ہے (یہ اب سرچ میں شامل ہیں)۔`;
+      progressEl.textContent = `روک دیا گیا — ${currentDone}/${currentTotal} صفحات پر OCR ہو چکا ہے (یہ اب سرچ میں شامل اور مستقل محفوظ ہیں)۔`;
       ocrBtn.style.display = 'none';
     } else {
-      progressEl.textContent = `OCR مکمل — ${currentDone} صفحات پر متن نکالا گیا۔`;
+      progressEl.textContent = `OCR مکمل — ${currentDone} صفحات پر متن نکالا گیا اور مستقل محفوظ کر دیا گیا۔`;
       ocrBtn.style.display = 'none';
     }
   }catch(err){
@@ -4232,17 +4245,26 @@ function pmPreprocessForOcr(canvas){
   }
   ctx.putImageData(imageData,0,0);
 }
+let pmLastMatches = [];
+let pmLastQuery = '';
 function pmRunSearch(){
   const query = pmSearchInputEl.value.trim();
   pmResultsEl.innerHTML = '';
+  pmLastMatches = [];
+  pmLastQuery = query;
   if(!query){ pmSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
   const queryData = pmBuildSearchable(query);
   if(!queryData.searchable){ pmSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
+  if(pmLibrary.length === 0){
+    pmSummaryEl.textContent = 'ابھی اس ڈیوائس/براؤزر میں کوئی PDF فائل شامل نہیں ہے۔';
+    pmResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">اپ لوڈ کی گئی PDF فائلیں صرف اسی براؤزر/ڈیوائس میں محفوظ رہتی ہیں جس میں وہ شامل کی گئی ہوں — اگر آپ نے کسی اور فون/کمپیوٹر میں فائل شامل کی تھی تو وہ اس ڈیوائس میں نظر نہیں آئے گی۔</p></div>`;
+    return;
+  }
   const matches = [];
   pmLibrary.forEach(fileEntry=>{
     fileEntry.pages.forEach(p=>{
       const m = pmFindMatch(p.text, queryData);
-      if(m) matches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, snippet: pmBuildSnippet(p.text, m.startOrig, m.endOrig) });
+      if(m) matches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, snippet: pmBuildSnippet(p.text, m.startOrig, m.endOrig), fullText: p.text });
     });
   });
   if(matches.length===0){
@@ -4250,6 +4272,7 @@ function pmRunSearch(){
     pmResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا۔ ہو سکتا ہے لفظ کسی اور ہجے میں لکھا گیا ہو، یا PDF میں متن بطور تصویر (اسکین شدہ صفحہ) ہو جسے یہ ٹول نہیں پڑھ سکتا — ایسی صورت میں اوپر فائل کے ساتھ "OCR چلائیں" کا بٹن دبائیں۔</p></div>`;
     return;
   }
+  pmLastMatches = matches;
   pmSummaryEl.textContent = `"${query}" کل ${matches.length} صفحات پر ملا۔`;
   matches.forEach(m=>{
     const card = document.createElement('div');
@@ -4257,6 +4280,53 @@ function pmRunSearch(){
     card.innerHTML = `<h4>📄 ${escapeHtmlSearch(m.fileName)} — صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>`;
     pmResultsEl.appendChild(card);
   });
+
+  const aiWrap = document.createElement('div');
+  aiWrap.style.cssText = 'text-align:center; margin-top:18px;';
+  aiWrap.innerHTML = `<button class="btn" id="pmAiAnalysisBtn" onclick="pmRunAiAnalysis()" style="border-radius:20px; padding:10px 24px;">اوپر ملنے والے اقتباسات کی مکمل تفصیل حاصل کریں (مزاج، وجوہات)</button>
+    <div id="pmAiAnalysisStatus" style="color:var(--muted); font-size:.85rem; margin-top:8px;"></div>
+    <div id="pmAiAnalysisResult" style="margin-top:14px; text-align:right;"></div>`;
+  pmResultsEl.appendChild(aiWrap);
+}
+
+async function pmRunAiAnalysis(){
+  const btn = document.getElementById('pmAiAnalysisBtn');
+  const statusEl = document.getElementById('pmAiAnalysisStatus');
+  const resultEl = document.getElementById('pmAiAnalysisResult');
+  if(!pmLastMatches.length){ return; }
+  btn.disabled = true;
+  statusEl.textContent = 'آپ کی PDF فائلوں میں ملنے والے اقتباسات کا تجزیہ کیا جا رہا ہے...';
+  resultEl.innerHTML = '';
+  try{
+    // زیادہ سے زیادہ 20 صفحات، اور ہر صفحہ سے زیادہ سے زیادہ 1800 حروف — تاکہ درخواست بہت بڑی نہ ہو
+    const trimmedMatches = pmLastMatches.slice(0, 20).map(m=> ({
+      fileName: m.fileName,
+      pageNum: m.pageNum,
+      text: (m.fullText || '').slice(0, 1800)
+    }));
+    const res = await fetch('/api/analyze-pdf-matches', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ query: pmLastQuery, matches: trimmedMatches })
+    });
+    const data = await res.json();
+    if(!res.ok || data.error){
+      statusEl.textContent = 'معذرت، تفصیل حاصل نہیں ہو سکی: ' + (data && data.error ? data.error : 'نامعلوم خرابی');
+      btn.disabled = false;
+      return;
+    }
+    statusEl.textContent = '';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:18px; line-height:2;';
+    const paragraphs = String(data.analysis || '').split(/\n{2,}/).map(p=> `<p style="margin-bottom:12px; color:var(--text);">${escapeHtmlSearch(p).replace(/\n/g,'<br>')}</p>`).join('');
+    box.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:10px;">مکمل تفصیل — آپ کی اپنی PDF کتابوں کے مطابق</h4>${paragraphs}<p style="color:var(--muted); font-size:.8rem; margin-top:10px;">نوٹ: یہ تفصیل صرف اوپر ملنے والے PDF اقتباسات پر مبنی ہے، حتمی تشخیص کے لیے معالج سے رجوع کریں۔</p>`;
+    resultEl.appendChild(box);
+    btn.style.display = 'none';
+  }catch(err){
+    console.error('pm AI analysis error:', err);
+    statusEl.textContent = 'معذرت، انٹرنیٹ یا سرور کی خرابی کی وجہ سے تفصیل حاصل نہیں ہو سکی۔';
+    btn.disabled = false;
+  }
 }
 function pmBuildSnippet(text, startOrig, endOrig){
   const radius = 60;
@@ -4388,7 +4458,7 @@ function hzRenderDeleteList(){
   });
 }
 
-async function hzProcessFile(file, fromStorage){
+async function hzProcessFile(file, fromStorage, cachedPages){
   // ایک ہی نام کی فائل دوبارہ اپ لوڈ نہ ہو — پہلے سے موجود ہو تو صرف اطلاع دے دیں
   if(!fromStorage && hzLibrary.some(f=> f.fileName === file.name)){
     const existingRow = hzRowsByName[file.name];
@@ -4412,19 +4482,27 @@ async function hzProcessFile(file, fromStorage){
       return;
     }
     const doc = await pdfGetDocumentRobust(file);
-    const pages = [];
-    for(let i=1;i<=doc.numPages;i++){
-      const page = await doc.getPage(i);
-      const content = await page.getTextContent();
-      const text = content.items.map(it=>it.str).join(' ');
-      pages.push({ pageNum:i, text, ocr:false });
-      hzSetRowStatus(row, `صفحہ ${i} / ${doc.numPages}`);
+    let pages = [];
+    // اگر پہلے سے محفوظ شدہ متن (بشمول OCR سے نکالا گیا متن) موجود ہو تو دوبارہ نکالنے کی بجائے وہی استعمال کریں —
+    // اس سے OCR کا نتیجہ ہر بار صفحہ کھلنے/سائٹ اپ ڈیٹ ہونے پر بھی برقرار رہتا ہے، دوبارہ OCR نہیں کرنا پڑتا
+    if(Array.isArray(cachedPages) && cachedPages.length === doc.numPages){
+      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr }));
+      hzSetRowStatus(row, `محفوظ شدہ متن سے لوڈ ہو رہی ہے... (${doc.numPages} صفحات)`);
+    } else {
+      for(let i=1;i<=doc.numPages;i++){
+        const page = await doc.getPage(i);
+        const content = await page.getTextContent();
+        const text = content.items.map(it=>it.str).join(' ');
+        pages.push({ pageNum:i, text, ocr:false });
+        hzSetRowStatus(row, `صفحہ ${i} / ${doc.numPages}`);
+      }
     }
-    const fileEntry = { fileName:file.name, pages, pdfDoc:doc };
+    const fileEntry = { fileName:file.name, pages, pdfDoc:doc, file };
     hzLibrary.push(fileEntry);
     // نئی اپ لوڈ کی گئی فائل کو مستقل محفوظ کر دیں — اگلی بار صفحہ کھلنے پر یا index.html اپ ڈیٹ ہونے پر بھی موجود رہے گی
+    // (متن بھی ساتھ محفوظ کیا جاتا ہے تاکہ OCR کا نتیجہ بھی ہمیشہ کے لیے برقرار رہے)
     if(!fromStorage){
-      herbalIdbPut('hzFiles', { fileName:file.name, blob:file, addedAt:Date.now() }).catch(err=>{
+      herbalIdbPut('hzFiles', { fileName:file.name, blob:file, pages, addedAt:Date.now() }).catch(err=>{
         console.error('hz persistent save failed:', err);
         const s = row.querySelector('.hz-status');
         if(s) s.textContent += ' — (نوٹ: جگہ کم ہونے کی وجہ سے یہ فائل مستقل محفوظ نہیں ہو سکی، ابھی صرف اسی سیشن میں تلاش کے لیے دستیاب ہے)';
@@ -4460,7 +4538,7 @@ hzSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') hzRunSearch
     const records = await herbalIdbGetAll('hzFiles');
     for(const rec of records){
       const file = new File([rec.blob], rec.fileName, { type: 'application/pdf' });
-      await hzProcessFile(file, true);
+      await hzProcessFile(file, true, rec.pages);
     }
   }catch(e){ console.error('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
 })();
@@ -4557,11 +4635,16 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
       currentDone++;
     }
     await worker.terminate();
+    // OCR سے نکالا گیا متن مستقل محفوظ کر دیں — تاکہ صفحہ دوبارہ کھلنے یا سائٹ اپ ڈیٹ ہونے پر بھی
+    // دوبارہ OCR نہ کرنا پڑے اور سرچ ہمیشہ کام کرتی رہے
+    try{
+      await herbalIdbPut('hzFiles', { fileName:fileEntry.fileName, blob:fileEntry.file, pages:fileEntry.pages, addedAt:Date.now() });
+    }catch(e){ console.error('OCR متن محفوظ نہیں ہو سکا:', e); }
     if(cancelled){
-      progressEl.textContent = `روک دیا گیا — ${currentDone}/${currentTotal} صفحات پر OCR ہو چکا ہے (یہ اب سرچ میں شامل ہیں)۔`;
+      progressEl.textContent = `روک دیا گیا — ${currentDone}/${currentTotal} صفحات پر OCR ہو چکا ہے (یہ اب سرچ میں شامل اور مستقل محفوظ ہیں)۔`;
       ocrBtn.style.display = 'none';
     } else {
-      progressEl.textContent = `OCR مکمل — ${currentDone} صفحات پر متن نکالا گیا۔`;
+      progressEl.textContent = `OCR مکمل — ${currentDone} صفحات پر متن نکالا گیا اور مستقل محفوظ کر دیا گیا۔`;
       ocrBtn.style.display = 'none';
     }
   }catch(err){
