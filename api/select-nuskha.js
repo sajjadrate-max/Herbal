@@ -29,16 +29,6 @@ export default async function handler(req, res) {
   try {
     const { mizaj, patientNumber, symptoms, diseases, candidates, foods, age, maritalStatus, diseaseDuration, bloodPressure, painTiming, sugar, qabz, deficiencyAnswers } = req.body || {};
 
-    const patientFactText = [
-      age ? `عمر: ${age}` : null,
-      maritalStatus ? `ازدواجی حیثیت: ${maritalStatus}` : null,
-      diseaseDuration ? `بیماری کب سے ہے: ${diseaseDuration}` : null,
-      bloodPressure ? `بلڈ پریشر: ${bloodPressure}` : null,
-      painTiming ? `تکلیف کس وقت زیادہ ہوتی ہے: ${painTiming}` : null,
-      sugar ? `شوگر: ${sugar}` : null,
-      qabz ? `قبض کی کیفیت: ${qabz}` : null
-    ].filter(Boolean).join('\n');
-
     if (!Array.isArray(candidates) || candidates.length === 0) {
       return res.status(400).json({ error: 'دواؤں کی فہرست (candidates) خالی یا غلط ہے۔' });
     }
@@ -75,14 +65,15 @@ export default async function handler(req, res) {
 - طلاء/روغن/مرہم/لیپ/سفوف (بیرونی)/نکور: صرف بیرونی استعمال کے لیے — اندرونی بیماری میں تجویز نہ کریں۔
 - شربت/حب/کیپسول/سفوف (اندرونی): فوائد دیکھ کر فیصلہ کریں۔
 
-3) اگر فہرست میں کوئی دوا مریض کی علامت سے حقیقی طور پر میل نہیں کھاتی (نہ لفظی نہ مفہومی، اور نہ ہی اوپر دی گئی قسم کی شرائط پوری ہوتی ہوں)، تو اسے ہرگز منتخب نہ کریں — ایسی صورت میں فہرست میں سے وہی دوائیں دیں جن کا واقعی تعلق ہو، خواہ وہ تعداد میں کم ہوں۔ صرف اسی صورت میں خالی "selections": [] دیں جب فہرست میں کوئی دوا بھی علامت سے حقیقی تعلق نہ رکھتی ہو۔
-4) زیادہ سے زیادہ 3 دوائیں منتخب کریں، اور جو سب سے زیادہ درست میل کھاتی ہو اسے پہلے نمبر پر رکھیں۔
+3) اگر فہرست میں کوئی دوا مریض کی علامت سے حقیقی طور پر میل نہیں کھاتی (نہ لفظی نہ مفہومی، اور نہ ہی اوپر دی گئی قسم کی شرائط پوری ہوتی ہوں)، تو اسے ہرگز منتخب نہ کریں — ایسی صورت میں فہرست میں سے وہی دوائیں دیں جن کا واقعی تعلق ہو، خواہ وہ تعداد میں کم ہوں۔
+3الف) لازمی اصول — خالی نتیجہ کبھی نہ دیں: اگر مریض نے کوئی علامت یا بیماری بتائی/منتخب کی ہو (چاہے لکھ کر، چاہے فہرست سے منتخب کر کے)، تو "selections" کبھی خالی نہ چھوڑیں۔ اگر فہرست میں کوئی دوا علامت سے لفظی/مفہومی طور پر واقعی میل نہیں کھاتی، تو اسی مزاج کی عمومی، محفوظ اور بلا نقصان دوائیں تجویز کریں — یعنی فہرست میں سے "ہاضم" (ہاضمہ درست رکھنے کے لیے) اور/یا "ملین" (نظام ہضم/اخراج کو نرمی سے بہتر رکھنے کے لیے) قسم کی دوا — کیونکہ یہ عمومی طور پر ہر مریض کے لیے مفید اور محفوظ ہیں۔ کم از کم 1 اور ترجیحاً 2 دوائیں ہمیشہ تجویز کریں۔
+4) زیادہ سے زیادہ 3 دوائیں منتخب کریں (کم از کم 1، ترجیحاً 2)، اور جو سب سے زیادہ درست میل کھاتی ہو اسے پہلے نمبر پر رکھیں۔ اگر حقیقی میل والی دوائیں 2 سے کم ہوں تو باقی تعداد اوپر نکتہ 3الف کے مطابق عمومی ہاضم/ملین دوا سے پوری کریں۔
 
 غذاؤں کے انتخاب کا اصول:
 5) نیچے دی گئی غذاؤں کی فہرست میں سے صرف وہی 5 سے 8 غذائیں منتخب کریں جو مریض کی بتائی گئی بیماری/علامات کے لیے روایتی حکمت کے مطابق خاص طور پر مفید ہوں۔ فہرست سے باہر کوئی غذا تجویز نہ کریں۔ اگر غذاؤں کی فہرست نہ دی گئی ہو یا کوئی خاص میل نہ کھائے تو خالی "foodSelections": [] واپس کریں۔
 
 جسمانی ضروریات کی کمی (nutrient deficiency) کی تشخیص کا اصول:
-6) صرف علامات/بیماریوں تک محدود نہ رہیں — مریض سے پوچھے گئے تمام سوالات کے جوابات (عمر، ازدواجی حیثیت، بیماری نئی/پرانی، بلڈ پریشر، درد کا وقت، شوگر، قبض کی کیفیت — جو بھی نیچے دیا گیا ہو) کو بھی غور سے مدنظر رکھیں، کیونکہ ان میں سے ہر جواب کسی کمی کی نشاندہی میں مدد دے سکتا ہے (مثلاً: قبض کا ہونا → فائبر/پانی کی کمی کا امکان؛ بلڈ پریشر کا غیر متوازن ہونا → الیکٹرولائٹس کی کمی کا امکان؛ بڑی عمر یا پرانا/دائمی مریض ہونا → پروٹین/امینو ایسڈز/کیلشیم کی کمی کا امکان زیادہ ہوتا ہے)۔ ان تمام جوابات اور علامات/بیماریوں کو ملا کر غور کریں کہ آیا درج ذیل 10 اقسام میں سے کسی چیز کی کمی کا حقیقی امکان ظاہر ہوتا ہے:
+6) مریض کی بتائی گئی علامات/بیماریوں کو غور سے پڑھ کر معلوم کریں کہ آیا ان میں سے کسی مانوس طبی تعلق کی بنیاد پر درج ذیل 10 اقسام میں سے کسی چیز کی کمی کا حقیقی امکان ظاہر ہوتا ہے:
    - وٹامنز (A، B، C، D، E، K وغیرہ)
    - معدنیات (آئرن، زنک، کیلشیم، میگنیشیم وغیرہ)
    - پروٹین
@@ -107,9 +98,11 @@ export default async function handler(req, res) {
       : null;
 
     const userPrompt = `مریض کا مزاج: ${mizaj || 'نامعلوم'}${patientNumber ? ' (نمبر ' + patientNumber + ')' : ''}
+عمر: ${age || 'نامعلوم'}
+بیماری کب سے ہے (نئی/پرانی): ${diseaseDuration || 'نامعلوم'}
 علامات: ${symptomsText}
 بیماریاں: ${diseasesText}
-${patientFactText ? ('\nمریض سے پوچھے گئے دیگر سوالات کے جوابات (کمی کی تشخیص کے لیے بھی مدنظر رکھیں):\n' + patientFactText + '\n') : ''}${deficiencyAnswersText ? ('\nمریض کے اضافی جوابات (کمی کی تشخیص کے لیے پوچھے گئے سوالات کے جواب):\n' + deficiencyAnswersText + '\n') : ''}
+${deficiencyAnswersText ? ('\nمریض کے اضافی جوابات (کمی کی تشخیص کے لیے پوچھے گئے سوالات کے جواب):\n' + deficiencyAnswersText + '\n') : ''}
 دستیاب دواؤں کی فہرست:
 ${limitedCandidates.map((c, i) => `${i + 1}. ${c.name} — مزاج: ${c.mizaj} — فوائد: ${c.benefit}`).join('\n')}
 
@@ -156,12 +149,31 @@ ${foodList.length ? foodList.join('، ') : '(کوئی غذائی فہرست فر
       return res.status(502).json({ error: 'جواب میں دوائیوں کی فہرست موجود نہیں۔' });
     }
 
+    let selections = parsed.selections;
+
+    // حفاظتی قدم (deterministic fallback): مریض نے کوئی علامت/بیماری بتائی ہو تو کبھی بھی
+    // خالی نتیجہ نہ جائے — اگر AI نے کوئی دوا منتخب نہیں کی تو اسی مزاج کی عمومی
+    // "ہاضم"/"ملین" دوا خود بخود شامل کر دی جائے (یہ ہمیشہ محفوظ اور مفید ہوتی ہیں)۔
+    const hasSymptomOrDisease = (Array.isArray(symptoms) && symptoms.length > 0) || (Array.isArray(diseases) && diseases.length > 0);
+    if (selections.length === 0 && hasSymptomOrDisease) {
+      const fallbackPicks = [];
+      const hazimMatch = candidates.find(c => /ہاضم/.test(c.name));
+      const mulainMatch = candidates.find(c => /ملین/.test(c.name));
+      if (hazimMatch) fallbackPicks.push({ name: hazimMatch.name, reason: 'عمومی طور پر ہاضمہ درست رکھنے اور بھوک بہتر کرنے کے لیے، مزاج کے مطابق۔' });
+      if (mulainMatch) fallbackPicks.push({ name: mulainMatch.name, reason: 'نظام ہضم/اخراج کو نرمی سے بہتر رکھنے کے لیے، مزاج کے مطابق۔' });
+      if (fallbackPicks.length === 0 && candidates.length > 0) {
+        // نہ ہاضم ملا نہ ملین — اسی مزاج کی پہلی دستیاب عمومی دوا تجویز کر دیں
+        fallbackPicks.push({ name: candidates[0].name, reason: 'مزاج کے مطابق عمومی طور پر تجویز کردہ۔' });
+      }
+      selections = fallbackPicks;
+    }
+
     const foodSelections = Array.isArray(parsed.foodSelections) ? parsed.foodSelections : [];
     const deficiencies = Array.isArray(parsed.deficiencies) ? parsed.deficiencies : [];
     const deficiencyFoodSelections = Array.isArray(parsed.deficiencyFoodSelections) ? parsed.deficiencyFoodSelections : [];
     const deficiencyQuestions = Array.isArray(parsed.deficiencyQuestions) ? parsed.deficiencyQuestions : [];
 
-    return res.status(200).json({ selections: parsed.selections, foodSelections, deficiencies, deficiencyFoodSelections, deficiencyQuestions });
+    return res.status(200).json({ selections, foodSelections, deficiencies, deficiencyFoodSelections, deficiencyQuestions });
 
   } catch (err) {
     console.error('select-nuskha error:', err);
