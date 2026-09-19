@@ -201,6 +201,30 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   </div>
 
   <div id="mizajResult" style="margin-top:24px;"></div>
+
+  <div id="patientFeedbackBox" style="max-width:600px; margin:30px auto 10px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px;">
+    <h4 style="color:var(--gold-soft); text-align:center; margin-bottom:8px; font-size:.95rem;">علامت، بیماری یا جواب فہرست میں موجود نہیں؟</h4>
+    <p style="color:var(--muted); font-size:.82rem; text-align:center; margin-bottom:10px;">اگر آپ کی علامات یا بیماری کے مطابق درست جواب نہ ملا ہو تو براہ کرم ہمیں ضرور بتائیں۔ نیچے سکرین شاٹ شامل کریں اور اپنی بات لکھ کر بھیج دیں — یہ تصویر اور تحریر براہ راست ہم تک پہنچ جائے گی، اور ہم جلد ضروری اصلاح کر دیں گے۔</p>
+    <textarea id="patientFeedbackText" rows="3" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:var(--text); font-family:inherit; font-size:.95rem;" placeholder="یہاں اپنی بات تفصیل سے لکھیں — کیا کمی محسوس ہوئی، یا کیا سوال ہے..."></textarea>
+
+    <div style="margin-top:12px;">
+      <label id="patientFeedbackImageLabel" style="display:block; border:2px dashed var(--border); border-radius:10px; padding:14px; text-align:center; cursor:pointer;">
+        <input type="file" id="patientFeedbackImage" accept="image/*" style="display:none;" onchange="onPatientFeedbackImageSelected()">
+        <span style="color:var(--muted); font-size:.85rem;">📷 سکرین شاٹ یا تصویر شامل کرنے کے لیے یہاں کلک کریں (اختیاری)</span>
+      </label>
+      <div id="patientFeedbackImagePreviewBox" style="display:none; margin-top:10px; text-align:center;">
+        <img id="patientFeedbackImagePreview" style="max-width:100%; max-height:220px; border-radius:8px; border:1px solid var(--border);">
+        <div style="margin-top:6px;">
+          <button type="button" onclick="removePatientFeedbackImage()" style="background:none; border:none; color:#e07a5f; font-size:.85rem; cursor:pointer;">✕ تصویر ہٹائیں</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:10px;">
+      <button class="btn" onclick="sendPatientFeedback()" style="border-radius:20px; padding:8px 22px; font-size:.9rem;">بھیجیں</button>
+    </div>
+    <p id="patientFeedbackStatus" style="color:var(--muted); font-size:.82rem; text-align:center; margin-top:8px;"></p>
+  </div>
 </section>
 
 <!-- ===================== GHIZA / MIZAJ ===================== -->
@@ -635,6 +659,45 @@ function showOnlyRelevantFields(relevantIds){
     if(el) el.style.display = idSet.has(q.id) ? '' : 'none';
   });
   document.getElementById('combinedWrap').style.display = '';
+}
+
+function revealAdditionalFields(ids){
+  (ids || []).forEach(id=>{
+    const el = document.getElementById(`crit-container-${id}`) || document.getElementById(`field-container-${id}`);
+    if(el) el.style.display = '';
+  });
+}
+
+// مریض خود جو بیماری/بیماریاں منتخب کرے، اسی کے مطابق اضافی متعلقہ سوال دکھائے جائیں —
+// مگر جو علامت/سوال پہلے ہی منتخب/جواب دیا جا چکا ہو وہ دوبارہ کبھی نہیں پوچھا جائے گا۔
+let diseaseQuestionTimer = null;
+function onDiseaseSelectionChanged(){
+  clearTimeout(diseaseQuestionTimer);
+  diseaseQuestionTimer = setTimeout(fetchDiseaseRelatedQuestions, 600);
+}
+
+async function fetchDiseaseRelatedQuestions(){
+  if(!isLiveDeployedPageForComplaint()) return;
+  const selectedNames = diseaseIds
+    .filter(d=> document.getElementById(d.id) && document.getElementById(d.id).checked)
+    .map(d=> d.name);
+  if(selectedNames.length === 0) return;
+  const answeredIds = Object.keys(selections); // پہلے سے جواب دی گئی علامات — یہ کبھی دوبارہ نہیں پوچھی جائیں گی
+  const remainingQuestions = optionalQuestionDefs.filter(q=> !answeredIds.includes(q.id));
+  if(remainingQuestions.length === 0) return;
+  try{
+    const res = await fetch('/api/select-questions', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ selectedDiseases: selectedNames, questions: remainingQuestions, excludeIds: answeredIds })
+    });
+    if(!res.ok) return;
+    const data = await res.json();
+    const relevantIds = (data && Array.isArray(data.relevantIds)) ? data.relevantIds : [];
+    revealAdditionalFields(relevantIds);
+  }catch(e){
+    // خاموشی سے نظر انداز کریں — دستی نظام میں تمام سوالات ویسے بھی پہلے سے نظر آتے ہیں
+  }
 }
 
 function isLiveDeployedPageForComplaint(){
@@ -1455,6 +1518,7 @@ function toggleSymptom(id, organKey){
   document.getElementById('wrap-'+id).classList.toggle('checked', checked);
   if(organKey) updateOrganSummary(organKey);
   if(checked) revealDiagnoseButton();
+  onDiseaseSelectionChanged();
 }
 
 function filterDiseases(){
@@ -1519,6 +1583,69 @@ function removeUnmatchedDisease(term, btn){
   if(idx !== -1) window.unmatchedDiseaseTerms.splice(idx, 1);
   const resultBox = document.getElementById('diseaseApiResultBox');
   if(resultBox) resultBox.innerHTML = '';
+}
+
+// ---------- تشخیص کے نتیجے کے آخر میں: مریض خود اپنی تجویز/سوال (بمعہ تصویر) لکھ کر بھیج سکے ----------
+window.patientFeedbackImageData = null; // {dataUrl, base64, mime, filename}
+
+function onPatientFeedbackImageSelected(){
+  const input = document.getElementById('patientFeedbackImage');
+  const file = input && input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const dataUrl = e.target.result;
+    const commaIdx = dataUrl.indexOf(',');
+    const base64 = commaIdx !== -1 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+    window.patientFeedbackImageData = { dataUrl, base64, mime: file.type || 'image/jpeg', filename: file.name || 'screenshot.jpg' };
+    const previewBox = document.getElementById('patientFeedbackImagePreviewBox');
+    const previewImg = document.getElementById('patientFeedbackImagePreview');
+    if(previewImg) previewImg.src = dataUrl;
+    if(previewBox) previewBox.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePatientFeedbackImage(){
+  window.patientFeedbackImageData = null;
+  const input = document.getElementById('patientFeedbackImage');
+  if(input) input.value = '';
+  const previewBox = document.getElementById('patientFeedbackImagePreviewBox');
+  if(previewBox) previewBox.style.display = 'none';
+}
+
+async function sendPatientFeedback(){
+  const textEl = document.getElementById('patientFeedbackText');
+  const statusEl = document.getElementById('patientFeedbackStatus');
+  const text = textEl ? textEl.value.trim() : '';
+  const img = window.patientFeedbackImageData;
+  if(!text && !img){
+    if(statusEl) statusEl.textContent = 'براہ کرم کچھ لکھیں یا تصویر شامل کریں۔';
+    return;
+  }
+  if(!isLiveDeployedPageForDisease()){
+    if(statusEl) statusEl.textContent = 'یہ سہولت صرف لائیو ویب سائٹ پر کام کرتی ہے۔';
+    return;
+  }
+  if(statusEl) statusEl.textContent = '⏳ بھیجا جا رہا ہے...';
+  try{
+    const res = await fetch('/api/notify-disease', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        message: text,
+        imageBase64: img ? img.base64 : undefined,
+        imageMime: img ? img.mime : undefined,
+        imageFilename: img ? img.filename : undefined
+      })
+    });
+    if(!res.ok) throw new Error('سرور کی خرابی: ' + res.status);
+    if(statusEl) statusEl.textContent = '✅ بھیج دیا گیا — شکریہ، جلد جائزہ لیا جائے گا۔';
+    if(textEl) textEl.value = '';
+    removePatientFeedbackImage();
+  }catch(e){
+    if(statusEl) statusEl.textContent = 'بھیجنے میں مسئلہ ہوا — دوبارہ کوشش کریں۔';
+  }
 }
 
 // ---------- TREATMENT FORMULAS (reference, sourced from lectures) ----------
