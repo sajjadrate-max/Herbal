@@ -3818,13 +3818,19 @@ async function pmProcessFile(file){
     const btn = row.querySelector('.pm-preview-btn');
     btn.style.display = '';
     btn.addEventListener('click', ()=> pmShowPreview(file.name, pages));
+    // OCR بٹن ہمیشہ دستیاب رکھیں — بعض PDF (خصوصاً InPage جیسے سافٹ ویئر سے بنی اردو فائلیں) میں
+    // pdf.js کو "متن" مل تو جاتا ہے مگر وہ خراب/ناقابلِ تلاش انکوڈنگ میں ہوتا ہے، اس لیے صفحہ خالی نہ
+    // ہونے کے باوجود سرچ کام نہیں کرتی — ایسی صورت میں مریض/صارف خود OCR سے دوبارہ پڑھوا سکے۔
+    const ocrBtn = row.querySelector('.pm-ocr-btn');
+    ocrBtn.style.display = '';
     if(emptyCount > 0){
-      const ocrBtn = row.querySelector('.pm-ocr-btn');
-      ocrBtn.style.display = '';
       ocrBtn.textContent = `OCR چلائیں (${emptyCount} صفحات تصویر پر مشتمل ہیں)`;
-      ocrBtn._origHandler = ()=> pmRunOcrOnFile(fileEntry, row, ocrBtn);
-      ocrBtn.addEventListener('click', ocrBtn._origHandler);
+      ocrBtn._origHandler = ()=> pmRunOcrOnFile(fileEntry, row, ocrBtn, false);
+    } else {
+      ocrBtn.textContent = 'تلاش نہیں مل رہی؟ OCR سے دوبارہ پڑھیں';
+      ocrBtn._origHandler = ()=> pmRunOcrOnFile(fileEntry, row, ocrBtn, true);
     }
+    ocrBtn.addEventListener('click', ocrBtn._origHandler);
   }catch(err){
     console.error('PDF read error:', err);
     pmSetRowStatus(row, 'فائل نہیں پڑھی جا سکی: ' + (err && err.message ? err.message : 'نامعلوم خرابی'), '#e0524f');
@@ -3916,7 +3922,7 @@ function pmEnsureTesseractLoaded(onStatus){
   })();
   return pmTesseractLoadPromise;
 }
-async function pmRunOcrOnFile(fileEntry, row, ocrBtn){
+async function pmRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
   const progressEl = row.querySelector('.pm-ocr-progress');
   progressEl.style.display = '';
   ocrBtn.disabled = true;
@@ -3936,7 +3942,8 @@ async function pmRunOcrOnFile(fileEntry, row, ocrBtn){
         }
       }
     });
-    const pagesToOcr = fileEntry.pages.filter(p=>p.text.trim()==='');
+    // forceAll: اگر متن موجود ہے مگر خراب انکوڈنگ کی وجہ سے سرچ کام نہیں کر رہی تو تمام صفحات دوبارہ OCR کریں
+    const pagesToOcr = forceAll ? fileEntry.pages : fileEntry.pages.filter(p=>p.text.trim()==='');
     currentTotal = pagesToOcr.length;
     for(const p of pagesToOcr){
       if(cancelled) break;
@@ -3968,7 +3975,7 @@ async function pmRunOcrOnFile(fileEntry, row, ocrBtn){
     ocrBtn.disabled = false;
     ocrBtn.textContent = 'دوبارہ کوشش کریں';
     ocrBtn.removeEventListener('click', cancelHandler);
-    ocrBtn._origHandler = ()=> pmRunOcrOnFile(fileEntry, row, ocrBtn);
+    ocrBtn._origHandler = ()=> pmRunOcrOnFile(fileEntry, row, ocrBtn, forceAll);
     ocrBtn.addEventListener('click', ocrBtn._origHandler);
   }
 }
@@ -4115,13 +4122,16 @@ async function hzProcessFile(file){
     const btn = row.querySelector('.hz-preview-btn');
     btn.style.display = '';
     btn.addEventListener('click', ()=> hzShowPreview(file.name, pages));
+    const ocrBtn = row.querySelector('.hz-ocr-btn');
+    ocrBtn.style.display = '';
     if(emptyCount > 0){
-      const ocrBtn = row.querySelector('.hz-ocr-btn');
-      ocrBtn.style.display = '';
       ocrBtn.textContent = `OCR چلائیں (${emptyCount} صفحات تصویر پر مشتمل ہیں)`;
-      ocrBtn._origHandler = ()=> hzRunOcrOnFile(fileEntry, row, ocrBtn);
-      ocrBtn.addEventListener('click', ocrBtn._origHandler);
+      ocrBtn._origHandler = ()=> hzRunOcrOnFile(fileEntry, row, ocrBtn, false);
+    } else {
+      ocrBtn.textContent = 'تلاش نہیں مل رہی؟ OCR سے دوبارہ پڑھیں';
+      ocrBtn._origHandler = ()=> hzRunOcrOnFile(fileEntry, row, ocrBtn, true);
     }
+    ocrBtn.addEventListener('click', ocrBtn._origHandler);
   }catch(err){
     console.error('PDF read error:', err);
     hzSetRowStatus(row, 'فائل نہیں پڑھی جا سکی: ' + (err && err.message ? err.message : 'نامعلوم خرابی'), '#e0524f');
@@ -4182,7 +4192,7 @@ function hzShowPreview(fileName, pages){
   modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
 }
 
-async function hzRunOcrOnFile(fileEntry, row, ocrBtn){
+async function hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
   const progressEl = row.querySelector('.hz-ocr-progress');
   progressEl.style.display = '';
   ocrBtn.disabled = true;
@@ -4202,7 +4212,8 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn){
         }
       }
     });
-    const pagesToOcr = fileEntry.pages.filter(p=>p.text.trim()==='');
+    // forceAll: اگر متن موجود ہے مگر خراب انکوڈنگ کی وجہ سے سرچ کام نہیں کر رہی تو تمام صفحات دوبارہ OCR کریں
+    const pagesToOcr = forceAll ? fileEntry.pages : fileEntry.pages.filter(p=>p.text.trim()==='');
     currentTotal = pagesToOcr.length;
     for(const p of pagesToOcr){
       if(cancelled) break;
@@ -4234,7 +4245,7 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn){
     ocrBtn.disabled = false;
     ocrBtn.textContent = 'دوبارہ کوشش کریں';
     ocrBtn.removeEventListener('click', cancelHandler);
-    ocrBtn._origHandler = ()=> hzRunOcrOnFile(fileEntry, row, ocrBtn);
+    ocrBtn._origHandler = ()=> hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll);
     ocrBtn.addEventListener('click', ocrBtn._origHandler);
   }
 }
