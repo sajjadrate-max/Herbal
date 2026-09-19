@@ -202,28 +202,28 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
 
   <div id="mizajResult" style="margin-top:24px;"></div>
 
-  <div id="patientFeedbackBox" style="max-width:600px; margin:30px auto 10px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px;">
-    <h4 style="color:var(--gold-soft); text-align:center; margin-bottom:8px; font-size:.95rem;">علامت، بیماری یا جواب فہرست میں موجود نہیں؟</h4>
-    <p style="color:var(--muted); font-size:.82rem; text-align:center; margin-bottom:10px;">اگر آپ کی علامات یا بیماری کے مطابق درست جواب نہ ملا ہو تو براہ کرم ہمیں ضرور بتائیں۔ نیچے سکرین شاٹ شامل کریں اور اپنی بات لکھ کر بھیج دیں — یہ تصویر اور تحریر براہ راست ہم تک پہنچ جائے گی، اور ہم جلد ضروری اصلاح کر دیں گے۔</p>
-    <textarea id="patientFeedbackText" rows="3" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:var(--text); font-family:inherit; font-size:.95rem;" placeholder="یہاں اپنی بات تفصیل سے لکھیں — کیا کمی محسوس ہوئی، یا کیا سوال ہے..."></textarea>
+  <div id="patientFeedbackBox" style="max-width:440px; margin:24px auto 10px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px;">
+    <h4 style="color:var(--gold-soft); text-align:center; margin-bottom:4px; font-size:.78rem;">آپ کی علامات/بیماری کے مطابق درست جواب نہیں ملا؟</h4>
+    <p style="color:var(--muted); font-size:.68rem; text-align:center; margin-bottom:6px; line-height:1.5;">سکرین شاٹ اور اپنی بات لکھ کر بھیج دیں، ہم اصلاح کر دیں گے۔</p>
+    <textarea id="patientFeedbackText" rows="2" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:var(--text); font-family:inherit; font-size:.78rem;" placeholder="یہاں اپنی بات لکھیں..."></textarea>
 
-    <div style="margin-top:12px;">
-      <label id="patientFeedbackImageLabel" style="display:block; border:2px dashed var(--border); border-radius:10px; padding:14px; text-align:center; cursor:pointer;">
+    <div style="margin-top:6px;">
+      <label id="patientFeedbackImageLabel" style="display:block; border:1px dashed var(--border); border-radius:6px; padding:6px; text-align:center; cursor:pointer;">
         <input type="file" id="patientFeedbackImage" accept="image/*" style="display:none;" onchange="onPatientFeedbackImageSelected()">
-        <span style="color:var(--muted); font-size:.85rem;">📷 سکرین شاٹ یا تصویر شامل کرنے کے لیے یہاں کلک کریں (اختیاری)</span>
+        <span style="color:var(--muted); font-size:.68rem;">📷 تصویر شامل کریں (اختیاری)</span>
       </label>
-      <div id="patientFeedbackImagePreviewBox" style="display:none; margin-top:10px; text-align:center;">
-        <img id="patientFeedbackImagePreview" style="max-width:100%; max-height:220px; border-radius:8px; border:1px solid var(--border);">
-        <div style="margin-top:6px;">
-          <button type="button" onclick="removePatientFeedbackImage()" style="background:none; border:none; color:#e07a5f; font-size:.85rem; cursor:pointer;">✕ تصویر ہٹائیں</button>
+      <div id="patientFeedbackImagePreviewBox" style="display:none; margin-top:6px; text-align:center;">
+        <img id="patientFeedbackImagePreview" style="max-width:100%; max-height:120px; border-radius:6px; border:1px solid var(--border);">
+        <div style="margin-top:4px;">
+          <button type="button" onclick="removePatientFeedbackImage()" style="background:none; border:none; color:#e07a5f; font-size:.68rem; cursor:pointer;">✕ تصویر ہٹائیں</button>
         </div>
       </div>
     </div>
 
-    <div style="text-align:center; margin-top:10px;">
-      <button class="btn" onclick="sendPatientFeedback()" style="border-radius:20px; padding:8px 22px; font-size:.9rem;">بھیجیں</button>
+    <div style="text-align:center; margin-top:6px;">
+      <button class="btn" onclick="sendPatientFeedback()" style="border-radius:16px; padding:5px 16px; font-size:.75rem;">بھیجیں</button>
     </div>
-    <p id="patientFeedbackStatus" style="color:var(--muted); font-size:.82rem; text-align:center; margin-top:8px;"></p>
+    <p id="patientFeedbackStatus" style="color:var(--muted); font-size:.68rem; text-align:center; margin-top:5px;"></p>
   </div>
 </section>
 
