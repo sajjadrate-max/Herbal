@@ -302,7 +302,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   <div id="nuskhaResult" style="margin-top:20px;"></div>
 
   <h3 style="color:var(--gold); text-align:center; margin:30px 0 6px; padding-top:20px; border-top:1px solid var(--border);">جڑی بوٹیوں کی کتابوں میں تلاش</h3>
-  <div class="note">جڑی بوٹیوں سے متعلق اپنی PDF کتابیں شامل کریں، پھر مزاج اور بیماری کا نام لکھ کر تلاش کریں — بتایا جائے گا کس کتاب کے کس صفحے پر اس مزاج/بیماری کے لیے موزوں جڑی بوٹی کا ذکر ہے۔ سب کام آپ کے اپنے فون/کمپیوٹر میں ہوتا ہے، کوئی فائل انٹرنیٹ پر نہیں جاتی۔</div>
+  <div class="note">جڑی بوٹیوں سے متعلق اپنی PDF کتابیں شامل کریں، پھر مزاج اور بیماری کا نام لکھ کر تلاش کریں — بتایا جائے گا کس کتاب کے کس صفحے پر اس مزاج/بیماری کے لیے موزوں جڑی بوٹی کا ذکر ہے۔ سب کام آپ کے اپنے فون/کمپیوٹر میں ہوتا ہے، کوئی فائل انٹرنیٹ پر نہیں جاتی۔ ایک بار شامل کی گئی فائل ہمیشہ کے لیے محفوظ رہتی ہے — دوبارہ صفحہ کھولنے یا سائٹ اپ ڈیٹ ہونے پر بھی موجود رہے گی، جب تک آپ خود "ہٹائیں" نہ دبائیں۔</div>
 
   <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
     <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">فائلیں شامل کریں</h3>
@@ -338,7 +338,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
 
 <section class="page-section" id="page-pdfmulti">
   <h2 class="section-title">بیماری کی تلاش</h2>
-  <div class="note">فائلیں شامل کریں، لفظ لکھیں — بتایا جائے گا کہ وہ کس فائل کے کس صفحہ پر موجود ہے۔ سب کام آپ کے اپنے فون/کمپیوٹر میں ہوتا ہے، کوئی فائل انٹرنیٹ پر نہیں جاتی۔</div>
+  <div class="note">فائلیں شامل کریں، لفظ لکھیں — بتایا جائے گا کہ وہ کس فائل کے کس صفحہ پر موجود ہے۔ سب کام آپ کے اپنے فون/کمپیوٹر میں ہوتا ہے، کوئی فائل انٹرنیٹ پر نہیں جاتی۔ ایک بار شامل کی گئی فائل ہمیشہ کے لیے محفوظ رہتی ہے — دوبارہ صفحہ کھولنے یا سائٹ اپ ڈیٹ ہونے پر بھی موجود رہے گی، جب تک آپ خود "ہٹائیں" نہ دبائیں۔</div>
 
   <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
     <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">فائلیں شامل کریں</h3>
@@ -3742,7 +3742,52 @@ function setTieAnswer(pairKey, i, choice, mizaj){
   renderMizajResult(totals, window.lastMizajAnswered + 1);
 }
 
-// ---------- PDF MULTI-SEARCH (مقامی، فی سیشن — کوئی فائل انٹرنیٹ پر نہیں جاتی) ----------
+// ---------- مستقل ذخیرہ (IndexedDB) — اپ لوڈ کی گئی PDF فائلیں براؤزر میں ہمیشہ کے لیے محفوظ رہیں،
+// چاہے صفحہ دوبارہ کھولا جائے یا index.html خود اپ ڈیٹ ہو جائے — جب تک صارف خود "ہٹائیں" نہ دبائے ----------
+const HERBAL_DB_NAME = 'herbalPdfStorage';
+const HERBAL_DB_VERSION = 1;
+function herbalOpenDb(){
+  return new Promise((resolve, reject)=>{
+    if(typeof indexedDB === 'undefined'){ reject(new Error('IndexedDB دستیاب نہیں')); return; }
+    const req = indexedDB.open(HERBAL_DB_NAME, HERBAL_DB_VERSION);
+    req.onupgradeneeded = ()=>{
+      const db = req.result;
+      if(!db.objectStoreNames.contains('pmFiles')) db.createObjectStore('pmFiles', { keyPath: 'fileName' });
+      if(!db.objectStoreNames.contains('hzFiles')) db.createObjectStore('hzFiles', { keyPath: 'fileName' });
+    };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function herbalIdbGetAll(storeName){
+  const db = await herbalOpenDb();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).getAll();
+    req.onsuccess = ()=> resolve(req.result || []);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function herbalIdbPut(storeName, record){
+  const db = await herbalOpenDb();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).put(record);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+async function herbalIdbDelete(storeName, key){
+  const db = await herbalOpenDb();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(key);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+
+// ---------- PDF MULTI-SEARCH (فائلیں اب مستقل محفوظ ہوتی ہیں — کوئی فائل انٹرنیٹ پر نہیں جاتی) ----------
 const pmFileInputEl = document.getElementById('pmFileInput');
 const pmDropZoneEl = document.getElementById('pmDropZone');
 const pmFileListEl = document.getElementById('pmFileList');
@@ -3777,17 +3822,32 @@ pmDropZoneEl.addEventListener('drop', e=>{
 });
 pmFileInputEl.addEventListener('change', ()=> pmHandleFiles(pmFileInputEl.files));
 
-function pmHandleFiles(fileListInput){
+async function pmHandleFiles(fileListInput){
   const files = Array.from(fileListInput).filter(f=> f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
-  files.forEach(pmProcessFile);
+  // فائلیں ایک ایک کر کے (قطار میں) پڑھی جاتی ہیں — بیک وقت سب بڑی فائلیں کھولنے سے
+  // موبائل/کمپیوٹر کی میموری بھر سکتی ہے۔ قطار میں لگانے سے کتنی ہی بڑی یا کتنی ہی زیادہ
+  // فائلیں ہوں، سب بلا رکاوٹ اپنی باری پر مکمل ہو جاتی ہیں۔
+  for(const f of files){
+    await pmProcessFile(f, false);
+  }
 }
 
 function pmAddFileRow(name){
   const row = document.createElement('div');
   row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; font-size:.9rem; color:var(--text);';
-  row.innerHTML = `<span>${escapeHtmlSearch(name)}</span><span class="pm-status" style="color:var(--muted);">پڑھی جا رہی ہے...</span><button class="pm-preview-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;">متن دیکھیں</button><button class="pm-ocr-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;"></button><div class="pm-ocr-progress" style="display:none; color:var(--muted); font-size:.8rem; width:100%;"></div>`;
+  row.innerHTML = `<span>${escapeHtmlSearch(name)}</span><span class="pm-status" style="color:var(--muted);">پڑھی جا رہی ہے...</span><button class="pm-preview-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;">متن دیکھیں</button><button class="pm-ocr-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;"></button><button class="pm-delete-btn btn secondary" style="padding:6px 14px; font-size:.8rem; color:#e07a5f;">🗑️ ہٹائیں</button><div class="pm-ocr-progress" style="display:none; color:var(--muted); font-size:.8rem; width:100%;"></div>`;
   pmFileListEl.appendChild(row);
+  const delBtn = row.querySelector('.pm-delete-btn');
+  delBtn.addEventListener('click', ()=> pmDeleteFile(name, row));
   return row;
+}
+
+async function pmDeleteFile(fileName, row){
+  const idx = pmLibrary.findIndex(f=> f.fileName === fileName);
+  if(idx !== -1) pmLibrary.splice(idx, 1);
+  if(row && row.parentNode) row.parentNode.removeChild(row);
+  try{ await herbalIdbDelete('pmFiles', fileName); }catch(e){}
+  pmSearchBtnEl.disabled = pmLibrary.length === 0;
 }
 function pmSetRowStatus(row, text, color){
   const s = row.querySelector('.pm-status');
@@ -3795,7 +3855,7 @@ function pmSetRowStatus(row, text, color){
   s.style.color = color || 'var(--muted)';
 }
 
-async function pmProcessFile(file){
+async function pmProcessFile(file, fromStorage){
   const row = pmAddFileRow(file.name);
   try{
     if(typeof pdfjsLib === 'undefined'){
@@ -3813,6 +3873,14 @@ async function pmProcessFile(file){
     }
     const fileEntry = { fileName:file.name, pages, pdfDoc:doc };
     pmLibrary.push(fileEntry);
+    // نئی اپ لوڈ کی گئی فائل کو مستقل محفوظ کر دیں — اگلی بار صفحہ کھلنے پر یا index.html اپ ڈیٹ ہونے پر بھی موجود رہے گی
+    if(!fromStorage){
+      herbalIdbPut('pmFiles', { fileName:file.name, blob:file, addedAt:Date.now() }).catch(err=>{
+        console.error('pm persistent save failed:', err);
+        const s = row.querySelector('.pm-status');
+        if(s) s.textContent += ' — (نوٹ: جگہ کم ہونے کی وجہ سے یہ فائل مستقل محفوظ نہیں ہو سکی، ابھی صرف اسی سیشن میں تلاش کے لیے دستیاب ہے)';
+      });
+    }
     const emptyCount = pages.filter(p=>p.text.trim()==='').length;
     pmSetRowStatus(row, `مکمل — ${doc.numPages} صفحات`, 'var(--gold-soft)');
     const btn = row.querySelector('.pm-preview-btn');
@@ -3839,6 +3907,18 @@ async function pmProcessFile(file){
 }
 
 pmSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') pmRunSearch(); });
+
+// پہلے سے محفوظ شدہ PDF فائلیں خودکار طور پر لوڈ کر دیں تاکہ تلاش فوراً کام کرے
+// (فائلیں انتخابی طور پر پاس ورڈ کے بغیر بھی سرچ کے قابل رہتی ہیں — پاس ورڈ صرف نئی فائل شامل/ہٹانے کے لیے ہے)
+(async function pmLoadStoredFiles(){
+  try{
+    const records = await herbalIdbGetAll('pmFiles');
+    for(const rec of records){
+      const file = new File([rec.blob], rec.fileName, { type: 'application/pdf' });
+      await pmProcessFile(file, true);
+    }
+  }catch(e){ console.error('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
+})();
 
 function pmNormalizeChar(ch){
   const code = ch.codePointAt(0);
@@ -4081,17 +4161,32 @@ hzDropZoneEl.addEventListener('drop', e=>{
 });
 hzFileInputEl.addEventListener('change', ()=> hzHandleFiles(hzFileInputEl.files));
 
-function hzHandleFiles(fileListInput){
+async function hzHandleFiles(fileListInput){
   const files = Array.from(fileListInput).filter(f=> f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
-  files.forEach(hzProcessFile);
+  // فائلیں ایک ایک کر کے (قطار میں) پڑھی جاتی ہیں — بیک وقت سب بڑی فائلیں کھولنے سے
+  // موبائل/کمپیوٹر کی میموری بھر سکتی ہے۔ قطار میں لگانے سے کتنی ہی بڑی یا کتنی ہی زیادہ
+  // فائلیں ہوں، سب بلا رکاوٹ اپنی باری پر مکمل ہو جاتی ہیں۔
+  for(const f of files){
+    await hzProcessFile(f, false);
+  }
 }
 
 function hzAddFileRow(name){
   const row = document.createElement('div');
   row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; font-size:.9rem; color:var(--text);';
-  row.innerHTML = `<span>${escapeHtmlSearch(name)}</span><span class="hz-status" style="color:var(--muted);">پڑھی جا رہی ہے...</span><button class="hz-preview-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;">متن دیکھیں</button><button class="hz-ocr-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;"></button><div class="hz-ocr-progress" style="display:none; color:var(--muted); font-size:.8rem; width:100%;"></div>`;
+  row.innerHTML = `<span>${escapeHtmlSearch(name)}</span><span class="hz-status" style="color:var(--muted);">پڑھی جا رہی ہے...</span><button class="hz-preview-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;">متن دیکھیں</button><button class="hz-ocr-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;"></button><button class="hz-delete-btn btn secondary" style="padding:6px 14px; font-size:.8rem; color:#e07a5f;">🗑️ ہٹائیں</button><div class="hz-ocr-progress" style="display:none; color:var(--muted); font-size:.8rem; width:100%;"></div>`;
   hzFileListEl.appendChild(row);
+  const delBtn = row.querySelector('.hz-delete-btn');
+  delBtn.addEventListener('click', ()=> hzDeleteFile(name, row));
   return row;
+}
+
+async function hzDeleteFile(fileName, row){
+  const idx = hzLibrary.findIndex(f=> f.fileName === fileName);
+  if(idx !== -1) hzLibrary.splice(idx, 1);
+  if(row && row.parentNode) row.parentNode.removeChild(row);
+  try{ await herbalIdbDelete('hzFiles', fileName); }catch(e){}
+  hzSearchBtnEl.disabled = hzLibrary.length === 0;
 }
 function hzSetRowStatus(row, text, color){
   const s = row.querySelector('.hz-status');
@@ -4099,7 +4194,7 @@ function hzSetRowStatus(row, text, color){
   s.style.color = color || 'var(--muted)';
 }
 
-async function hzProcessFile(file){
+async function hzProcessFile(file, fromStorage){
   const row = hzAddFileRow(file.name);
   try{
     if(typeof pdfjsLib === 'undefined'){
@@ -4117,6 +4212,14 @@ async function hzProcessFile(file){
     }
     const fileEntry = { fileName:file.name, pages, pdfDoc:doc };
     hzLibrary.push(fileEntry);
+    // نئی اپ لوڈ کی گئی فائل کو مستقل محفوظ کر دیں — اگلی بار صفحہ کھلنے پر یا index.html اپ ڈیٹ ہونے پر بھی موجود رہے گی
+    if(!fromStorage){
+      herbalIdbPut('hzFiles', { fileName:file.name, blob:file, addedAt:Date.now() }).catch(err=>{
+        console.error('hz persistent save failed:', err);
+        const s = row.querySelector('.hz-status');
+        if(s) s.textContent += ' — (نوٹ: جگہ کم ہونے کی وجہ سے یہ فائل مستقل محفوظ نہیں ہو سکی، ابھی صرف اسی سیشن میں تلاش کے لیے دستیاب ہے)';
+      });
+    }
     const emptyCount = pages.filter(p=>p.text.trim()==='').length;
     hzSetRowStatus(row, `مکمل — ${doc.numPages} صفحات`, 'var(--gold-soft)');
     const btn = row.querySelector('.hz-preview-btn');
@@ -4140,6 +4243,17 @@ async function hzProcessFile(file){
 }
 
 hzSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') hzRunSearch(); });
+
+// پہلے سے محفوظ شدہ PDF فائلیں خودکار طور پر لوڈ کر دیں تاکہ تلاش فوراً کام کرے
+(async function hzLoadStoredFiles(){
+  try{
+    const records = await herbalIdbGetAll('hzFiles');
+    for(const rec of records){
+      const file = new File([rec.blob], rec.fileName, { type: 'application/pdf' });
+      await hzProcessFile(file, true);
+    }
+  }catch(e){ console.error('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
+})();
 
 function hzNormalizeChar(ch){
   const code = ch.codePointAt(0);
