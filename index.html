@@ -2968,20 +2968,31 @@ const PDF_WORKER_SOURCES = [
 if(typeof pdfjsLib !== 'undefined'){
   pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_SOURCES[0];
 }
-// اگر worker سکرپٹ لوڈ نہ ہو سکے تو مختلف ذرائع آزمائیں، اور آخر میں worker کے بغیر (سست مگر قابلِ اعتماد) طریقہ استعمال کریں
-async function pdfGetDocumentRobust(source){
+// اگر worker سکرپٹ لوڈ نہ ہو سکے تو مختلف ذرائع آزمائیں، اور آخر میں worker کے بغیر (سست مگر قابلِ اعتماد) طریقہ استعمال کریں۔
+// اہم: pdf.js دیا گیا ArrayBuffer worker کو منتقل (transfer) کر دیتا ہے جس سے وہ "detached" ہو جاتا ہے —
+// اسی لیے ہر کوشش کے لیے فائل سے تازہ ArrayBuffer دوبارہ پڑھا جاتا ہے (ورنہ دوسری/تیسری کوشش ہمیشہ ناکام ہوتی)۔
+// نیز ہر کوشش پر ایک ٹائم آؤٹ بھی لگایا گیا ہے تاکہ کوئی سست/رکا ہوا CDN پوری کوشش کو ہمیشہ کے لیے معطل نہ کر دے۔
+function pmWithTimeout(promise, ms){
+  return new Promise((resolve, reject)=>{
+    const timer = setTimeout(()=> reject(new Error('ٹائم آؤٹ')), ms);
+    promise.then(v=>{ clearTimeout(timer); resolve(v); }, e=>{ clearTimeout(timer); reject(e); });
+  });
+}
+async function pdfGetDocumentRobust(file){
   if(typeof pdfjsLib === 'undefined') throw new Error('pdfjsLib لوڈ نہیں ہوئی');
   let lastErr = null;
   for(let i=0;i<PDF_WORKER_SOURCES.length;i++){
     try{
       pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER_SOURCES[i];
-      return await pdfjsLib.getDocument(source).promise;
+      const buf = await file.arrayBuffer();
+      return await pmWithTimeout(pdfjsLib.getDocument({ data: buf }).promise, 15000);
     }catch(err){ lastErr = err; }
   }
   // آخری کوشش: worker کے بغیر (fake worker) — تھوڑا سست لیکن نیٹ ورک پر منحصر نہیں
   try{
     pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-    return await pdfjsLib.getDocument(source).promise;
+    const buf = await file.arrayBuffer();
+    return await pmWithTimeout(pdfjsLib.getDocument({ data: buf }).promise, 20000);
   }catch(err2){
     throw lastErr || err2;
   }
@@ -3791,8 +3802,7 @@ async function pmProcessFile(file){
       pmSetRowStatus(row, 'PDF لائبریری لوڈ نہیں ہوئی — انٹرنیٹ کنکشن چیک کریں', '#e0524f');
       return;
     }
-    const buf = await file.arrayBuffer();
-    const doc = await pdfGetDocumentRobust({ data: buf });
+    const doc = await pdfGetDocumentRobust(file);
     const pages = [];
     for(let i=1;i<=doc.numPages;i++){
       const page = await doc.getPage(i);
@@ -4089,8 +4099,7 @@ async function hzProcessFile(file){
       hzSetRowStatus(row, 'PDF لائبریری لوڈ نہیں ہوئی — انٹرنیٹ کنکشن چیک کریں', '#e0524f');
       return;
     }
-    const buf = await file.arrayBuffer();
-    const doc = await pdfGetDocumentRobust({ data: buf });
+    const doc = await pdfGetDocumentRobust(file);
     const pages = [];
     for(let i=1;i<=doc.numPages;i++){
       const page = await doc.getPage(i);
