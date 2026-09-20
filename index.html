@@ -4117,14 +4117,31 @@ function pmBuildSearchable(text){
   }
   return { searchable: out, map };
 }
+// یہ چیک کرتا ہے کہ آیا یہ حرف "لفظ کا حصہ" ہے یا خالی جگہ/رموزِ اوقاف (لفظ کی حد)
+function pmIsWordChar(ch){
+  if(!ch) return false;
+  if(/\s/.test(ch)) return false;
+  if(/[۔،؛؟!٫٬"'()\[\]{}\-–—.,:«»٪٭@#$%^&*+=|\\/<>~`]/.test(ch)) return false;
+  return true;
+}
+// صرف اسی صورت میں مکمل لفظ شمار کریں جب تلاش شدہ لفظ کے فوراً پہلے اور بعد کوئی اور حرف جڑا ہوا نہ ہو —
+// تاکہ کسی دوسرے بڑے/جڑے ہوئے لفظ کے بیچ میں سے اتفاقاً ملنے والا ٹکڑا نتیجے میں شامل نہ ہو
 function pmFindMatch(originalText, queryData){
   const { searchable, map } = pmBuildSearchable(originalText);
-  const idx = searchable.indexOf(queryData.searchable);
-  if(idx===-1) return null;
-  const startOrig = map[idx];
-  const lastIdx = idx + queryData.searchable.length - 1;
-  const endOrig = (lastIdx < map.length ? map[lastIdx]+1 : originalText.length);
-  return { startOrig, endOrig };
+  let searchFrom = 0;
+  while(true){
+    const idx = searchable.indexOf(queryData.searchable, searchFrom);
+    if(idx===-1) return null;
+    const startOrig = map[idx];
+    const lastIdx = idx + queryData.searchable.length - 1;
+    const endOrig = (lastIdx < map.length ? map[lastIdx]+1 : originalText.length);
+    const beforeChar = startOrig > 0 ? originalText[startOrig-1] : '';
+    const afterChar = endOrig < originalText.length ? originalText[endOrig] : '';
+    if(!pmIsWordChar(beforeChar) && !pmIsWordChar(afterChar)){
+      return { startOrig, endOrig };
+    }
+    searchFrom = idx + 1;
+  }
 }
 function pmShowPreview(fileName, pages){
   const p = pages[0];
@@ -4323,9 +4340,15 @@ function pmPopulateDiseaseSuggestions(){
       html += `<option value="${escapeHtmlSearch(opt.label)}"></option>`;
     });
   });
+  if(typeof organMizajList !== 'undefined'){
+    organMizajList.forEach(o=>{
+      if(seen.has(o.name)) return;
+      seen.add(o.name);
+      html += `<option value="${escapeHtmlSearch(o.name)}"></option>`;
+    });
+  }
   listEl.innerHTML = html;
 }
-pmPopulateDiseaseSuggestions();
 function pmRenderMatchingDiseases(matchedDiseases){
   if(!matchedDiseases.length) return;
   const card = document.createElement('div');
@@ -4333,7 +4356,11 @@ function pmRenderMatchingDiseases(matchedDiseases){
   card.style.marginBottom = '16px';
   const rows = matchedDiseases.map(d=>{
     const catName = mizajNumberMap[d.tendency] || '';
-    return `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(d.name)}</b>${catName ? ' — '+escapeHtmlSearch(catName)+' مزاج' : ''} (تحریک ${d.tendency})${d.organ ? '، عضو: '+escapeHtmlSearch(d.organ) : ''}</p>`;
+    const organMatches = pmGetOrganMizajForCategory(d.organ);
+    const organLine = organMatches.length
+      ? organMatches.map(o=> `<span style="display:block; color:var(--muted); font-size:.85rem; margin-right:14px;">— اس عضو (${escapeHtmlSearch(o.name)}) کا اصلی مزاج: ${escapeHtmlSearch(o.mizaj)}</span>`).join('')
+      : '';
+    return `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(d.name)}</b>${catName ? ' — '+escapeHtmlSearch(catName)+' مزاج' : ''} (تحریک ${d.tendency})${d.organ ? '، عضو: '+escapeHtmlSearch(d.organ) : ''}${organLine}</p>`;
   }).join('');
   card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مطابق معلومات</h4>${rows}`;
   pmResultsEl.appendChild(card);
@@ -4375,6 +4402,143 @@ function pmRenderMatchingSymptoms(matchedSymptoms){
   pmResultsEl.appendChild(card);
 }
 
+// ---------- ہر عضو/فعل کا اصلی مزاج (قانون مفرد اعضاء کے مطابق) ----------
+const organMizajList = [
+  // اعصابی عضلاتی
+  {name:"جلد", mizaj:"اعصابی عضلاتی"},
+  {name:"ہڈی", mizaj:"اعصابی عضلاتی"},
+  {name:"ایڑیاں", mizaj:"اعصابی عضلاتی"},
+  {name:"گردن", mizaj:"اعصابی عضلاتی"},
+  {name:"کمر", mizaj:"اعصابی عضلاتی"},
+  {name:"پیشاب خارج ہونا", mizaj:"اعصابی عضلاتی"},
+  // اعصابی غدی
+  {name:"سر", mizaj:"اعصابی غدی"},
+  {name:"دماغ", mizaj:"اعصابی غدی"},
+  {name:"کان کی صفائی کیلئے", mizaj:"اعصابی غدی"},
+  {name:"ناک", mizaj:"اعصابی غدی"},
+  {name:"چہرے کی جلد", mizaj:"اعصابی غدی"},
+  {name:"بریسٹ", mizaj:"اعصابی غدی"},
+  {name:"جلد", mizaj:"اعصابی غدی"},
+  {name:"عضو خاص کی موٹائی", mizaj:"اعصابی غدی"},
+  {name:"پیشاب خارج ہونا", mizaj:"اعصابی غدی"},
+  // غدی اعصابی
+  {name:"زبان", mizaj:"غدی اعصابی"},
+  {name:"آنکھیں", mizaj:"غدی اعصابی"},
+  {name:"کان کی تکلیف کیلئے", mizaj:"غدی اعصابی"},
+  {name:"ناک", mizaj:"غدی اعصابی"},
+  {name:"چہرے کی جلد", mizaj:"غدی اعصابی"},
+  {name:"بریسٹ", mizaj:"غدی اعصابی"},
+  {name:"معدہ", mizaj:"غدی اعصابی"},
+  {name:"مسوڑے", mizaj:"غدی اعصابی"},
+  {name:"گلا", mizaj:"غدی اعصابی"},
+  {name:"مثانہ", mizaj:"غدی اعصابی"},
+  {name:"کپوڑے مرد", mizaj:"غدی اعصابی"},
+  {name:"گردے", mizaj:"غدی اعصابی"},
+  {name:"رگیں", mizaj:"غدی اعصابی"},
+  {name:"کپوڑے لیڈی", mizaj:"غدی اعصابی"},
+  {name:"رحم", mizaj:"غدی اعصابی"},
+  {name:"بڑی آنت", mizaj:"غدی اعصابی"},
+  {name:"چھوٹی آنت", mizaj:"غدی اعصابی"},
+  {name:"عضو خاص لمبائی", mizaj:"غدی اعصابی"},
+  {name:"جلد", mizaj:"غدی اعصابی"},
+  {name:"ہاتھ", mizaj:"غدی اعصابی"},
+  {name:"بلبلہ", mizaj:"غدی اعصابی"},
+  {name:"جگر", mizaj:"غدی اعصابی"},
+  {name:"سینہ", mizaj:"غدی اعصابی"},
+  {name:"سانس کی نالی", mizaj:"غدی اعصابی"},
+  {name:"ناخون", mizaj:"غدی اعصابی"},
+  {name:"بیضہ دانی", mizaj:"غدی اعصابی"},
+  {name:"خصیے", mizaj:"غدی اعصابی"},
+  {name:"مادۂ منویہ", mizaj:"غدی اعصابی"},
+  {name:"سپرم", mizaj:"غدی اعصابی"},
+  {name:"عورت کے انڈے", mizaj:"غدی اعصابی"},
+  {name:"زنانہ ہارمون", mizaj:"غدی اعصابی"},
+  {name:"خون", mizaj:"غدی اعصابی"},
+  {name:"جوڑ", mizaj:"غدی اعصابی"},
+  {name:"پٹھے", mizaj:"غدی اعصابی"},
+  {name:"چربی", mizaj:"غدی اعصابی"},
+  // غدی عضلاتی
+  {name:"پتہ", mizaj:"غدی عضلاتی"},
+  {name:"آنکھیں", mizaj:"غدی عضلاتی"},
+  {name:"مردانہ ہارمون (Testosterone)", mizaj:"غدی عضلاتی"},
+  {name:"معدہ", mizaj:"غدی عضلاتی"},
+  {name:"عضوخاص کی جڑ سختی", mizaj:"غدی عضلاتی"},
+  {name:"پیشاب روکتے ہیں", mizaj:"غدی عضلاتی"},
+  // عضلاتی غدی
+  {name:"بال", mizaj:"عضلاتی غدی"},
+  {name:"دل", mizaj:"عضلاتی غدی"},
+  {name:"تلی", mizaj:"عضلاتی غدی"},
+  {name:"شرائین", mizaj:"عضلاتی غدی"},
+  {name:"پھیپھڑے", mizaj:"عضلاتی غدی"},
+  {name:"ٹانگیں", mizaj:"عضلاتی غدی"},
+  {name:"معدہ", mizaj:"عضلاتی غدی"},
+  {name:"مسوڑے", mizaj:"عضلاتی غدی"},
+  {name:"پاؤں", mizaj:"عضلاتی غدی"},
+  {name:"ہونٹ", mizaj:"عضلاتی غدی"},
+  {name:"انتشار ہونا", mizaj:"عضلاتی غدی"},
+  // عضلاتی اعصابی
+  {name:"بال", mizaj:"عضلاتی اعصابی"},
+  // مشترکہ زمرے
+  {name:"پیشاب بناتے ہیں", mizaj:"عضلاتی غدی اور عضلاتی اعصابی"},
+  {name:"سپرم میل (لڑکا)", mizaj:"عضلاتی غدی اور عضلاتی اعصابی"},
+  {name:"کشتہ جات سپرم میل پیدا کرتے ہیں", mizaj:"عضلاتی غدی اور عضلاتی اعصابی"},
+  {name:"سپرم فی میل (لڑکی)", mizaj:"غدی اعصابی اور اعصابی غدی"}
+];
+// معلوم متبادل/ہجے کی مختلف صورتیں — تاکہ بیماریوں کی فہرست کے عضو کے نام سے مماثلت بہتر بن سکے
+const organMizajSynonyms = {
+  "پستان":"بریسٹ", "بریسٹ":"پستان",
+  "گردہ":"گردے", "گردے":"گردہ",
+  "ناخن":"ناخون", "ناخون":"ناخن",
+  "خصیہ":"خصیے", "خصیے":"خصیہ",
+  "مسوڑھے":"مسوڑے", "مسوڑے":"مسوڑھے",
+  "حیض":"رحم"
+};
+function pmFindMatchingOrgans(query){
+  const normQuery = pmNormalizeWord(organMizajSynonyms[query] || query);
+  const normQueryOrig = pmNormalizeWord(query);
+  if(!normQueryOrig) return [];
+  const seen = new Set();
+  const results = [];
+  organMizajList.forEach(o=>{
+    const normName = pmNormalizeWord(o.name);
+    if(!normName) return;
+    const isMatch = normName === normQueryOrig || normName === normQuery;
+    if(!isMatch) return;
+    const key = o.name + '|' + o.mizaj;
+    if(seen.has(key)) return;
+    seen.add(key);
+    results.push(o);
+  });
+  return results;
+}
+function pmRenderMatchingOrgans(matchedOrgans){
+  if(!matchedOrgans.length) return;
+  const card = document.createElement('div');
+  card.className = 'mujarrab-card';
+  card.style.marginBottom = '16px';
+  const rows = matchedOrgans.map(o=> `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(o.name)}</b> کا اصلی مزاج: ${escapeHtmlSearch(o.mizaj)}</p>`).join('');
+  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">عضو کا اصلی مزاج</h4>${rows}`;
+  pmResultsEl.appendChild(card);
+}
+// diseaseList کی organ کیٹیگری (جو کئی اعضاء کو ملا کر ایک نام میں لکھی گئی ہو، جیسے "جگر و تلی")
+// کو اجزاء میں توڑ کر ہر جزو کا اصلی مزاج ڈھونڈیں
+function pmGetOrganMizajForCategory(organCategory){
+  if(!organCategory) return [];
+  const parts = organCategory.split(/،| و /).map(s=> s.trim()).filter(Boolean);
+  const seen = new Set();
+  const results = [];
+  parts.forEach(part=>{
+    pmFindMatchingOrgans(part).forEach(o=>{
+      const key = o.name + '|' + o.mizaj;
+      if(seen.has(key)) return;
+      seen.add(key);
+      results.push(o);
+    });
+  });
+  return results;
+}
+pmPopulateDiseaseSuggestions();
+
 function pmRunSearch(){
   const query = pmSearchInputEl.value.trim();
   pmResultsEl.innerHTML = '';
@@ -4387,6 +4551,8 @@ function pmRunSearch(){
   pmRenderMatchingDiseases(matchedDiseases);
   const matchedSymptoms = pmFindMatchingSymptoms(query);
   pmRenderMatchingSymptoms(matchedSymptoms);
+  const matchedOrgans = pmFindMatchingOrgans(query);
+  pmRenderMatchingOrgans(matchedOrgans);
   if(pmLibrary.length === 0){
     pmSummaryEl.textContent = 'ابھی اس ڈیوائس/براؤزر میں کوئی PDF فائل شامل نہیں ہے۔';
     pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">اپ لوڈ کی گئی PDF فائلیں صرف اسی براؤزر/ڈیوائس میں محفوظ رہتی ہیں جس میں وہ شامل کی گئی ہوں — اگر آپ نے کسی اور فون/کمپیوٹر میں فائل شامل کی تھی تو وہ اس ڈیوائس میں نظر نہیں آئے گی۔</p></div>`;
@@ -4702,14 +4868,28 @@ function hzBuildSearchable(text){
   }
   return { searchable: out, map };
 }
+function hzIsWordChar(ch){
+  if(!ch) return false;
+  if(/\s/.test(ch)) return false;
+  if(/[۔،؛؟!٫٬"'()\[\]{}\-–—.,:«»٪٭@#$%^&*+=|\\/<>~`]/.test(ch)) return false;
+  return true;
+}
 function hzFindMatch(originalText, queryData){
   const { searchable, map } = hzBuildSearchable(originalText);
-  const idx = searchable.indexOf(queryData.searchable);
-  if(idx===-1) return null;
-  const startOrig = map[idx];
-  const lastIdx = idx + queryData.searchable.length - 1;
-  const endOrig = (lastIdx < map.length ? map[lastIdx]+1 : originalText.length);
-  return { startOrig, endOrig };
+  let searchFrom = 0;
+  while(true){
+    const idx = searchable.indexOf(queryData.searchable, searchFrom);
+    if(idx===-1) return null;
+    const startOrig = map[idx];
+    const lastIdx = idx + queryData.searchable.length - 1;
+    const endOrig = (lastIdx < map.length ? map[lastIdx]+1 : originalText.length);
+    const beforeChar = startOrig > 0 ? originalText[startOrig-1] : '';
+    const afterChar = endOrig < originalText.length ? originalText[endOrig] : '';
+    if(!hzIsWordChar(beforeChar) && !hzIsWordChar(afterChar)){
+      return { startOrig, endOrig };
+    }
+    searchFrom = idx + 1;
+  }
 }
 function hzShowPreview(fileName, pages){
   const p = pages[0];
