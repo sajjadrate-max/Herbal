@@ -4190,6 +4190,12 @@ async function pmRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
         p.text = text; p.ocr = true;
       }catch(err){}
       currentDone++;
+      // ہر چند صفحوں کے بعد وقتاً فوقتاً محفوظ کرتے رہیں — تاکہ اگر درمیان میں صفحہ بند/دوبارہ
+      // لوڈ ہو جائے (مثلاً براؤزر ٹیب بند ہونے یا انٹرنیٹ منقطع ہونے کی وجہ سے) تو اب تک کا
+      // مکمل شدہ کام ضائع نہ ہو — اگلی بار وہیں سے جاری رہے گا، دوبارہ شروع سے نہیں کرنا پڑے گا
+      if(currentDone % 3 === 0){
+        try{ await herbalIdbPut('pmFiles', { fileName:fileEntry.fileName, blob:fileEntry.file, pages:fileEntry.pages, addedAt:Date.now() }); }catch(e){}
+      }
     }
     await worker.terminate();
     // OCR سے نکالا گیا متن مستقل محفوظ کر دیں — تاکہ صفحہ دوبارہ کھلنے یا سائٹ اپ ڈیٹ ہونے پر بھی
@@ -4633,6 +4639,12 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
         p.text = text; p.ocr = true;
       }catch(err){}
       currentDone++;
+      // ہر چند صفحوں کے بعد وقتاً فوقتاً محفوظ کرتے رہیں — تاکہ اگر درمیان میں صفحہ بند/دوبارہ
+      // لوڈ ہو جائے (مثلاً براؤزر ٹیب بند ہونے یا انٹرنیٹ منقطع ہونے کی وجہ سے) تو اب تک کا
+      // مکمل شدہ کام ضائع نہ ہو — اگلی بار وہیں سے جاری رہے گا، دوبارہ شروع سے نہیں کرنا پڑے گا
+      if(currentDone % 3 === 0){
+        try{ await herbalIdbPut('hzFiles', { fileName:fileEntry.fileName, blob:fileEntry.file, pages:fileEntry.pages, addedAt:Date.now() }); }catch(e){}
+      }
     }
     await worker.terminate();
     // OCR سے نکالا گیا متن مستقل محفوظ کر دیں — تاکہ صفحہ دوبارہ کھلنے یا سائٹ اپ ڈیٹ ہونے پر بھی
