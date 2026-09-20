@@ -202,8 +202,10 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
 
   <div id="mizajResult" style="margin-top:24px;"></div>
 
-  <div id="patientFeedbackBox" style="max-width:440px; margin:24px auto 10px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px;">
-    <h4 style="color:var(--gold-soft); text-align:center; margin-bottom:4px; font-size:.78rem;">آپ کی علامات/بیماری کے مطابق درست جواب نہیں ملا؟</h4>
+  <div style="max-width:440px; margin:24px auto 10px; text-align:center;">
+    <span onclick="togglePatientFeedbackBox()" style="cursor:pointer; color:var(--gold-soft); font-size:.8rem; user-select:none;">کوئی شکایت یا مسئلہ ہو تو بتائیں <span id="patientFeedbackArrow">▾</span></span>
+  </div>
+  <div id="patientFeedbackBox" style="display:none; max-width:440px; margin:0 auto 10px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px;">
     <p style="color:var(--muted); font-size:.68rem; text-align:center; margin-bottom:6px; line-height:1.5;">سکرین شاٹ اور اپنی بات لکھ کر بھیج دیں، ہم اصلاح کر دیں گے۔</p>
     <textarea id="patientFeedbackText" rows="2" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:var(--text); font-family:inherit; font-size:.78rem;" placeholder="یہاں اپنی بات لکھیں..."></textarea>
 
@@ -356,18 +358,21 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
 
 <section class="page-section" id="page-pdfmulti">
   <h2 class="section-title">بیماری کی تلاش</h2>
-  <div class="note">لفظ لکھیں — بتایا جائے گا کہ وہ کس فائل کے کس صفحہ پر موجود ہے۔ سب کام آپ کے اپنے فون/کمپیوٹر میں ہوتا ہے، کوئی فائل انٹرنیٹ پر نہیں جاتی۔ ایک بار شامل کی گئی فائل ہمیشہ کے لیے محفوظ رہتی ہے — دوبارہ صفحہ کھولنے یا سائٹ اپ ڈیٹ ہونے پر بھی موجود رہے گی، جب تک آپ خود "ہٹائیں" نہ دبائیں۔</div>
+  <div class="note">لفظ لکھیں، بتا دیا جائے گا۔ <span onclick="togglePmNoteDetail()" style="cursor:pointer; color:var(--gold-soft); font-size:.85rem; user-select:none;">مزید تفصیل <span id="pmNoteDetailArrow">▾</span></span>
+    <p id="pmNoteDetail" style="display:none; margin-top:6px;">لفظ لکھیں — بتایا جائے گا کہ وہ کس فائل کے کس صفحہ پر موجود ہے۔ یہ تلاش مکمل طور پر آف لائن، آپ کے اپنے فون/کمپیوٹر کے اندر ہی ہوتی ہے — کوئی معلومات انٹرنیٹ پر نہیں بھیجی جاتیں۔</p>
+  </div>
 
   <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
     <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">تلاش کریں</h3>
-    <input class="search" id="pmSearchInput" placeholder="کوئی لفظ یا جملہ لکھیں...">
+    <input class="search" id="pmSearchInput" list="pmDiseaseSuggestions" placeholder="کوئی لفظ یا جملہ لکھیں...">
+    <datalist id="pmDiseaseSuggestions"></datalist>
     <div style="text-align:center; margin-top:10px;">
       <button class="btn" id="pmSearchBtn" disabled onclick="pmRunSearch()" style="border-radius:20px; padding:10px 24px;">تلاش کریں</button>
     </div>
     <div id="pmSummary" style="color:var(--muted); font-size:.9rem; text-align:center; margin-top:10px;"></div>
   </div>
 
-  <div id="pmFilesOwnerWrap">
+  <div id="pmFilesOwnerWrap" style="display:none;">
     <div style="text-align:center; margin-bottom:16px;">
       <span onclick="togglePmFilesSection()" style="cursor:pointer; color:var(--gold-soft); font-size:.85rem; user-select:none;">فائلیں شامل کریں <span id="pmFilesSectionArrow">▾</span></span>
     </div>
@@ -393,7 +398,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     </div>
   </div>
 
-  <div id="pmDeleteOwnerWrap">
+  <div id="pmDeleteOwnerWrap" style="display:none;">
     <div style="text-align:center; margin-bottom:16px;">
       <span onclick="togglePmDeleteSection()" style="cursor:pointer; color:var(--gold-soft); font-size:.85rem; user-select:none;">PDF ہٹائیں <span id="pmDeleteSectionArrow">▾</span></span>
     </div>
@@ -1649,6 +1654,13 @@ function removeUnmatchedDisease(term, btn){
 }
 
 // ---------- تشخیص کے نتیجے کے آخر میں: مریض خود اپنی تجویز/سوال (بمعہ تصویر) لکھ کر بھیج سکے ----------
+function togglePatientFeedbackBox(){
+  const box = document.getElementById('patientFeedbackBox');
+  const arrow = document.getElementById('patientFeedbackArrow');
+  const isOpen = box.style.display === 'block';
+  box.style.display = isOpen ? 'none' : 'block';
+  if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
+}
 window.patientFeedbackImageData = null; // {dataUrl, base64, mime, filename}
 
 function onPatientFeedbackImageSelected(){
@@ -3859,6 +3871,15 @@ const pmSearchBtnEl = document.getElementById('pmSearchBtn');
 const pmSummaryEl = document.getElementById('pmSummary');
 const pmResultsEl = document.getElementById('pmResults');
 
+// ---------- "بیماری کی تلاش" نوٹ کی اضافی تفصیل تکون دبانے پر ہی نظر آئے ----------
+function togglePmNoteDetail(){
+  const panel = document.getElementById('pmNoteDetail');
+  const arrow = document.getElementById('pmNoteDetailArrow');
+  const isOpen = panel.style.display === 'block';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if(arrow) arrow.textContent = isOpen ? '▾' : '▴';
+}
+
 // ---------- "فائلیں شامل کریں" حصہ تکون دبانے پر ہی نظر آئے، تلاش پتی کے نیچے ----------
 function togglePmFilesSection(){
   const panel = document.getElementById('pmFilesSection');
@@ -4253,6 +4274,107 @@ function pmPreprocessForOcr(canvas){
 }
 let pmLastMatches = [];
 let pmLastQuery = '';
+// لفظ کے ہجے موازنہ کرنے کے لیے — اعراب ہٹا کر مگر خالی جگہ (سپیس) کو برقرار رکھتے ہوئے
+function pmNormalizeWord(text){
+  let out = '';
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    if(/\s/.test(ch)){ out += ' '; continue; }
+    out += pmNormalizeChar(ch);
+  }
+  return out.replace(/\s+/g,' ').trim();
+}
+// موجودہ بیماریوں کی فہرست (diseaseList — جو مزاج کی تشخیص میں پہلے سے استعمال ہوتی ہے) میں سے
+// وہی بیماریاں دکھائیں جن کا نام مکمل طور پر لکھا گیا ہو (لفظ کا صرف ایک ٹکڑا/حصہ لکھنے پر نہیں —
+// مثلاً "مح" لکھنے پر کچھ نہیں دکھایا جائے گا، مگر "سردرد" یا "اعصابی سردرد" مکمل لکھنے پر دکھایا جائے گا)
+function pmFindMatchingDiseases(query){
+  const normQuery = pmNormalizeWord(query);
+  if(!normQuery) return [];
+  const seen = new Set();
+  const results = [];
+  diseaseList.forEach(d=>{
+    const normName = pmNormalizeWord(d.name);
+    if(!normName) return;
+    const tokens = normName.split(' ');
+    const isMatch = normName === normQuery || tokens.includes(normQuery);
+    if(!isMatch) return;
+    const key = d.name + '|' + d.mizaj + '|' + d.tendency;
+    if(seen.has(key)) return;
+    seen.add(key);
+    results.push(d);
+  });
+  return results;
+}
+// سرچ باکس کے نیچے الفاظ مکمل کرنے کی تجاویز (autocomplete) — موجودہ بیماریوں کے ناموں سے
+function pmPopulateDiseaseSuggestions(){
+  const listEl = document.getElementById('pmDiseaseSuggestions');
+  if(!listEl) return;
+  const seen = new Set();
+  let html = '';
+  diseaseList.forEach(d=>{
+    if(seen.has(d.name)) return;
+    seen.add(d.name);
+    html += `<option value="${escapeHtmlSearch(d.name)}"></option>`;
+  });
+  criteria.forEach(crit=>{
+    crit.options.forEach(opt=>{
+      if(seen.has(opt.label)) return;
+      seen.add(opt.label);
+      html += `<option value="${escapeHtmlSearch(opt.label)}"></option>`;
+    });
+  });
+  listEl.innerHTML = html;
+}
+pmPopulateDiseaseSuggestions();
+function pmRenderMatchingDiseases(matchedDiseases){
+  if(!matchedDiseases.length) return;
+  const card = document.createElement('div');
+  card.className = 'mujarrab-card';
+  card.style.marginBottom = '16px';
+  const rows = matchedDiseases.map(d=>{
+    const catName = mizajNumberMap[d.tendency] || '';
+    return `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(d.name)}</b>${catName ? ' — '+escapeHtmlSearch(catName)+' مزاج' : ''} (تحریک ${d.tendency})${d.organ ? '، عضو: '+escapeHtmlSearch(d.organ) : ''}</p>`;
+  }).join('');
+  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مطابق معلومات</h4>${rows}`;
+  pmResultsEl.appendChild(card);
+}
+
+const pmSimpleMizajNames = {asabi:'اعصابی', adalati:'عضلاتی', ghudi:'غدی'};
+// "علامات" (criteria — جو Home صفحہ کے مزاج سوالات میں پہلے سے استعمال ہوتی ہیں) میں سے
+// تلاش کیے گئے مکمل لفظ سے ملتی علامات ڈھونڈیں — تاکہ ان کا مزاج بھی دکھایا جا سکے
+function pmFindMatchingSymptoms(query){
+  const normQuery = pmNormalizeWord(query);
+  if(!normQuery) return [];
+  const seen = new Set();
+  const results = [];
+  criteria.forEach(crit=>{
+    crit.options.forEach(opt=>{
+      const normLabel = pmNormalizeWord(opt.label);
+      if(!normLabel) return;
+      const tokens = normLabel.split(' ');
+      const isMatch = normLabel === normQuery || tokens.includes(normQuery);
+      if(!isMatch) return;
+      const key = crit.id + '|' + opt.label + '|' + opt.mizaj;
+      if(seen.has(key)) return;
+      seen.add(key);
+      results.push({ title: crit.title, label: opt.label, mizaj: opt.mizaj });
+    });
+  });
+  return results;
+}
+function pmRenderMatchingSymptoms(matchedSymptoms){
+  if(!matchedSymptoms.length) return;
+  const card = document.createElement('div');
+  card.className = 'mujarrab-card';
+  card.style.marginBottom = '16px';
+  const rows = matchedSymptoms.map(s=>{
+    const mizajName = pmSimpleMizajNames[s.mizaj] || '';
+    return `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(s.label)}</b> (${escapeHtmlSearch(s.title)})${mizajName ? ' — '+escapeHtmlSearch(mizajName)+' مزاج' : ''}</p>`;
+  }).join('');
+  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">علامت کے مطابق مزاج</h4>${rows}`;
+  pmResultsEl.appendChild(card);
+}
+
 function pmRunSearch(){
   const query = pmSearchInputEl.value.trim();
   pmResultsEl.innerHTML = '';
@@ -4261,9 +4383,13 @@ function pmRunSearch(){
   if(!query){ pmSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
   const queryData = pmBuildSearchable(query);
   if(!queryData.searchable){ pmSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
+  const matchedDiseases = pmFindMatchingDiseases(query);
+  pmRenderMatchingDiseases(matchedDiseases);
+  const matchedSymptoms = pmFindMatchingSymptoms(query);
+  pmRenderMatchingSymptoms(matchedSymptoms);
   if(pmLibrary.length === 0){
     pmSummaryEl.textContent = 'ابھی اس ڈیوائس/براؤزر میں کوئی PDF فائل شامل نہیں ہے۔';
-    pmResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">اپ لوڈ کی گئی PDF فائلیں صرف اسی براؤزر/ڈیوائس میں محفوظ رہتی ہیں جس میں وہ شامل کی گئی ہوں — اگر آپ نے کسی اور فون/کمپیوٹر میں فائل شامل کی تھی تو وہ اس ڈیوائس میں نظر نہیں آئے گی۔</p></div>`;
+    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">اپ لوڈ کی گئی PDF فائلیں صرف اسی براؤزر/ڈیوائس میں محفوظ رہتی ہیں جس میں وہ شامل کی گئی ہوں — اگر آپ نے کسی اور فون/کمپیوٹر میں فائل شامل کی تھی تو وہ اس ڈیوائس میں نظر نہیں آئے گی۔</p></div>`;
     return;
   }
   const matches = [];
@@ -4275,7 +4401,7 @@ function pmRunSearch(){
   });
   if(matches.length===0){
     pmSummaryEl.textContent = `"${query}" کسی بھی فائل میں نہیں ملا۔`;
-    pmResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا۔ ہو سکتا ہے لفظ کسی اور ہجے میں لکھا گیا ہو، یا PDF میں متن بطور تصویر (اسکین شدہ صفحہ) ہو جسے یہ ٹول نہیں پڑھ سکتا — ایسی صورت میں اوپر فائل کے ساتھ "OCR چلائیں" کا بٹن دبائیں۔</p></div>`;
+    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا۔ ہو سکتا ہے لفظ کسی اور ہجے میں لکھا گیا ہو، یا PDF میں متن بطور تصویر (اسکین شدہ صفحہ) ہو جسے یہ ٹول نہیں پڑھ سکتا — ایسی صورت میں اوپر فائل کے ساتھ "OCR چلائیں" کا بٹن دبائیں۔</p></div>`;
     return;
   }
   pmLastMatches = matches;
