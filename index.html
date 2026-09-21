@@ -394,6 +394,10 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
           <div style="color:var(--muted); font-size:.85rem; margin-top:6px;">ایک سے زیادہ فائلیں ایک ساتھ منتخب کی جا سکتی ہیں</div>
         </label>
         <div id="pmFileList" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;"></div>
+        <div style="text-align:center; margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
+          <button class="btn secondary" onclick="pmExportExtractedText()" style="border-radius:20px; padding:8px 20px; font-size:.85rem;">📤 نکالا گیا متن بھیجیں (ڈاؤن لوڈ کریں)</button>
+          <p style="color:var(--muted); font-size:.78rem; margin-top:8px;">اوپر شامل کی گئی تمام فائلوں کا نکالا گیا/OCR شدہ متن ایک چھوٹی JSON فائل میں محفوظ ہو کر ڈاؤن لوڈ ہو جائے گا — یہ فائل مجھے (ڈیویلپر کو) بھیج دیں تاکہ سائٹ میں مستقل شامل کر سکوں۔</p>
+        </div>
       </div>
     </div>
   </div>
@@ -4001,6 +4005,27 @@ function pmRenderDeleteList(){
   });
 }
 
+function pmExportExtractedText(){
+  if(!pmLibrary.length){
+    alert('ابھی کوئی فائل شامل نہیں ہے۔');
+    return;
+  }
+  const exportData = pmLibrary.map(entry=> ({
+    fileName: entry.fileName,
+    numPages: entry.pages.length,
+    pages: entry.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '' }))
+  }));
+  const blob = new Blob([JSON.stringify(exportData, null, 0)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'herbal-extracted-text-' + Date.now() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 5000);
+}
+
 async function pmProcessFile(file, fromStorage, cachedPages){
   // ایک ہی نام کی فائل دوبارہ اپ لوڈ نہ ہو — پہلے سے موجود ہو تو صرف اطلاع دے دیں
   if(!fromStorage && pmLibrary.some(f=> f.fileName === file.name)){
@@ -4088,6 +4113,32 @@ pmSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') pmRunSearch
       await pmProcessFile(file, true, rec.pages);
     }
   }catch(e){ console.error('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
+})();
+
+// سائٹ کے ساتھ مستقل طور پر شامل کی گئی کتابیں — یہ ہر وزیٹر کو خودکار طور پر دستیاب ہوتی ہیں،
+// کسی اپ لوڈ کی ضرورت نہیں۔ متن پہلے سے نکالا/OCR کیا جا چکا ہے اور data/ فولڈر میں JSON فائلوں کی صورت میں محفوظ ہے۔
+const PM_BUILTIN_DATA_FILES = [
+  'data/pm-data-biochemistry.json',
+  'data/pm-data-computer-science.json',
+  'data/pm-data-pharmacy.json',
+  'data/pm-data-practice-of-medicine.json',
+  'data/pm-data-ultrasound.json'
+];
+(async function pmLoadBuiltinData(){
+  for(const url of PM_BUILTIN_DATA_FILES){
+    try{
+      const res = await fetch(url);
+      if(!res.ok) continue;
+      const data = await res.json();
+      if(!data || !Array.isArray(data.pages)) continue;
+      pmLibrary.push({
+        fileName: data.fileName || url,
+        pages: data.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', ocr:true })),
+        builtin: true
+      });
+    }catch(e){ console.error('built-in PDF data لوڈ نہیں ہو سکا:', url, e); }
+  }
+  pmSearchBtnEl.disabled = pmLibrary.length === 0;
 })();
 
 function pmNormalizeChar(ch){
