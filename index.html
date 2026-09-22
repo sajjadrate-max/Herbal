@@ -4697,6 +4697,28 @@ function herbalFindWordBoxes(pageData, queryText){
   const endIdx = idx + qNorm.length;
   return ranges.filter(r=> r.start < endIdx && r.end > idx).map(r=> pageData.words[r.i]);
 }
+async function herbalRenderPdfPageToCanvas(entry, pageNum, canvas, queryText){
+  const page = await entry.pdfDoc.getPage(pageNum);
+  const viewport = page.getViewport({ scale: 2 });
+  const ctx = canvas.getContext('2d');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  // اگر اس صفحے کے الفاظ کی پوزیشن محفوظ ہے (OCR شدہ صفحہ) تو تلاش کیا گیا لفظ زرد رنگ سے نمایاں کر دیں —
+  // بالکل ویسے جیسے نتائج کی فہرست میں نظر آتا ہے
+  const pageData = entry.pages.find(p=> p.pageNum === pageNum);
+  const boxes = herbalFindWordBoxes(pageData, queryText);
+  if(boxes.length){
+    ctx.fillStyle = 'rgba(255,213,0,0.45)';
+    boxes.forEach(w=>{
+      const x = w.x0*canvas.width, y = w.y0*canvas.height;
+      const ww = (w.x1-w.x0)*canvas.width, hh = (w.y1-w.y0)*canvas.height;
+      ctx.fillRect(x, y, ww, hh);
+    });
+  }
+}
+// جس صفحے پر لفظ ملا وہ اور اس کے فوراً بعد والا صفحہ — دونوں دکھا دیں، تاکہ کتاب کے اپنے صفحہ نمبر
+// اور PDF کی گنتی میں فرق ہونے کی صورت میں بھی صارف آسانی سے صحیح مواد ڈھونڈ سکے
 async function herbalShowPdfPage(entry, pageNum, queryText){
   let modal = document.getElementById('herbalPdfPageModal');
   if(!modal){
@@ -4705,46 +4727,40 @@ async function herbalShowPdfPage(entry, pageNum, queryText){
     modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:9999; overflow:auto; text-align:center; padding:18px 10px;';
     modal.innerHTML = `
       <div style="max-width:720px; margin:0 auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px;">
-          <span id="herbalPdfPageModalTitle" style="color:#fff; font-size:.85rem; text-align:right;"></span>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
           <button onclick="herbalClosePdfPageModal()" style="background:var(--gold); color:var(--navy); border:none; border-radius:16px; padding:6px 16px; cursor:pointer; flex-shrink:0;">بند کریں ✕</button>
         </div>
         <div id="herbalPdfPageLoading" style="color:#fff; padding:30px;">لوڈ ہو رہا ہے...</div>
-        <canvas id="herbalPdfPageCanvas" style="max-width:100%; height:auto; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,.5); display:none;"></canvas>
+        <div id="herbalPdfPageBlock1" style="display:none;">
+          <canvas id="herbalPdfPageCanvas" style="max-width:100%; height:auto; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,.5);"></canvas>
+        </div>
+        <div id="herbalPdfPageBlock2" style="display:none; margin-top:18px;">
+          <canvas id="herbalPdfPageCanvas2" style="max-width:100%; height:auto; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,.5);"></canvas>
+        </div>
       </div>`;
     document.body.appendChild(modal);
     modal.addEventListener('click', e=>{ if(e.target === modal) herbalClosePdfPageModal(); });
   }
   modal.style.display = 'block';
-  const pageDataForTitle = entry.pages.find(p=> p.pageNum === pageNum);
-  const displayPageNum = (pageDataForTitle && pageDataForTitle.printedPageNum) || pageNum;
-  document.getElementById('herbalPdfPageModalTitle').textContent = 'صفحہ ' + displayPageNum;
-  const canvas = document.getElementById('herbalPdfPageCanvas');
+  const canvas1 = document.getElementById('herbalPdfPageCanvas');
+  const block1 = document.getElementById('herbalPdfPageBlock1');
+  const canvas2 = document.getElementById('herbalPdfPageCanvas2');
+  const block2 = document.getElementById('herbalPdfPageBlock2');
   const loadingEl = document.getElementById('herbalPdfPageLoading');
-  canvas.style.display = 'none';
+  block1.style.display = 'none';
+  block2.style.display = 'none';
   loadingEl.style.display = 'block';
   loadingEl.textContent = 'لوڈ ہو رہا ہے...';
   try{
-    const page = await entry.pdfDoc.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 2 });
-    const ctx = canvas.getContext('2d');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    // اگر اس صفحے کے الفاظ کی پوزیشن محفوظ ہے (OCR شدہ صفحہ) تو تلاش کیا گیا لفظ زرد رنگ سے نمایاں کر دیں —
-    // بالکل ویسے جیسے نتائج کی فہرست میں نظر آتا ہے
-    const pageData = entry.pages.find(p=> p.pageNum === pageNum);
-    const boxes = herbalFindWordBoxes(pageData, queryText);
-    if(boxes.length){
-      ctx.fillStyle = 'rgba(255,213,0,0.45)';
-      boxes.forEach(w=>{
-        const x = w.x0*canvas.width, y = w.y0*canvas.height;
-        const ww = (w.x1-w.x0)*canvas.width, hh = (w.y1-w.y0)*canvas.height;
-        ctx.fillRect(x, y, ww, hh);
-      });
-    }
+    await herbalRenderPdfPageToCanvas(entry, pageNum, canvas1, queryText);
     loadingEl.style.display = 'none';
-    canvas.style.display = 'block';
+    block1.style.display = 'block';
+    const nextPageNum = pageNum + 1;
+    if(entry.pdfDoc.numPages >= nextPageNum){
+      herbalRenderPdfPageToCanvas(entry, nextPageNum, canvas2, '').then(()=>{
+        block2.style.display = 'block';
+      }).catch(()=>{});
+    }
   }catch(e){
     console.error('PDF page render error:', e);
     loadingEl.textContent = 'معذرت، یہ صفحہ دکھانے میں خرابی ہوئی۔';
