@@ -4013,7 +4013,7 @@ function pmExportExtractedText(){
   const exportData = pmLibrary.map(entry=> ({
     fileName: entry.fileName,
     numPages: entry.pages.length,
-    pages: entry.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', words:p.words || undefined, printedPageNum:p.printedPageNum || undefined }))
+    pages: entry.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', words:p.words || undefined, printedPageNum:p.printedPageNum || undefined, title:p.title || undefined }))
   }));
   const blob = new Blob([JSON.stringify(exportData, null, 0)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -4054,7 +4054,7 @@ async function pmProcessFile(file, fromStorage, cachedPages){
     // اگر پہلے سے محفوظ شدہ متن (بشمول OCR سے نکالا گیا متن) موجود ہو تو دوبارہ نکالنے کی بجائے وہی استعمال کریں —
     // اس سے OCR کا نتیجہ ہر بار صفحہ کھلنے/سائٹ اپ ڈیٹ ہونے پر بھی برقرار رہتا ہے، دوبارہ OCR نہیں کرنا پڑتا
     if(Array.isArray(cachedPages) && cachedPages.length === doc.numPages){
-      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr, words:p.words||null, printedPageNum:p.printedPageNum||null }));
+      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr, words:p.words||null, printedPageNum:p.printedPageNum||null, title:p.title||'' }));
       pmSetRowStatus(row, `محفوظ شدہ متن سے لوڈ ہو رہی ہے... (${doc.numPages} صفحات)`);
     } else {
       for(let i=1;i<=doc.numPages;i++){
@@ -4285,6 +4285,7 @@ async function pmRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
           x1: w.bbox.x1/canvas.width, y1: w.bbox.y1/canvas.height
         }));
         p.printedPageNum = herbalDetectPrintedPageNumber(p.words);
+        p.title = herbalDetectPageTitle(p.words);
       }catch(err){}
       currentDone++;
       // ہر چند صفحوں کے بعد وقتاً فوقتاً محفوظ کرتے رہیں — تاکہ اگر درمیان میں صفحہ بند/دوبارہ
@@ -4415,11 +4416,7 @@ function pmRenderMatchingDiseases(matchedDiseases){
   card.style.marginBottom = '16px';
   const rows = matchedDiseases.map(d=>{
     const catName = mizajNumberMap[d.tendency] || '';
-    const organMatches = pmGetOrganMizajForCategory(d.organ);
-    const organLine = organMatches.length
-      ? organMatches.map(o=> `<span style="display:block; color:var(--muted); font-size:.85rem; margin-right:14px;">— اس عضو (${escapeHtmlSearch(o.name)}) کا اصلی مزاج: ${escapeHtmlSearch(o.mizaj)}</span>`).join('')
-      : '';
-    return `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(d.name)}</b>${catName ? ' — '+escapeHtmlSearch(catName)+' مزاج' : ''} (تحریک ${d.tendency})${d.organ ? '، عضو: '+escapeHtmlSearch(d.organ) : ''}${organLine}</p>`;
+    return `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(d.name)}</b>${catName ? ' — '+escapeHtmlSearch(catName)+' مزاج' : ''} (تحریک ${d.tendency})</p>`;
   }).join('');
   card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مطابق معلومات</h4>${rows}`;
   pmResultsEl.appendChild(card);
@@ -4617,16 +4614,19 @@ function pmRunSearch(){
     pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">اپ لوڈ کی گئی PDF فائلیں صرف اسی براؤزر/ڈیوائس میں محفوظ رہتی ہیں جس میں وہ شامل کی گئی ہوں — اگر آپ نے کسی اور فون/کمپیوٹر میں فائل شامل کی تھی تو وہ اس ڈیوائس میں نظر نہیں آئے گی۔</p></div>`;
     return;
   }
+  // سرچ اب صفحے کے پیراگراف والے پورے متن میں نہیں، بلکہ صفحے کے اوپر لکھے بڑے عنوان (title) میں کی جاتی ہے —
+  // تاکہ نتیجہ سیدھا بتائے کہ فلاں موضوع/بیماری فلاں صفحہ پر ہے، درمیانی تفصیل میں جانے کی ضرورت نہ پڑے
   const matches = [];
   pmLibrary.forEach(fileEntry=>{
     fileEntry.pages.forEach(p=>{
-      const m = pmFindMatch(p.text, queryData);
-      if(m) matches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.text, m.startOrig, m.endOrig), fullText: p.text });
+      if(!p.title) return;
+      const m = pmFindMatch(p.title, queryData);
+      if(m) matches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.title, m.startOrig, m.endOrig), fullText: p.text });
     });
   });
   if(matches.length===0){
     pmSummaryEl.textContent = `"${query}" کسی بھی فائل میں نہیں ملا۔`;
-    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا۔ ہو سکتا ہے لفظ کسی اور ہجے میں لکھا گیا ہو، یا PDF میں متن بطور تصویر (اسکین شدہ صفحہ) ہو جسے یہ ٹول نہیں پڑھ سکتا — ایسی صورت میں اوپر فائل کے ساتھ "OCR چلائیں" کا بٹن دبائیں۔</p></div>`;
+    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا۔ سرچ صرف صفحے کے اوپر لکھے بڑے عنوان سے میل کھاتی ہے، پیراگراف کے اندر کے متن سے نہیں — یا ہو سکتا ہے فائل ابھی نئے طریقے سے OCR نہ ہوئی ہو (اوپر فائل کے ساتھ "OCR چلائیں" دبائیں)۔</p></div>`;
     return;
   }
   pmLastMatches = matches;
@@ -4677,6 +4677,23 @@ function herbalDetectPrintedPageNumber(words){
   const raw = candidates[0].text.trim().replace(/[۰-۹]/g, d=> String(urduDigits.indexOf(d)));
   const num = parseInt(raw, 10);
   return isNaN(num) ? null : num;
+}
+// صفحے کا "عنوان" پہچاننے کی کوشش — سب سے بڑے حروف (فونٹ سائز) والی لائن، جو صفحے کے اوپری آدھے
+// حصے میں ہو۔ زیادہ تر کتابوں میں ہر موضوع/بیماری کا نام صفحے کے اوپر بڑے/موٹے حروف میں لکھا ہوتا ہے —
+// سرچ اسی عنوان سے میل کھائے گی، پیراگراف کے اندر کے عام متن سے نہیں
+function herbalDetectPageTitle(words){
+  if(!Array.isArray(words) || !words.length) return '';
+  const heights = words.map(w=> w.y1-w.y0).filter(h=> h>0);
+  if(!heights.length) return '';
+  const maxH = Math.max(...heights);
+  if(maxH <= 0) return '';
+  let big = words.filter(w=> (w.y1-w.y0) >= maxH*0.75 && w.y0 < 0.5);
+  if(!big.length) return '';
+  const minY = Math.min(...big.map(w=> w.y0));
+  const lineWords = big.filter(w=> Math.abs(w.y0-minY) < 0.05);
+  // اردو دائیں سے بائیں لکھی جاتی ہے — پڑھنے کی صحیح ترتیب کے لیے دائیں طرف والے لفظ پہلے رکھیں
+  lineWords.sort((a,b)=> b.x0 - a.x0);
+  return lineWords.map(w=> w.text).join(' ').trim();
 }
 // دیا گیا لفظ/جملہ صفحے کے OCR شدہ الفاظ (words، جن کی پوزیشن محفوظ ہے) میں تلاش کر کے
 // ان کی بائنڈنگ باکس (bbox) واپس دیتا ہے — تاکہ صفحہ دکھاتے وقت وہ لفظ نمایاں کیا جا سکے
@@ -4929,7 +4946,7 @@ async function hzProcessFile(file, fromStorage, cachedPages){
     // اگر پہلے سے محفوظ شدہ متن (بشمول OCR سے نکالا گیا متن) موجود ہو تو دوبارہ نکالنے کی بجائے وہی استعمال کریں —
     // اس سے OCR کا نتیجہ ہر بار صفحہ کھلنے/سائٹ اپ ڈیٹ ہونے پر بھی برقرار رہتا ہے، دوبارہ OCR نہیں کرنا پڑتا
     if(Array.isArray(cachedPages) && cachedPages.length === doc.numPages){
-      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr, words:p.words||null, printedPageNum:p.printedPageNum||null }));
+      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr, words:p.words||null, printedPageNum:p.printedPageNum||null, title:p.title||'' }));
       hzSetRowStatus(row, `محفوظ شدہ متن سے لوڈ ہو رہی ہے... (${doc.numPages} صفحات)`);
     } else {
       for(let i=1;i<=doc.numPages;i++){
@@ -5094,6 +5111,7 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
           x1: w.bbox.x1/canvas.width, y1: w.bbox.y1/canvas.height
         }));
         p.printedPageNum = herbalDetectPrintedPageNumber(p.words);
+        p.title = herbalDetectPageTitle(p.words);
       }catch(err){}
       currentDone++;
       // ہر چند صفحوں کے بعد وقتاً فوقتاً محفوظ کرتے رہیں — تاکہ اگر درمیان میں صفحہ بند/دوبارہ
@@ -5131,16 +5149,18 @@ function hzRunSearch(){
   if(!query){ hzSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
   const queryData = hzBuildSearchable(query);
   if(!queryData.searchable){ hzSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
+  // سرچ اب صفحے کے پیراگراف والے پورے متن میں نہیں، بلکہ صفحے کے اوپر لکھے بڑے عنوان (title) میں کی جاتی ہے
   const matches = [];
   hzLibrary.forEach(fileEntry=>{
     fileEntry.pages.forEach(p=>{
-      const m = hzFindMatch(p.text, queryData);
-      if(m) matches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: hzBuildSnippet(p.text, m.startOrig, m.endOrig) });
+      if(!p.title) return;
+      const m = hzFindMatch(p.title, queryData);
+      if(m) matches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: hzBuildSnippet(p.title, m.startOrig, m.endOrig) });
     });
   });
   if(matches.length===0){
     hzSummaryEl.textContent = `"${query}" کسی بھی فائل میں نہیں ملا۔`;
-    hzResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا۔ ہو سکتا ہے لفظ کسی اور ہجے میں لکھا گیا ہو، یا PDF میں متن بطور تصویر (اسکین شدہ صفحہ) ہو جسے یہ ٹول نہیں پڑھ سکتا — ایسی صورت میں اوپر فائل کے ساتھ "OCR چلائیں" کا بٹن دبائیں۔</p></div>`;
+    hzResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا۔ سرچ صرف صفحے کے اوپر لکھے بڑے عنوان سے میل کھاتی ہے، پیراگراف کے اندر کے متن سے نہیں — یا ہو سکتا ہے فائل ابھی نئے طریقے سے OCR نہ ہوئی ہو (اوپر فائل کے ساتھ "OCR چلائیں" دبائیں)۔</p></div>`;
     return;
   }
   hzSummaryEl.textContent = `"${query}" کل ${matches.length} صفحات پر ملا۔`;
