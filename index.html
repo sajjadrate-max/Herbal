@@ -4626,57 +4626,35 @@ function pmRunSearch(){
   matches.forEach(m=>{
     const card = document.createElement('div');
     card.className = 'mujarrab-card';
-    card.innerHTML = `<h4>📄 ${escapeHtmlSearch(m.fileName)} — صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>`;
+    const canOpen = pmCanOpenFile(m.fileName);
+    const openBtnHtml = canOpen
+      ? `<button class="btn secondary" onclick="pmOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
+      : '';
+    card.innerHTML = `<h4>📄 ${escapeHtmlSearch(m.fileName)} — صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
     pmResultsEl.appendChild(card);
   });
-
-  const aiWrap = document.createElement('div');
-  aiWrap.style.cssText = 'text-align:center; margin-top:18px;';
-  aiWrap.innerHTML = `<button class="btn" id="pmAiAnalysisBtn" onclick="pmRunAiAnalysis()" style="border-radius:20px; padding:10px 24px;">اوپر ملنے والے اقتباسات کی مکمل تفصیل حاصل کریں (مزاج، وجوہات)</button>
-    <div id="pmAiAnalysisStatus" style="color:var(--muted); font-size:.85rem; margin-top:8px;"></div>
-    <div id="pmAiAnalysisResult" style="margin-top:14px; text-align:right;"></div>`;
-  pmResultsEl.appendChild(aiWrap);
 }
 
-async function pmRunAiAnalysis(){
-  const btn = document.getElementById('pmAiAnalysisBtn');
-  const statusEl = document.getElementById('pmAiAnalysisStatus');
-  const resultEl = document.getElementById('pmAiAnalysisResult');
-  if(!pmLastMatches.length){ return; }
-  btn.disabled = true;
-  statusEl.textContent = 'آپ کی PDF فائلوں میں ملنے والے اقتباسات کا تجزیہ کیا جا رہا ہے...';
-  resultEl.innerHTML = '';
-  try{
-    // زیادہ سے زیادہ 20 صفحات، اور ہر صفحہ سے زیادہ سے زیادہ 1800 حروف — تاکہ درخواست بہت بڑی نہ ہو
-    const trimmedMatches = pmLastMatches.slice(0, 20).map(m=> ({
-      fileName: m.fileName,
-      pageNum: m.pageNum,
-      text: (m.fullText || '').slice(0, 1800)
-    }));
-    const res = await fetch('/api/analyze-pdf-matches', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ query: pmLastQuery, matches: trimmedMatches })
-    });
-    const data = await res.json();
-    if(!res.ok || data.error){
-      statusEl.textContent = 'معذرت، تفصیل حاصل نہیں ہو سکی: ' + (data && data.error ? data.error : 'نامعلوم خرابی');
-      btn.disabled = false;
-      return;
-    }
-    statusEl.textContent = '';
-    const box = document.createElement('div');
-    box.style.cssText = 'background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:18px; line-height:2;';
-    const paragraphs = String(data.analysis || '').split(/\n{2,}/).map(p=> `<p style="margin-bottom:12px; color:var(--text);">${escapeHtmlSearch(p).replace(/\n/g,'<br>')}</p>`).join('');
-    box.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:10px;">مکمل تفصیل — آپ کی اپنی PDF کتابوں کے مطابق</h4>${paragraphs}<p style="color:var(--muted); font-size:.8rem; margin-top:10px;">نوٹ: یہ تفصیل صرف اوپر ملنے والے PDF اقتباسات پر مبنی ہے، حتمی تشخیص کے لیے معالج سے رجوع کریں۔</p>`;
-    resultEl.appendChild(box);
-    btn.style.display = 'none';
-  }catch(err){
-    console.error('pm AI analysis error:', err);
-    statusEl.textContent = 'معذرت، انٹرنیٹ یا سرور کی خرابی کی وجہ سے تفصیل حاصل نہیں ہو سکی۔';
-    btn.disabled = false;
+// دی گئی فائل کا اصل PDF (بائٹس) دستیاب ہے یا نہیں — صرف اپ لوڈ کی گئی فائلوں کے پاس اصل PDF ہوتا ہے،
+// سائٹ کے ساتھ built-in شامل کی گئی کتابوں کا صرف نکالا گیا متن محفوظ ہے (فائل کا سائز بہت زیادہ ہونے کی وجہ سے)
+function pmCanOpenFile(fileName){
+  const entry = pmLibrary.find(f=> f.fileName === fileName);
+  return !!(entry && entry.file);
+}
+function escapeJsAttr(s){
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+function pmOpenPdfAtPage(fileName, pageNum){
+  const entry = pmLibrary.find(f=> f.fileName === fileName);
+  if(!entry || !entry.file){
+    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF فائل یہاں دستیاب نہیں، اس لیے اسے کھولا نہیں جا سکتا۔');
+    return;
   }
+  const url = URL.createObjectURL(entry.file);
+  window.open(url + '#page=' + pageNum, '_blank');
+  setTimeout(()=> URL.revokeObjectURL(url), 60000);
 }
+
 function pmBuildSnippet(text, startOrig, endOrig){
   const radius = 60;
   const start = Math.max(0, startOrig - radius);
@@ -5047,9 +5025,27 @@ function hzRunSearch(){
   matches.forEach(m=>{
     const card = document.createElement('div');
     card.className = 'mujarrab-card';
-    card.innerHTML = `<h4>🌿 ${escapeHtmlSearch(m.fileName)} — صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>`;
+    const canOpen = hzCanOpenFile(m.fileName);
+    const openBtnHtml = canOpen
+      ? `<button class="btn secondary" onclick="hzOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
+      : '';
+    card.innerHTML = `<h4>🌿 ${escapeHtmlSearch(m.fileName)} — صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
     hzResultsEl.appendChild(card);
   });
+}
+function hzCanOpenFile(fileName){
+  const entry = hzLibrary.find(f=> f.fileName === fileName);
+  return !!(entry && entry.file);
+}
+function hzOpenPdfAtPage(fileName, pageNum){
+  const entry = hzLibrary.find(f=> f.fileName === fileName);
+  if(!entry || !entry.file){
+    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF فائل یہاں دستیاب نہیں، اس لیے اسے کھولا نہیں جا سکتا۔');
+    return;
+  }
+  const url = URL.createObjectURL(entry.file);
+  window.open(url + '#page=' + pageNum, '_blank');
+  setTimeout(()=> URL.revokeObjectURL(url), 60000);
 }
 function hzBuildSnippet(text, startOrig, endOrig){
   const radius = 60;
