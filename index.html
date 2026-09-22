@@ -4639,20 +4639,64 @@ function pmRunSearch(){
 // سائٹ کے ساتھ built-in شامل کی گئی کتابوں کا صرف نکالا گیا متن محفوظ ہے (فائل کا سائز بہت زیادہ ہونے کی وجہ سے)
 function pmCanOpenFile(fileName){
   const entry = pmLibrary.find(f=> f.fileName === fileName);
-  return !!(entry && entry.file);
+  return !!(entry && entry.pdfDoc);
 }
 function escapeJsAttr(s){
   return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 }
 function pmOpenPdfAtPage(fileName, pageNum){
   const entry = pmLibrary.find(f=> f.fileName === fileName);
-  if(!entry || !entry.file){
-    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF فائل یہاں دستیاب نہیں، اس لیے اسے کھولا نہیں جا سکتا۔');
+  if(!entry || !entry.pdfDoc){
+    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں، اس لیے صفحہ نہیں دکھایا جا سکتا۔');
     return;
   }
-  const url = URL.createObjectURL(entry.file);
-  window.open(url + '#page=' + pageNum, '_blank');
-  setTimeout(()=> URL.revokeObjectURL(url), 60000);
+  herbalShowPdfPage(entry, pageNum);
+}
+
+// PDF کا صرف ایک مخصوص صفحہ دکھانے کے لیے مشترکہ modal — pdf.js سے وہ صفحہ کینوس پر رینڈر کر کے دکھایا جاتا ہے،
+// اس طرح براؤزر پوری PDF نہیں کھولتا، صرف وہی صفحہ نظر آتا ہے (موبائل پر بھی درست کام کرتا ہے)
+async function herbalShowPdfPage(entry, pageNum){
+  let modal = document.getElementById('herbalPdfPageModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'herbalPdfPageModal';
+    modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:9999; overflow:auto; text-align:center; padding:18px 10px;';
+    modal.innerHTML = `
+      <div style="max-width:720px; margin:0 auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px;">
+          <span id="herbalPdfPageModalTitle" style="color:#fff; font-size:.85rem; text-align:right;"></span>
+          <button onclick="herbalClosePdfPageModal()" style="background:var(--gold); color:var(--navy); border:none; border-radius:16px; padding:6px 16px; cursor:pointer; flex-shrink:0;">بند کریں ✕</button>
+        </div>
+        <div id="herbalPdfPageLoading" style="color:#fff; padding:30px;">لوڈ ہو رہا ہے...</div>
+        <canvas id="herbalPdfPageCanvas" style="max-width:100%; height:auto; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,.5); display:none;"></canvas>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e=>{ if(e.target === modal) herbalClosePdfPageModal(); });
+  }
+  modal.style.display = 'block';
+  document.getElementById('herbalPdfPageModalTitle').textContent = entry.fileName + ' — صفحہ ' + pageNum;
+  const canvas = document.getElementById('herbalPdfPageCanvas');
+  const loadingEl = document.getElementById('herbalPdfPageLoading');
+  canvas.style.display = 'none';
+  loadingEl.style.display = 'block';
+  loadingEl.textContent = 'لوڈ ہو رہا ہے...';
+  try{
+    const page = await entry.pdfDoc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 2 });
+    const ctx = canvas.getContext('2d');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    loadingEl.style.display = 'none';
+    canvas.style.display = 'block';
+  }catch(e){
+    console.error('PDF page render error:', e);
+    loadingEl.textContent = 'معذرت، یہ صفحہ دکھانے میں خرابی ہوئی۔';
+  }
+}
+function herbalClosePdfPageModal(){
+  const modal = document.getElementById('herbalPdfPageModal');
+  if(modal) modal.style.display = 'none';
 }
 
 function pmBuildSnippet(text, startOrig, endOrig){
@@ -5035,17 +5079,15 @@ function hzRunSearch(){
 }
 function hzCanOpenFile(fileName){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
-  return !!(entry && entry.file);
+  return !!(entry && entry.pdfDoc);
 }
 function hzOpenPdfAtPage(fileName, pageNum){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
-  if(!entry || !entry.file){
-    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF فائل یہاں دستیاب نہیں، اس لیے اسے کھولا نہیں جا سکتا۔');
+  if(!entry || !entry.pdfDoc){
+    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں، اس لیے صفحہ نہیں دکھایا جا سکتا۔');
     return;
   }
-  const url = URL.createObjectURL(entry.file);
-  window.open(url + '#page=' + pageNum, '_blank');
-  setTimeout(()=> URL.revokeObjectURL(url), 60000);
+  herbalShowPdfPage(entry, pageNum);
 }
 function hzBuildSnippet(text, startOrig, endOrig){
   const radius = 60;
