@@ -4418,17 +4418,24 @@ function pmRenderMatchingDiseases(matchedDiseases){
   const groups = new Map();
   matchedDiseases.forEach(d=>{
     const key = d.organ || d.name;
-    if(!groups.has(key)) groups.set(key, { names:new Set(), cats:[] });
+    if(!groups.has(key)) groups.set(key, { names:new Map(), cats:[] });
     const g = groups.get(key);
-    g.names.add(d.name);
+    g.names.set(d.name, (g.names.get(d.name)||0) + 1);
     const catName = mizajNumberMap[d.tendency] || '';
     if(catName && !g.cats.includes(catName)) g.cats.push(catName);
   });
   const rows = [];
   groups.forEach(g=>{
-    // سب سے لمبا نام بطور نمائندہ لیبل منتخب کریں
+    // فہرست میں سب سے زیادہ دہرایا گیا نام بطور نمائندہ لیبل منتخب کریں
+    // (برابری کی صورت میں لمبا نام ترجیح دیں)
     let label = '';
-    g.names.forEach(n=>{ if(n.length > label.length) label = n; });
+    let bestCount = 0;
+    g.names.forEach((count, n)=>{
+      if(count > bestCount || (count === bestCount && n.length > label.length)){
+        bestCount = count;
+        label = n;
+      }
+    });
     let catsText = '';
     if(g.cats.length === 1){
       catsText = ' زیادہ تر '+escapeHtmlSearch(g.cats[0])+' میں ہو سکتی ہے۔';
@@ -4636,23 +4643,47 @@ function pmRunSearch(){
     pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">اپ لوڈ کی گئی PDF فائلیں صرف اسی براؤزر/ڈیوائس میں محفوظ رہتی ہیں جس میں وہ شامل کی گئی ہوں — اگر آپ نے کسی اور فون/کمپیوٹر میں فائل شامل کی تھی تو وہ اس ڈیوائس میں نظر نہیں آئے گی۔</p></div>`;
     return;
   }
-  // سرچ اب صفحے کے پیراگراف والے پورے متن میں نہیں، بلکہ صفحے کے اوپر لکھے بڑے عنوان (title) میں کی جاتی ہے —
-  // تاکہ نتیجہ سیدھا بتائے کہ فلاں موضوع/بیماری فلاں صفحہ پر ہے، درمیانی تفصیل میں جانے کی ضرورت نہ پڑے
-  const matches = [];
+  // پہلے صفحے کے اوپر لکھے بڑے عنوان (title) میں تلاش کریں — تاکہ نتیجہ سیدھا بتائے کہ فلاں موضوع/بیماری
+  // فلاں صفحہ پر ہے۔ اگر عنوان میں کہیں نہ ملے، تو بطور متبادل پورے صفحے کے متن میں بھی تلاش کریں
+  // تاکہ صارف کو خالی ہاتھ نہ رہنا پڑے — مگر ایسے نتائج کو الگ سے واضح کیا جائے گا۔
+  const titleMatches = [];
+  const textMatches = [];
+  const looseMatches = [];
   pmLibrary.forEach(fileEntry=>{
     fileEntry.pages.forEach(p=>{
-      if(!p.title) return;
-      const m = pmFindMatch(p.title, queryData);
-      if(m) matches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.title, m.startOrig, m.endOrig), fullText: p.text });
+      if(p.title){
+        const m = pmFindMatch(p.title, queryData);
+        if(m){ titleMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.title, m.startOrig, m.endOrig), fullText: p.text }); return; }
+      }
+      if(p.text){
+        const m2 = pmFindMatch(p.text, queryData);
+        if(m2){ textMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.text, m2.startOrig, m2.endOrig), fullText: p.text }); return; }
+        // اردو OCR اکثر دو الفاظ کے درمیان خالی جگہ صحیح طور پر نہیں پہچانتا (لفظ آپس میں جڑ جاتے ہیں) —
+        // اس لیے اگر مکمل/الگ لفظ کے طور پر نہ ملے تو آخری چارے کے طور پر بغیر لفظ کی حد کے بھی تلاش کریں
+        const { searchable } = pmBuildSearchable(p.text);
+        if(searchable.indexOf(queryData.searchable) !== -1){
+          looseMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.text, 0, Math.min(p.text.length, 220)), fullText: p.text });
+        }
+      }
     });
   });
+  const matches = titleMatches.length ? titleMatches : (textMatches.length ? textMatches : looseMatches);
   if(matches.length===0){
+    let totalPages = 0, ocrPages = 0;
+    pmLibrary.forEach(fe=> fe.pages.forEach(p=>{ totalPages++; if(p.text) ocrPages++; }));
     pmSummaryEl.textContent = `"${query}" کسی بھی فائل میں نہیں ملا۔`;
-    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا۔ سرچ صرف صفحے کے اوپر لکھے بڑے عنوان سے میل کھاتی ہے، پیراگراف کے اندر کے متن سے نہیں — یا ہو سکتا ہے فائل ابھی نئے طریقے سے OCR نہ ہوئی ہو (اوپر فائل کے ساتھ "OCR چلائیں" دبائیں)۔</p></div>`;
+    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا — یہ لفظ کسی بھی صفحے کے عنوان یا متن میں نہیں ملا۔<br>کل صفحات: ${totalPages}، جن میں سے متن نکلا ہوا ہے: ${ocrPages}۔ اگر یہ تعداد کم ہو تو فائل ابھی مکمل OCR نہیں ہوئی — اوپر فائل کے ساتھ "OCR چلائیں" دبائیں۔</p></div>`;
     return;
   }
   pmLastMatches = matches;
+  const usedTextFallback = titleMatches.length === 0 && textMatches.length > 0;
+  const usedLooseFallback = titleMatches.length === 0 && textMatches.length === 0 && looseMatches.length > 0;
   pmSummaryEl.textContent = `"${query}" کل ${matches.length} صفحات پر ملا۔`;
+  if(usedTextFallback){
+    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted); margin:0;">نوٹ: یہ لفظ کسی صفحے کے بڑے عنوان میں نہیں ملا، اس لیے نیچے صفحے کے متن میں ملنے والے نتائج دکھائے جا رہے ہیں۔</p></div>`;
+  } else if(usedLooseFallback){
+    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted); margin:0;">نوٹ: یہ لفظ مکمل/الگ لفظ کے طور پر نہیں ملا (شاید OCR نے ساتھ والے لفظ سے جوڑ دیا ہو)، اس لیے قریبی نتائج دکھائے جا رہے ہیں۔</p></div>`;
+  }
   matches.forEach(m=>{
     const card = document.createElement('div');
     card.className = 'mujarrab-card';
@@ -5171,21 +5202,42 @@ function hzRunSearch(){
   if(!query){ hzSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
   const queryData = hzBuildSearchable(query);
   if(!queryData.searchable){ hzSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
-  // سرچ اب صفحے کے پیراگراف والے پورے متن میں نہیں، بلکہ صفحے کے اوپر لکھے بڑے عنوان (title) میں کی جاتی ہے
-  const matches = [];
+  // پہلے صفحے کے اوپر لکھے بڑے عنوان (title) میں تلاش کریں، نہ ملے تو متبادل کے طور پر پورے متن میں بھی تلاش کریں
+  const titleMatches = [];
+  const textMatches = [];
+  const looseMatches = [];
   hzLibrary.forEach(fileEntry=>{
     fileEntry.pages.forEach(p=>{
-      if(!p.title) return;
-      const m = hzFindMatch(p.title, queryData);
-      if(m) matches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: hzBuildSnippet(p.title, m.startOrig, m.endOrig) });
+      if(p.title){
+        const m = hzFindMatch(p.title, queryData);
+        if(m){ titleMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: hzBuildSnippet(p.title, m.startOrig, m.endOrig) }); return; }
+      }
+      if(p.text){
+        const m2 = hzFindMatch(p.text, queryData);
+        if(m2){ textMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: hzBuildSnippet(p.text, m2.startOrig, m2.endOrig) }); return; }
+        const { searchable } = hzBuildSearchable(p.text);
+        if(searchable.indexOf(queryData.searchable) !== -1){
+          looseMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: hzBuildSnippet(p.text, 0, Math.min(p.text.length, 220)) });
+        }
+      }
     });
   });
+  const matches = titleMatches.length ? titleMatches : (textMatches.length ? textMatches : looseMatches);
   if(matches.length===0){
+    let totalPages = 0, ocrPages = 0;
+    hzLibrary.forEach(fe=> fe.pages.forEach(p=>{ totalPages++; if(p.text) ocrPages++; }));
     hzSummaryEl.textContent = `"${query}" کسی بھی فائل میں نہیں ملا۔`;
-    hzResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا۔ سرچ صرف صفحے کے اوپر لکھے بڑے عنوان سے میل کھاتی ہے، پیراگراف کے اندر کے متن سے نہیں — یا ہو سکتا ہے فائل ابھی نئے طریقے سے OCR نہ ہوئی ہو (اوپر فائل کے ساتھ "OCR چلائیں" دبائیں)۔</p></div>`;
+    hzResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا — یہ لفظ کسی بھی صفحے کے عنوان یا متن میں نہیں ملا۔<br>کل صفحات: ${totalPages}، جن میں سے متن نکلا ہوا ہے: ${ocrPages}۔ اگر یہ تعداد کم ہو تو فائل ابھی مکمل OCR نہیں ہوئی — اوپر فائل کے ساتھ "OCR چلائیں" دبائیں۔</p></div>`;
     return;
   }
+  const usedTextFallback = titleMatches.length === 0 && textMatches.length > 0;
+  const usedLooseFallback = titleMatches.length === 0 && textMatches.length === 0 && looseMatches.length > 0;
   hzSummaryEl.textContent = `"${query}" کل ${matches.length} صفحات پر ملا۔`;
+  if(usedTextFallback){
+    hzResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted); margin:0;">نوٹ: یہ لفظ کسی صفحے کے بڑے عنوان میں نہیں ملا، اس لیے نیچے صفحے کے متن میں ملنے والے نتائج دکھائے جا رہے ہیں۔</p></div>`;
+  } else if(usedLooseFallback){
+    hzResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted); margin:0;">نوٹ: یہ لفظ مکمل/الگ لفظ کے طور پر نہیں ملا (شاید OCR نے ساتھ والے لفظ سے جوڑ دیا ہو)، اس لیے قریبی نتائج دکھائے جا رہے ہیں۔</p></div>`;
+  }
   matches.forEach(m=>{
     const card = document.createElement('div');
     card.className = 'mujarrab-card';
