@@ -102,7 +102,7 @@ h2.section-title{color:var(--gold); font-size:1.8rem; border-bottom:2px solid va
 @media(max-width:800px){.mizaj-columns{grid-template-columns:1fr;}}
 .disease-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:20px 0 10px;}
 @media(max-width:650px){.disease-grid{grid-template-columns:1fr 1fr;}}
-input.search{width:100%; padding:12px 16px; border-radius:8px; border:1px solid var(--border);
+input.search, select.search{width:100%; padding:12px 16px; border-radius:8px; border:1px solid var(--border);
   background:var(--card); color:var(--text); font-family:inherit; font-size:1rem; margin-bottom:16px;}
 table{width:100%; border-collapse:collapse; font-family:'Poppins',sans-serif; font-size:.95rem; margin-bottom:20px;}
 .lecture-text{white-space:pre-wrap; line-height:2.1; font-size:1.05rem; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:24px; max-height:none;}
@@ -360,6 +360,14 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   <h2 class="section-title">بیماری کی تلاش</h2>
   <div class="note">لفظ لکھیں، بتا دیا جائے گا۔ <span onclick="togglePmNoteDetail()" style="cursor:pointer; color:var(--gold-soft); font-size:.85rem; user-select:none;">مزید تفصیل <span id="pmNoteDetailArrow">▾</span></span>
     <p id="pmNoteDetail" style="display:none; margin-top:6px;">لفظ لکھیں — بتایا جائے گا کہ وہ کس فائل کے کس صفحہ پر موجود ہے۔ یہ تلاش مکمل طور پر آف لائن، آپ کے اپنے فون/کمپیوٹر کے اندر ہی ہوتی ہے — کوئی معلومات انٹرنیٹ پر نہیں بھیجی جاتیں۔</p>
+  </div>
+
+  <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
+    <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">بیماری کے مزاج</h3>
+    <p style="color:var(--muted); font-size:.85rem; text-align:center; margin-bottom:10px;">نیچے فہرست میں سے بیماری یا عضو کا نام پر ٹیپ کریں — یہاں خود سے لکھنے کی ضرورت نہیں</p>
+    <input class="search" id="pmMizajFilter" placeholder="فہرست میں سے تلاش کے لیے (اختیاری) لکھیں..." style="margin-bottom:8px;">
+    <div id="pmMizajOptionsList" style="max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:var(--card);"></div>
+    <div id="pmMizajResults" style="margin-top:12px;"></div>
   </div>
 
   <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
@@ -4427,11 +4435,12 @@ function pmPopulateDiseaseSuggestions(){
   }
   listEl.innerHTML = html;
 }
-function pmRenderMatchingDiseases(matchedDiseases){
-  if(!matchedDiseases.length) return;
-  const card = document.createElement('div');
-  card.className = 'mujarrab-card';
-  card.style.marginBottom = '16px';
+function pmRenderMatchingDiseases(matchedDiseases, targetEl){
+  const container = targetEl || pmResultsEl;
+  if(!matchedDiseases.length){
+    if(targetEl) targetEl.innerHTML = `<p style="color:var(--muted); margin:4px 0;">کوئی معلومات نہیں ملیں۔</p>`;
+    return;
+  }
   // صرف بالکل ایک جیسے نام والی اندراجات کو اکٹھا کریں (ایک ہی بیماری، مختلف مزاج) —
   // مختلف بیماریوں کو (چاہے ایک ہی عضو سے متعلق ہوں) الگ الگ ہی رکھیں
   const groups = new Map();
@@ -4456,9 +4465,80 @@ function pmRenderMatchingDiseases(matchedDiseases){
     }
     rows.push(`<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(label)}</b>${catsText}</p>`);
   });
-  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مزاج</h4>${rows.join('')}`;
-  pmResultsEl.appendChild(card);
+  if(targetEl){
+    targetEl.innerHTML = rows.join('');
+  } else {
+    const card = document.createElement('div');
+    card.className = 'mujarrab-card';
+    card.style.marginBottom = '16px';
+    card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مزاج</h4>${rows.join('')}`;
+    container.appendChild(card);
+  }
 }
+// "بیماری کے مزاج" کے لیے فہرست — diseaseList کے تمام مختلف ناموں اور اعضاء کو یکجا کر کے بناتے ہیں،
+// اور اسے سرچ باکس کے بالکل نیچے ایک عام (inline) فہرست کے طور پر دکھاتے ہیں — موبائل کا مکمل اسکرین
+// پک-اپ (native select) استعمال نہیں کرتے تاکہ فہرست ہمیشہ باکس کے ساتھ ہی نظر آئے۔
+// صارف صرف اسی فہرست میں سے کسی آپشن پر ٹیپ کر کے ہی نتیجہ دیکھ سکتا ہے، خود سے لکھ کر سرچ نہیں چلتی —
+// اوپر دیا گیا input صرف نیچے کی فہرست کو فلٹر کرنے کے لیے ہے۔
+let pmMizajOptions = [];
+function pmPopulateMizajSelect(){
+  const listEl = document.getElementById('pmMizajOptionsList');
+  if(!listEl) return;
+  const seen = new Set();
+  const options = [];
+  diseaseList.forEach(d=>{
+    if(!d.name || seen.has(d.name)) return;
+    seen.add(d.name);
+    options.push(d.name);
+  });
+  const organSeen = new Set();
+  diseaseList.forEach(d=>{
+    if(!d.organ) return;
+    String(d.organ).split(/،| و /).map(s=> s.trim()).filter(Boolean).forEach(part=>{
+      if(organSeen.has(part) || seen.has(part)) return;
+      organSeen.add(part);
+      options.push(part);
+    });
+  });
+  options.sort((a,b)=> a.localeCompare(b, 'ur'));
+  pmMizajOptions = options;
+  pmRenderMizajOptionsList(options);
+}
+function pmRenderMizajOptionsList(options){
+  const listEl = document.getElementById('pmMizajOptionsList');
+  if(!listEl) return;
+  if(!options.length){
+    listEl.innerHTML = `<div style="padding:10px; color:var(--muted); text-align:center;">کوئی نتیجہ نہیں ملا</div>`;
+    return;
+  }
+  listEl.innerHTML = options.map(o=> `<div class="pm-mizaj-option" data-val="${escapeHtmlSearch(o)}" style="padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; color:var(--text);">${escapeHtmlSearch(o)}</div>`).join('');
+}
+pmPopulateMizajSelect();
+(function(){
+  const listEl = document.getElementById('pmMizajOptionsList');
+  const resultsEl = document.getElementById('pmMizajResults');
+  const filterEl = document.getElementById('pmMizajFilter');
+  if(!listEl || !resultsEl) return;
+  listEl.addEventListener('click', e=>{
+    const row = e.target.closest('.pm-mizaj-option');
+    if(!row) return;
+    const val = row.getAttribute('data-val');
+    resultsEl.innerHTML = '';
+    if(!val) return;
+    Array.from(listEl.querySelectorAll('.pm-mizaj-option')).forEach(el=> el.style.background = '');
+    row.style.background = 'rgba(255,213,0,0.15)';
+    const matched = pmFindMatchingDiseases(val);
+    pmRenderMatchingDiseases(matched, resultsEl);
+  });
+  if(filterEl){
+    filterEl.addEventListener('input', ()=>{
+      const q = pmNormalizeWord(filterEl.value);
+      if(!q){ pmRenderMizajOptionsList(pmMizajOptions); return; }
+      const filtered = pmMizajOptions.filter(o=> pmNormalizeWord(o).indexOf(q) !== -1);
+      pmRenderMizajOptionsList(filtered);
+    });
+  }
+})();
 
 const pmSimpleMizajNames = {asabi:'اعصابی', adalati:'عضلاتی', ghudi:'غدی'};
 // "علامات" (criteria — جو Home صفحہ کے مزاج سوالات میں پہلے سے استعمال ہوتی ہیں) میں سے
@@ -4641,8 +4721,8 @@ function pmRunSearch(){
   if(!query){ pmSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
   const queryData = pmBuildSearchable(query);
   if(!queryData.searchable){ pmSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
-  const matchedDiseases = pmFindMatchingDiseases(query);
-  pmRenderMatchingDiseases(matchedDiseases);
+  // نوٹ: "بیماری کے مزاج" اب اس باکس سے نہیں بلکہ اوپر دی گئی فہرست (select) سے دکھائی جاتی ہے —
+  // تاکہ صرف فہرست میں موجود درست نام ہی منتخب ہو سکیں، من مانا لفظ لکھ کر نہیں
   const matchedSymptoms = pmFindMatchingSymptoms(query);
   pmRenderMatchingSymptoms(matchedSymptoms);
   const matchedOrgans = pmFindMatchingOrgans(query);
