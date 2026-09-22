@@ -4529,10 +4529,11 @@ pmPopulateMizajSelect();
     row.style.background = 'rgba(255,213,0,0.15)';
     const matched = pmFindMatchingDiseases(val);
     pmRenderMatchingDiseases(matched, resultsEl);
-    // اسی منتخب کردہ لفظ سے "تلاش کریں" والا PDF سرچ بھی خودکار طور پر چلائیں
+    // اسی منتخب کردہ بیماری کے diseaseList میں موجود تمام متبادل ناموں سے بھی PDF سرچ خودکار طور پر چلائیں
     if(pmSearchInputEl){
-      pmSearchInputEl.value = val;
-      pmRunSearch();
+      const terms = pmGetPdfSearchTerms(val);
+      pmSearchInputEl.value = terms.join(' / ');
+      pmRunSearch(terms);
     }
   });
   if(filterEl){
@@ -4718,19 +4719,166 @@ function pmGetOrganMizajForCategory(organCategory){
 }
 pmPopulateDiseaseSuggestions();
 
-function pmRunSearch(){
-  const query = pmSearchInputEl.value.trim();
+// ایک ہی بیماری کے diseaseList میں پہلے سے موجود مختلف نام (متبادل الفاظ) اکٹھے کریں —
+// تاکہ ایک نام منتخب کرنے پر باقی متبادل ناموں سے بھی PDF میں تلاش ہو جائے۔
+// طریقہ: ایک ہی "عضو" کے اندر وہی اندراجات شامل کی جاتی ہیں جن کے نام میں کم از کم ایک نمایاں
+// (غیر ضروری الفاظ جیسے "کا"،"کی"،"میں" کے علاوہ) لفظ مشترک ہو — تاکہ بالکل مختلف بیماریاں
+// (جیسے ایک ہی عضو کی دوسری بیماری) غلطی سے شامل نہ ہو جائیں۔
+const PM_STOPWORDS = new Set(['کا','کی','کے','میں','سے','اور','یا','پر','بھی','تک','نے','ہے','ہیں','وغیرہ','کوئی','ہر','بغیر','بعد','اپنی','اپنا','دو','یہ','وہ']);
+function pmSignificantTokens(name){
+  return pmNormalizeWord(name).split(' ').filter(t=> t && t.length>=2 && !PM_STOPWORDS.has(t));
+}
+// معروف اردو/یونانی/انگریزی متبادل نام — یہ فہرست دستی طور پر لکھی گئی ہے (صرف وہی بیماریاں شامل ہیں
+// جن کے حقیقتاً معروف متبادل نام موجود ہیں)۔ ہر بیماری کے diseaseList والے نام کے سامنے اس کے
+// متبادل نام درج ہیں۔ یہ فہرست بتدریج بڑھائی جا سکتی ہے — اگر کوئی نام غلط لگے یا مزید متبادل
+// شامل کرنے ہوں تو بتا دیں۔
+const PM_DISEASE_SYNONYMS = {
+  'سردرد': ['درد سر','سر کا درد'],
+  'درد سر': ['سردرد','سر کا درد'],
+  'بےخوابی': ['انسومنیا','نیند نہ آنا'],
+  'انسومنیا': ['بےخوابی','نیند نہ آنا'],
+  'مرگی': ['صرع','دورہ پڑنا','epilepsy'],
+  'جنون': ['پاگل پن','دیوانگی'],
+  'مالیخولیا': ['ذہنی وسوسہ','اداسی کا مرض'],
+  'نسیان': ['بھول جانا','یادداشت کی کمزوری'],
+  'بھول جانا': ['نسیان','یادداشت کی کمزوری'],
+  'پیلا یرقان': ['یرقان','ہیپاٹائٹس بی','ہیپاٹائٹس اے','jaundice'],
+  'کالا یرقان': ['ہیپاٹائٹس سی','hepatitis c'],
+  'کان کا درد': ['کان درد','ear pain'],
+  'بہرہ پن': ['بولا پن','سماعت کی کمی','deafness'],
+  'اونچا سننا': ['کم سننا','سماعت کی کمزوری'],
+  'نزلہ': ['زکام','common cold'],
+  'زکامِ بلغمی': ['نزلہ بلغمی','بلغمی زکام'],
+  'نکسیر': ['ناک سے خون آنا','نکسیر آنا'],
+  'نکسیر آنا': ['نکسیر','ناک سے خون بہنا'],
+  'لکنت': ['ہکلاہٹ','تتلاہٹ','stammering'],
+  'زبان کی لکنت': ['لکنت','ہکلاہٹ'],
+  'حلق کی سوزش': ['گلے کی سوزش','ٹانسلائٹس'],
+  'گلے کی سوزش': ['حلق کی سوزش','ٹانسلائٹس'],
+  'آواز کا بیٹھنا': ['آواز بیٹھ جانا','گلا بیٹھنا','hoarseness'],
+  'دمہ': ['ایزما','سانس کی تنگی','asthma'],
+  'کھانسی': ['سرفہ','cough'],
+  'خشک کھانسی': ['سوکھی کھانسی','بغیر بلغم کھانسی'],
+  'نمونیا': ['ذات الرئہ','pneumonia'],
+  'سل': ['تپ دق','ٹی بی','tuberculosis','tb'],
+  'تپ دق': ['سل','ٹی بی','tuberculosis','tb'],
+  'ہارٹ اٹیک': ['دل کا دورہ','heart attack'],
+  'دل کی گھبراہٹ': ['دل دھڑکنا','خفقان','palpitations'],
+  'بدہضمی': ['ہضم نہ ہونا','تبخیرِ معدہ','indigestion'],
+  'تبخیرِ معدہ': ['بدہضمی','گیس','indigestion'],
+  'ہیضہ': ['الٹی دست','cholera'],
+  'ترش ڈکار': ['کھٹی ڈکار','acidity'],
+  'معدے کا السر': ['پیپٹک السر','زخمِ معدہ','peptic ulcer'],
+  'دست': ['اسہال','ڈائریا','diarrhea'],
+  'خونی دست': ['خونی اسہال'],
+  'پیچش': ['امیبیاسس','dysentery'],
+  'شدید قبض': ['قبض','constipation'],
+  'بواسیرِ بادی': ['بادی بواسیر','خشک بواسیر'],
+  'بواسیرِ خونی': ['خونی بواسیر','پائلز','piles','hemorrhoids'],
+  'خونی بواسیر': ['بواسیرِ خونی','پائلز','piles','hemorrhoids'],
+  'ضعفِ جگر': ['جگر کی کمزوری','weak liver'],
+  'جگر کی سوزش': ['ہیپاٹائٹس','hepatitis'],
+  'ضعفِ گردہ': ['گردے کی کمزوری','weak kidney'],
+  'پتھری گردہ': ['سنگ گردہ','کڈنی سٹون','kidney stone'],
+  'گردہ میں پتھری': ['سنگ گردہ','کڈنی سٹون','kidney stone'],
+  'گردے کی پتھری': ['سنگ گردہ','کڈنی سٹون','kidney stone'],
+  'پیشاب میں پتھری': ['سنگ گردہ','کڈنی سٹون','kidney stone'],
+  'خونی پیشاب': ['بول الدم','hematuria'],
+  'بول الدم': ['خونی پیشاب','hematuria'],
+  'نامردی': ['ضعفِ باہ','ایریکٹائل ڈسفنکشن','impotence','ed'],
+  'ضعفِ باہ کبدی': ['نامردی','کمزوریِ مردانہ'],
+  'احتلام': ['خواب میں انزال','nightfall'],
+  'جریان': ['منی کا اخراج','جریانِ منی','spermatorrhea'],
+  'جریانِ منی': ['جریان','منی کا اخراج','spermatorrhea'],
+  'سرعتِ انزال': ['جلد انزال','premature ejaculation'],
+  'سوزاک': ['گونوریا','gonorrhea'],
+  'آتشک': ['سفلس','syphilis'],
+  'لیکوریا': ['سیلان الرحم','سفید پانی آنا','leucorrhea','white discharge'],
+  'لیکوریا رحم': ['سیلان الرحم','سفید پانی آنا','leucorrhea'],
+  'لیکوریا اعصابی': ['سیلان الرحم','سفید پانی آنا','leucorrhea'],
+  'لیکوریا میں جلن': ['سیلان الرحم','سفید پانی آنا','leucorrhea'],
+  'بندشِ حیض': ['حیض کا رک جانا','ایام کا بند ہونا','amenorrhea'],
+  'بندشِ خونِ حیض': ['حیض کا رک جانا','ایام کا بند ہونا','amenorrhea'],
+  'کثرتِ حیض': ['زیادہ ماہواری','menorrhagia'],
+  'ماہواری میں بہت زیادہ خون': ['کثرتِ حیض','menorrhagia'],
+  'تنگیِ حیض': ['کم حیض آنا','oligomenorrhea'],
+  'بچہ دانی کا باہر نکلنا': ['رحم کا اتر جانا','uterine prolapse'],
+  'رحم باہر نکلنا': ['رحم کا اتر جانا','uterine prolapse'],
+  'رحم کا باہر نکلنا': ['رحم کا اتر جانا','uterine prolapse'],
+  'جوڑوں کا درد': ['گنٹھیا','جوڑوں کی سوزش','arthritis'],
+  'عرق النساء دائیں طرف': ['sciatica'],
+  'بائیں طرف کا عرق النساء': ['sciatica'],
+  'یورک ایسڈ': ['نقرس','gout'],
+  'کمر درد': ['کمر کا درد','back pain'],
+  'چیچک': ['smallpox'],
+  'خسرہ': ['measles'],
+  'برص': ['پھلبہری','سفید داغ','vitiligo'],
+  'چنبل': ['psoriasis','داد چنبل'],
+  'خارش': ['scabies','جلدی خارش'],
+  'گنجا پن': ['اصلع','baldness'],
+  'ڈپریشن': ['ذہنی دباؤ','اداسی کا مرض'],
+  'لو بلڈ پریشر': ['بلڈ پریشر لو','کم بلڈ پریشر','low bp','hypotension'],
+  'بلڈ پریشر لو': ['لو بلڈ پریشر','کم بلڈ پریشر','low bp','hypotension'],
+  'بلڈ پریشر ہائی': ['ہائی بلڈ پریشر','بلند فشار خون','hypertension'],
+  'بلڈ پریشر': ['ہائی بلڈ پریشر','بلڈ پریشر ہائی','hypertension'],
+  'شوگر': ['ذیابیطس','diabetes'],
+  'شوگر اعصابی': ['اعصابی ذیابیطس','diabetes'],
+  'موٹاپا': ['فربہی','obesity'],
+  'تھیلیسیمیا': ['thalassemia'],
+  'لقوہ': ['منہ کا ٹیڑھا ہونا','facial palsy'],
+  'فالج': ['paralysis','اسٹروک','stroke'],
+  'فالج دائیں طرف': ['paralysis','اسٹروک'],
+  'فالج بائیں طرف': ['paralysis','اسٹروک'],
+  'بائیں طرف کا فالج': ['paralysis','اسٹروک'],
+  'ٹائیفائیڈ': ['موتی جھرا بخار','typhoid'],
+  'ملیریا': ['تپ لرزہ','malaria'],
+  'کولیسٹرول': ['cholesterol'],
+  'تپِ طاعون/انفکشن': ['پلیگ','plague'],
+  'خون کی کمی': ['انیمیا','anemia'],
+  'رسولی': ['ٹیومر','tumor'],
+  'خبیث رسولیاں': ['کینسر کی رسولی','malignant tumor'],
+  'پتے کی پتھری': ['گال بلیڈر سٹون','gallstone'],
+  'السر': ['زخم','ulcer'],
+  'منی کی کمی': ['ٹیسٹوسٹیرون کی کمی','مادہ منویہ کی کمی','low sperm count','oligospermia'],
+  'مادہ منویہ کی کمی (ٹیسٹوسٹیرون کی کمی)': ['منی کی کمی','low sperm count','oligospermia']
+};
+function pmGetPdfSearchTerms(selectedValue){
+  const entry = diseaseList.find(d=> d.name === selectedValue);
+  const seen = new Set([selectedValue]);
+  const terms = [selectedValue];
+  // پہلے دستی/معروف متبادل نام شامل کریں (سب سے زیادہ قابلِ اعتماد ذریعہ)
+  (PM_DISEASE_SYNONYMS[selectedValue] || []).forEach(syn=>{
+    if(seen.has(syn)) return;
+    seen.add(syn);
+    terms.push(syn);
+  });
+  if(!entry) return terms; // عضو کا نام یا نامعلوم اندراج
+  const myTokens = new Set(pmSignificantTokens(entry.name));
+  if(!myTokens.size) return terms;
+  // پھر اسی عضو میں موجود ملتے جلتے نام بھی شامل کریں (خودکار طریقہ)
+  diseaseList.forEach(d=>{
+    if(d.organ !== entry.organ) return;
+    if(seen.has(d.name)) return;
+    const tokens = pmSignificantTokens(d.name);
+    const overlap = tokens.some(t=> myTokens.has(t));
+    if(overlap){ seen.add(d.name); terms.push(d.name); }
+  });
+  return terms;
+}
+// customTerms دیا جائے تو ایک سے زیادہ متبادل ناموں سے تلاش کر کے نتائج ملا دیے جاتے ہیں —
+// ورنہ (پرانے طریقے کی طرح) صرف باکس میں لکھے لفظ سے تلاش ہوتی ہے
+function pmRunSearch(customTerms){
+  const terms = (customTerms && customTerms.length) ? customTerms : [pmSearchInputEl.value.trim()];
+  const primaryQuery = terms[0] || '';
   pmResultsEl.innerHTML = '';
   pmLastMatches = [];
-  pmLastQuery = query;
-  if(!query){ pmSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
-  const queryData = pmBuildSearchable(query);
-  if(!queryData.searchable){ pmSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
+  pmLastQuery = primaryQuery;
+  if(!primaryQuery){ pmSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
   // نوٹ: "بیماری کے مزاج" اب اس باکس سے نہیں بلکہ اوپر دی گئی فہرست (select) سے دکھائی جاتی ہے —
   // تاکہ صرف فہرست میں موجود درست نام ہی منتخب ہو سکیں، من مانا لفظ لکھ کر نہیں
-  const matchedSymptoms = pmFindMatchingSymptoms(query);
+  const matchedSymptoms = pmFindMatchingSymptoms(primaryQuery);
   pmRenderMatchingSymptoms(matchedSymptoms);
-  const matchedOrgans = pmFindMatchingOrgans(query);
+  const matchedOrgans = pmFindMatchingOrgans(primaryQuery);
   pmRenderMatchingOrgans(matchedOrgans);
   if(pmLibrary.length === 0){
     pmSummaryEl.textContent = 'ابھی اس ڈیوائس/براؤزر میں کوئی PDF فائل شامل نہیں ہے۔';
@@ -4740,39 +4888,50 @@ function pmRunSearch(){
   // پہلے صفحے کے اوپر لکھے بڑے عنوان (title) میں تلاش کریں — تاکہ نتیجہ سیدھا بتائے کہ فلاں موضوع/بیماری
   // فلاں صفحہ پر ہے۔ اگر عنوان میں کہیں نہ ملے، تو بطور متبادل پورے صفحے کے متن میں بھی تلاش کریں
   // تاکہ صارف کو خالی ہاتھ نہ رہنا پڑے — مگر ایسے نتائج کو الگ سے واضح کیا جائے گا۔
+  // ہر متبادل نام کے لیے الگ الگ تلاش کر کے، ایک ہی صفحہ دو بار نہ آئے اس کا خیال رکھتے ہوئے، نتائج ملا دیے جاتے ہیں۔
   const titleMatches = [];
   const textMatches = [];
   const looseMatches = [];
-  pmLibrary.forEach(fileEntry=>{
-    fileEntry.pages.forEach(p=>{
-      if(p.title){
-        const m = pmFindMatch(p.title, queryData);
-        if(m){ titleMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.title, m.startOrig, m.endOrig), fullText: p.text }); return; }
-      }
-      if(p.text){
-        const m2 = pmFindMatch(p.text, queryData);
-        if(m2){ textMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.text, m2.startOrig, m2.endOrig), fullText: p.text }); return; }
-        // اردو OCR اکثر دو الفاظ کے درمیان خالی جگہ صحیح طور پر نہیں پہچانتا (لفظ آپس میں جڑ جاتے ہیں) —
-        // اس لیے اگر مکمل/الگ لفظ کے طور پر نہ ملے تو آخری چارے کے طور پر بغیر لفظ کی حد کے بھی تلاش کریں
-        const { searchable } = pmBuildSearchable(p.text);
-        if(searchable.indexOf(queryData.searchable) !== -1){
-          looseMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.text, 0, Math.min(p.text.length, 220)), fullText: p.text });
+  const seenPageKeys = new Set();
+  terms.forEach(term=>{
+    const queryData = pmBuildSearchable(term);
+    if(!queryData.searchable) return;
+    pmLibrary.forEach(fileEntry=>{
+      fileEntry.pages.forEach(p=>{
+        const key = fileEntry.fileName + '|' + p.pageNum;
+        if(seenPageKeys.has(key)) return;
+        if(p.title){
+          const m = pmFindMatch(p.title, queryData);
+          if(m){ titleMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.title, m.startOrig, m.endOrig), fullText: p.text, matchedTerm: term }); seenPageKeys.add(key); return; }
         }
-      }
+        if(p.text){
+          const m2 = pmFindMatch(p.text, queryData);
+          if(m2){ textMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.text, m2.startOrig, m2.endOrig), fullText: p.text, matchedTerm: term }); seenPageKeys.add(key); return; }
+          // اردو OCR اکثر دو الفاظ کے درمیان خالی جگہ صحیح طور پر نہیں پہچانتا (لفظ آپس میں جڑ جاتے ہیں) —
+          // اس لیے اگر مکمل/الگ لفظ کے طور پر نہ ملے تو آخری چارے کے طور پر بغیر لفظ کی حد کے بھی تلاش کریں
+          const { searchable } = pmBuildSearchable(p.text);
+          if(searchable.indexOf(queryData.searchable) !== -1){
+            looseMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.text, 0, Math.min(p.text.length, 220)), fullText: p.text, matchedTerm: term });
+            seenPageKeys.add(key);
+          }
+        }
+      });
     });
   });
   const matches = titleMatches.length ? titleMatches : (textMatches.length ? textMatches : looseMatches);
   if(matches.length===0){
     let totalPages = 0, ocrPages = 0;
     pmLibrary.forEach(fe=> fe.pages.forEach(p=>{ totalPages++; if(p.text) ocrPages++; }));
-    pmSummaryEl.textContent = `"${query}" کسی بھی فائل میں نہیں ملا۔`;
+    pmSummaryEl.textContent = `"${primaryQuery}" کسی بھی فائل میں نہیں ملا۔`;
     pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا — یہ لفظ کسی بھی صفحے کے عنوان یا متن میں نہیں ملا۔<br>کل صفحات: ${totalPages}، جن میں سے متن نکلا ہوا ہے: ${ocrPages}۔ اگر یہ تعداد کم ہو تو فائل ابھی مکمل OCR نہیں ہوئی — اوپر فائل کے ساتھ "OCR چلائیں" دبائیں۔</p></div>`;
     return;
   }
   pmLastMatches = matches;
   const usedTextFallback = titleMatches.length === 0 && textMatches.length > 0;
   const usedLooseFallback = titleMatches.length === 0 && textMatches.length === 0 && looseMatches.length > 0;
-  pmSummaryEl.textContent = `"${query}" کل ${matches.length} صفحات پر ملا۔`;
+  pmSummaryEl.textContent = terms.length > 1
+    ? `"${primaryQuery}" اور اس کے ${terms.length-1} متبادل نام مل کر کل ${matches.length} صفحات پر ملے۔`
+    : `"${primaryQuery}" کل ${matches.length} صفحات پر ملا۔`;
   if(usedTextFallback){
     pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted); margin:0;">نوٹ: یہ لفظ کسی صفحے کے بڑے عنوان میں نہیں ملا، اس لیے نیچے صفحے کے متن میں ملنے والے نتائج دکھائے جا رہے ہیں۔</p></div>`;
   } else if(usedLooseFallback){
@@ -4783,9 +4942,10 @@ function pmRunSearch(){
     card.className = 'mujarrab-card';
     const canOpen = pmCanOpenFile(m.fileName);
     const openBtnHtml = canOpen
-      ? `<button class="btn secondary" onclick="pmOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(query)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
+      ? `<button class="btn secondary" onclick="pmOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(m.matchedTerm)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
-    card.innerHTML = `<h4>📄 صفحہ ${m.displayPageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
+    const termLabel = terms.length > 1 ? `<p style="color:var(--muted); font-size:.8rem; margin:2px 0 6px;">(نام: ${escapeHtmlSearch(m.matchedTerm)})</p>` : '';
+    card.innerHTML = `<h4>📄 صفحہ ${m.displayPageNum}</h4>${termLabel}<p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
     pmResultsEl.appendChild(card);
   });
 }
