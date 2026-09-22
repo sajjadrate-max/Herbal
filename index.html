@@ -4102,6 +4102,16 @@ async function pmProcessFile(file, fromStorage, cachedPages){
 }
 
 pmSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') pmRunSearch(); });
+// جب صارف نیچے دی گئی تجویز کردہ فہرست (datalist) میں سے کوئی لفظ منتخب/ٹیپ کرے تو
+// فوراً خودکار طور پر سرچ چلا دیں — الگ سے "تلاش کریں" دبانے کی ضرورت نہ پڑے
+pmSearchInputEl.addEventListener('input', ()=>{
+  const val = pmSearchInputEl.value.trim();
+  if(!val) return;
+  const listEl = document.getElementById('pmDiseaseSuggestions');
+  if(!listEl) return;
+  const options = Array.from(listEl.options).map(o=> o.value);
+  if(options.includes(val)) pmRunSearch();
+});
 
 // پہلے سے محفوظ شدہ PDF فائلیں خودکار طور پر لوڈ کر دیں تاکہ تلاش فوراً کام کرے
 // (فائلیں انتخابی طور پر پاس ورڈ کے بغیر بھی سرچ کے قابل رہتی ہیں — پاس ورڈ صرف نئی فائل شامل/ہٹانے کے لیے ہے)
