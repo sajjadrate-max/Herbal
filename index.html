@@ -4447,7 +4447,7 @@ function pmRenderMatchingDiseases(matchedDiseases){
     }
     rows.push(`<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(label)}</b>${catsText}</p>`);
   });
-  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مطابق معلومات</h4>${rows.join('')}`;
+  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مزاج</h4>${rows.join('')}`;
   pmResultsEl.appendChild(card);
 }
 
@@ -4804,9 +4804,6 @@ async function herbalShowPdfPage(entry, pageNum, queryText){
         <div id="herbalPdfPageBlock1" style="display:none;">
           <canvas id="herbalPdfPageCanvas" style="max-width:100%; height:auto; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,.5);"></canvas>
         </div>
-        <div id="herbalPdfPageBlock2" style="display:none; margin-top:18px;">
-          <canvas id="herbalPdfPageCanvas2" style="max-width:100%; height:auto; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,.5);"></canvas>
-        </div>
       </div>`;
     document.body.appendChild(modal);
     modal.addEventListener('click', e=>{ if(e.target === modal) herbalClosePdfPageModal(); });
@@ -4814,23 +4811,14 @@ async function herbalShowPdfPage(entry, pageNum, queryText){
   modal.style.display = 'block';
   const canvas1 = document.getElementById('herbalPdfPageCanvas');
   const block1 = document.getElementById('herbalPdfPageBlock1');
-  const canvas2 = document.getElementById('herbalPdfPageCanvas2');
-  const block2 = document.getElementById('herbalPdfPageBlock2');
   const loadingEl = document.getElementById('herbalPdfPageLoading');
   block1.style.display = 'none';
-  block2.style.display = 'none';
   loadingEl.style.display = 'block';
   loadingEl.textContent = 'لوڈ ہو رہا ہے...';
   try{
     await herbalRenderPdfPageToCanvas(entry, pageNum, canvas1, queryText);
     loadingEl.style.display = 'none';
     block1.style.display = 'block';
-    const nextPageNum = pageNum + 1;
-    if(entry.pdfDoc.numPages >= nextPageNum){
-      herbalRenderPdfPageToCanvas(entry, nextPageNum, canvas2, '').then(()=>{
-        block2.style.display = 'block';
-      }).catch(()=>{});
-    }
   }catch(e){
     console.error('PDF page render error:', e);
     loadingEl.textContent = 'معذرت، یہ صفحہ دکھانے میں خرابی ہوئی۔';
