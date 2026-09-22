@@ -4630,7 +4630,7 @@ function pmRunSearch(){
     const openBtnHtml = canOpen
       ? `<button class="btn secondary" onclick="pmOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
-    card.innerHTML = `<h4>📄 ${escapeHtmlSearch(m.fileName)} — صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
+    card.innerHTML = `<h4>📄 صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
     pmResultsEl.appendChild(card);
   });
 }
@@ -4674,7 +4674,7 @@ async function herbalShowPdfPage(entry, pageNum){
     modal.addEventListener('click', e=>{ if(e.target === modal) herbalClosePdfPageModal(); });
   }
   modal.style.display = 'block';
-  document.getElementById('herbalPdfPageModalTitle').textContent = entry.fileName + ' — صفحہ ' + pageNum;
+  document.getElementById('herbalPdfPageModalTitle').textContent = 'صفحہ ' + pageNum;
   const canvas = document.getElementById('herbalPdfPageCanvas');
   const loadingEl = document.getElementById('herbalPdfPageLoading');
   canvas.style.display = 'none';
@@ -5073,7 +5073,7 @@ function hzRunSearch(){
     const openBtnHtml = canOpen
       ? `<button class="btn secondary" onclick="hzOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
-    card.innerHTML = `<h4>🌿 ${escapeHtmlSearch(m.fileName)} — صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
+    card.innerHTML = `<h4>🌿 صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
     hzResultsEl.appendChild(card);
   });
 }
