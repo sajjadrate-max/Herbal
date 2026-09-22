@@ -4409,17 +4409,44 @@ function pmPopulateDiseaseSuggestions(){
   }
   listEl.innerHTML = html;
 }
-function pmRenderMatchingDiseases(matchedDiseases){
+async function pmRenderMatchingDiseases(matchedDiseases){
   if(!matchedDiseases.length) return;
   const card = document.createElement('div');
   card.className = 'mujarrab-card';
   card.style.marginBottom = '16px';
-  const rows = matchedDiseases.map(d=>{
-    const catName = mizajNumberMap[d.tendency] || '';
-    return `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(d.name)}</b>${catName ? ' — '+escapeHtmlSearch(catName) : ''}</p>`;
-  }).join('');
-  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مطابق معلومات</h4>${rows}`;
+  const bodyId = 'pmDiseaseSummaryBody_' + Date.now();
+  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مطابق معلومات</h4><div id="${bodyId}"><p style="color:var(--text); margin:4px 0;">⏳ معلومات تیار کی جا رہی ہیں…</p></div>`;
   pmResultsEl.appendChild(card);
+  const bodyEl = document.getElementById(bodyId);
+
+  // جملہ خود سے نہیں لکھا جاتا — diseaseList سے ملنے والی اندراجات (نام، عضو، مزاج) سیدھی
+  // API کو بھیجی جاتی ہیں، اور API انہی اندراجات کی بنیاد پر جملہ بناتا ہے
+  const payload = matchedDiseases.map(d=> ({
+    name: d.name,
+    organ: d.organ || '',
+    mizajCategory: mizajNumberMap[d.tendency] || ''
+  }));
+
+  try{
+    const res = await fetch('/api/disease-summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ diseases: payload })
+    });
+    const data = await res.json().catch(()=> null);
+    if(!res.ok || !data || !data.summary){
+      bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">معلومات حاصل نہیں ہو سکیں۔ دوبارہ کوشش کریں۔</p>`;
+      return;
+    }
+    const lines = data.summary.split('\n').map(l=> l.trim()).filter(Boolean);
+    const rows = lines.map(line=>{
+      const cleaned = line.replace(/^🔹\s*/, '');
+      return `<p style="color:var(--text); margin:4px 0;">🔹 ${escapeHtmlSearch(cleaned)}</p>`;
+    }).join('');
+    bodyEl.innerHTML = rows || `<p style="color:var(--text); margin:4px 0;">کوئی معلومات نہیں ملیں۔</p>`;
+  }catch(e){
+    bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">معلومات حاصل نہیں ہو سکیں۔ انٹرنیٹ کنکشن چیک کریں۔</p>`;
+  }
 }
 
 const pmSimpleMizajNames = {asabi:'اعصابی', adalati:'عضلاتی', ghudi:'غدی'};
