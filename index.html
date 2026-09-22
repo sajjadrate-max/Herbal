@@ -4416,7 +4416,7 @@ function pmRenderMatchingDiseases(matchedDiseases){
   card.style.marginBottom = '16px';
   const rows = matchedDiseases.map(d=>{
     const catName = mizajNumberMap[d.tendency] || '';
-    return `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(d.name)}</b>${catName ? ' — '+escapeHtmlSearch(catName)+' مزاج' : ''} (تحریک ${d.tendency})</p>`;
+    return `<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(d.name)}</b>${catName ? ' — '+escapeHtmlSearch(catName) : ''}</p>`;
   }).join('');
   card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مطابق معلومات</h4>${rows}`;
   pmResultsEl.appendChild(card);
