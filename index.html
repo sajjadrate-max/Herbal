@@ -4013,7 +4013,7 @@ function pmExportExtractedText(){
   const exportData = pmLibrary.map(entry=> ({
     fileName: entry.fileName,
     numPages: entry.pages.length,
-    pages: entry.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '' }))
+    pages: entry.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', words:p.words || undefined }))
   }));
   const blob = new Blob([JSON.stringify(exportData, null, 0)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -4054,7 +4054,7 @@ async function pmProcessFile(file, fromStorage, cachedPages){
     // اگر پہلے سے محفوظ شدہ متن (بشمول OCR سے نکالا گیا متن) موجود ہو تو دوبارہ نکالنے کی بجائے وہی استعمال کریں —
     // اس سے OCR کا نتیجہ ہر بار صفحہ کھلنے/سائٹ اپ ڈیٹ ہونے پر بھی برقرار رہتا ہے، دوبارہ OCR نہیں کرنا پڑتا
     if(Array.isArray(cachedPages) && cachedPages.length === doc.numPages){
-      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr }));
+      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr, words:p.words||null }));
       pmSetRowStatus(row, `محفوظ شدہ متن سے لوڈ ہو رہی ہے... (${doc.numPages} صفحات)`);
     } else {
       for(let i=1;i<=doc.numPages;i++){
@@ -4275,8 +4275,15 @@ async function pmRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
         const ctx = canvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport }).promise;
         pmPreprocessForOcr(canvas);
-        const { data: { text } } = await worker.recognize(canvas);
-        p.text = text; p.ocr = true;
+        const { data } = await worker.recognize(canvas);
+        p.text = data.text; p.ocr = true;
+        // ہر لفظ کی پوزیشن بھی محفوظ کریں (صفحے کی چوڑائی/اونچائی کی نسبت سے) — تاکہ بعد میں
+        // PDF صفحہ دکھاتے وقت تلاش کیا گیا لفظ اسی جگہ پر نمایاں (ہائی لائٹ) کیا جا سکے
+        p.words = (data.words||[]).map(w=> ({
+          text: w.text,
+          x0: w.bbox.x0/canvas.width, y0: w.bbox.y0/canvas.height,
+          x1: w.bbox.x1/canvas.width, y1: w.bbox.y1/canvas.height
+        }));
       }catch(err){}
       currentDone++;
       // ہر چند صفحوں کے بعد وقتاً فوقتاً محفوظ کرتے رہیں — تاکہ اگر درمیان میں صفحہ بند/دوبارہ
@@ -4628,7 +4635,7 @@ function pmRunSearch(){
     card.className = 'mujarrab-card';
     const canOpen = pmCanOpenFile(m.fileName);
     const openBtnHtml = canOpen
-      ? `<button class="btn secondary" onclick="pmOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
+      ? `<button class="btn secondary" onclick="pmOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(query)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
     card.innerHTML = `<h4>📄 صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
     pmResultsEl.appendChild(card);
@@ -4644,18 +4651,37 @@ function pmCanOpenFile(fileName){
 function escapeJsAttr(s){
   return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 }
-function pmOpenPdfAtPage(fileName, pageNum){
+function pmOpenPdfAtPage(fileName, pageNum, queryText){
   const entry = pmLibrary.find(f=> f.fileName === fileName);
   if(!entry || !entry.pdfDoc){
     alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں، اس لیے صفحہ نہیں دکھایا جا سکتا۔');
     return;
   }
-  herbalShowPdfPage(entry, pageNum);
+  herbalShowPdfPage(entry, pageNum, queryText);
 }
 
 // PDF کا صرف ایک مخصوص صفحہ دکھانے کے لیے مشترکہ modal — pdf.js سے وہ صفحہ کینوس پر رینڈر کر کے دکھایا جاتا ہے،
 // اس طرح براؤزر پوری PDF نہیں کھولتا، صرف وہی صفحہ نظر آتا ہے (موبائل پر بھی درست کام کرتا ہے)
-async function herbalShowPdfPage(entry, pageNum){
+// دیا گیا لفظ/جملہ صفحے کے OCR شدہ الفاظ (words، جن کی پوزیشن محفوظ ہے) میں تلاش کر کے
+// ان کی بائنڈنگ باکس (bbox) واپس دیتا ہے — تاکہ صفحہ دکھاتے وقت وہ لفظ نمایاں کیا جا سکے
+function herbalFindWordBoxes(pageData, queryText){
+  if(!pageData || !Array.isArray(pageData.words) || !pageData.words.length || !queryText) return [];
+  const norm = s=>{ let out=''; for(const ch of String(s||'')){ if(/\s/.test(ch)) continue; out += pmNormalizeChar(ch); } return out; };
+  let combined = '';
+  const ranges = [];
+  pageData.words.forEach((w,i)=>{
+    const n = norm(w.text);
+    ranges.push({ start:combined.length, end:combined.length+n.length, i });
+    combined += n;
+  });
+  const qNorm = norm(queryText);
+  if(!qNorm) return [];
+  const idx = combined.indexOf(qNorm);
+  if(idx === -1) return [];
+  const endIdx = idx + qNorm.length;
+  return ranges.filter(r=> r.start < endIdx && r.end > idx).map(r=> pageData.words[r.i]);
+}
+async function herbalShowPdfPage(entry, pageNum, queryText){
   let modal = document.getElementById('herbalPdfPageModal');
   if(!modal){
     modal = document.createElement('div');
@@ -4687,6 +4713,18 @@ async function herbalShowPdfPage(entry, pageNum){
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     await page.render({ canvasContext: ctx, viewport }).promise;
+    // اگر اس صفحے کے الفاظ کی پوزیشن محفوظ ہے (OCR شدہ صفحہ) تو تلاش کیا گیا لفظ زرد رنگ سے نمایاں کر دیں —
+    // بالکل ویسے جیسے نتائج کی فہرست میں نظر آتا ہے
+    const pageData = entry.pages.find(p=> p.pageNum === pageNum);
+    const boxes = herbalFindWordBoxes(pageData, queryText);
+    if(boxes.length){
+      ctx.fillStyle = 'rgba(255,213,0,0.45)';
+      boxes.forEach(w=>{
+        const x = w.x0*canvas.width, y = w.y0*canvas.height;
+        const ww = (w.x1-w.x0)*canvas.width, hh = (w.y1-w.y0)*canvas.height;
+        ctx.fillRect(x, y, ww, hh);
+      });
+    }
     loadingEl.style.display = 'none';
     canvas.style.display = 'block';
   }catch(e){
@@ -4857,7 +4895,7 @@ async function hzProcessFile(file, fromStorage, cachedPages){
     // اگر پہلے سے محفوظ شدہ متن (بشمول OCR سے نکالا گیا متن) موجود ہو تو دوبارہ نکالنے کی بجائے وہی استعمال کریں —
     // اس سے OCR کا نتیجہ ہر بار صفحہ کھلنے/سائٹ اپ ڈیٹ ہونے پر بھی برقرار رہتا ہے، دوبارہ OCR نہیں کرنا پڑتا
     if(Array.isArray(cachedPages) && cachedPages.length === doc.numPages){
-      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr }));
+      pages = cachedPages.map(p=> ({ pageNum:p.pageNum, text:p.text, ocr:!!p.ocr, words:p.words||null }));
       hzSetRowStatus(row, `محفوظ شدہ متن سے لوڈ ہو رہی ہے... (${doc.numPages} صفحات)`);
     } else {
       for(let i=1;i<=doc.numPages;i++){
@@ -5014,8 +5052,13 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
         const ctx = canvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport }).promise;
         pmPreprocessForOcr(canvas);
-        const { data: { text } } = await worker.recognize(canvas);
-        p.text = text; p.ocr = true;
+        const { data } = await worker.recognize(canvas);
+        p.text = data.text; p.ocr = true;
+        p.words = (data.words||[]).map(w=> ({
+          text: w.text,
+          x0: w.bbox.x0/canvas.width, y0: w.bbox.y0/canvas.height,
+          x1: w.bbox.x1/canvas.width, y1: w.bbox.y1/canvas.height
+        }));
       }catch(err){}
       currentDone++;
       // ہر چند صفحوں کے بعد وقتاً فوقتاً محفوظ کرتے رہیں — تاکہ اگر درمیان میں صفحہ بند/دوبارہ
@@ -5071,7 +5114,7 @@ function hzRunSearch(){
     card.className = 'mujarrab-card';
     const canOpen = hzCanOpenFile(m.fileName);
     const openBtnHtml = canOpen
-      ? `<button class="btn secondary" onclick="hzOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
+      ? `<button class="btn secondary" onclick="hzOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(query)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
     card.innerHTML = `<h4>🌿 صفحہ ${m.pageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
     hzResultsEl.appendChild(card);
@@ -5081,13 +5124,13 @@ function hzCanOpenFile(fileName){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
   return !!(entry && entry.pdfDoc);
 }
-function hzOpenPdfAtPage(fileName, pageNum){
+function hzOpenPdfAtPage(fileName, pageNum, queryText){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
   if(!entry || !entry.pdfDoc){
     alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں، اس لیے صفحہ نہیں دکھایا جا سکتا۔');
     return;
   }
-  herbalShowPdfPage(entry, pageNum);
+  herbalShowPdfPage(entry, pageNum, queryText);
 }
 function hzBuildSnippet(text, startOrig, endOrig){
   const radius = 60;
