@@ -4428,14 +4428,27 @@ async function pmRenderMatchingDiseases(matchedDiseases){
   }));
 
   try{
-    const res = await fetch('/api/disease-summary', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ diseases: payload })
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(()=> controller.abort(), 20000); // 20 سیکنڈ کے بعد خودکار منسوخ
+    let res;
+    try{
+      res = await fetch('/api/disease-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ diseases: payload }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if(res.status === 404){
+      bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">⚠️ سرور پر api/disease-summary فائل نہیں ملی۔ براہ کرم چیک کریں کہ یہ فائل GitHub کے "api" فولڈر میں اپ لوڈ ہو کر Vercel پر دوبارہ deploy ہو چکی ہے۔</p>`;
+      return;
+    }
     const data = await res.json().catch(()=> null);
     if(!res.ok || !data || !data.summary){
-      bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">معلومات حاصل نہیں ہو سکیں۔ دوبارہ کوشش کریں۔</p>`;
+      const serverMsg = data && data.error ? ' ('+data.error+')' : '';
+      bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">⚠️ معلومات حاصل نہیں ہو سکیں${escapeHtmlSearch(serverMsg)}۔ اگر یہ مسئلہ برقرار رہے تو چیک کریں کہ Vercel پر OPENAI_API_KEY سیٹ ہے۔</p>`;
       return;
     }
     const lines = data.summary.split('\n').map(l=> l.trim()).filter(Boolean);
@@ -4445,7 +4458,8 @@ async function pmRenderMatchingDiseases(matchedDiseases){
     }).join('');
     bodyEl.innerHTML = rows || `<p style="color:var(--text); margin:4px 0;">کوئی معلومات نہیں ملیں۔</p>`;
   }catch(e){
-    bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">معلومات حاصل نہیں ہو سکیں۔ انٹرنیٹ کنکشن چیک کریں۔</p>`;
+    const msg = (e && e.name === 'AbortError') ? 'سرور کی طرف سے جواب آنے میں بہت وقت لگ گیا۔' : 'معلومات حاصل نہیں ہو سکیں۔ انٹرنیٹ کنکشن چیک کریں۔';
+    bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">⚠️ ${msg}</p>`;
   }
 }
 
