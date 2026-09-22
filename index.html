@@ -4409,58 +4409,39 @@ function pmPopulateDiseaseSuggestions(){
   }
   listEl.innerHTML = html;
 }
-async function pmRenderMatchingDiseases(matchedDiseases){
+function pmRenderMatchingDiseases(matchedDiseases){
   if(!matchedDiseases.length) return;
   const card = document.createElement('div');
   card.className = 'mujarrab-card';
   card.style.marginBottom = '16px';
-  const bodyId = 'pmDiseaseSummaryBody_' + Date.now();
-  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مطابق معلومات</h4><div id="${bodyId}"><p style="color:var(--text); margin:4px 0;">⏳ معلومات تیار کی جا رہی ہیں…</p></div>`;
+  // ایک ہی عضو/بیماری کے مختلف نام والی اندراجات کو ایک ہی گروپ میں اکٹھا کریں
+  const groups = new Map();
+  matchedDiseases.forEach(d=>{
+    const key = d.organ || d.name;
+    if(!groups.has(key)) groups.set(key, { names:new Set(), cats:[] });
+    const g = groups.get(key);
+    g.names.add(d.name);
+    const catName = mizajNumberMap[d.tendency] || '';
+    if(catName && !g.cats.includes(catName)) g.cats.push(catName);
+  });
+  const rows = [];
+  groups.forEach(g=>{
+    // سب سے لمبا نام بطور نمائندہ لیبل منتخب کریں
+    let label = '';
+    g.names.forEach(n=>{ if(n.length > label.length) label = n; });
+    let catsText = '';
+    if(g.cats.length === 1){
+      catsText = ' زیادہ تر '+escapeHtmlSearch(g.cats[0])+' میں ہو سکتی ہے۔';
+    } else if(g.cats.length > 1){
+      const escCats = g.cats.map(c=> escapeHtmlSearch(c));
+      const last = escCats[escCats.length-1];
+      const rest = escCats.slice(0, -1).join('، ');
+      catsText = ' زیادہ تر '+rest+' اور '+last+' میں ہو سکتی ہے۔';
+    }
+    rows.push(`<p style="color:var(--text); margin:4px 0;">🔹 <b>${escapeHtmlSearch(label)}</b>${catsText}</p>`);
+  });
+  card.innerHTML = `<h4 style="color:var(--gold-soft); margin-bottom:6px;">بیماری کے مطابق معلومات</h4>${rows.join('')}`;
   pmResultsEl.appendChild(card);
-  const bodyEl = document.getElementById(bodyId);
-
-  // جملہ خود سے نہیں لکھا جاتا — diseaseList سے ملنے والی اندراجات (نام، عضو، مزاج) سیدھی
-  // API کو بھیجی جاتی ہیں، اور API انہی اندراجات کی بنیاد پر جملہ بناتا ہے
-  const payload = matchedDiseases.map(d=> ({
-    name: d.name,
-    organ: d.organ || '',
-    mizajCategory: mizajNumberMap[d.tendency] || ''
-  }));
-
-  try{
-    const controller = new AbortController();
-    const timeoutId = setTimeout(()=> controller.abort(), 20000); // 20 سیکنڈ کے بعد خودکار منسوخ
-    let res;
-    try{
-      res = await fetch('/api/disease-summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ diseases: payload }),
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-    if(res.status === 404){
-      bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">⚠️ سرور پر api/disease-summary فائل نہیں ملی۔ براہ کرم چیک کریں کہ یہ فائل GitHub کے "api" فولڈر میں اپ لوڈ ہو کر Vercel پر دوبارہ deploy ہو چکی ہے۔</p>`;
-      return;
-    }
-    const data = await res.json().catch(()=> null);
-    if(!res.ok || !data || !data.summary){
-      const serverMsg = data && data.error ? ' ('+data.error+')' : '';
-      bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">⚠️ معلومات حاصل نہیں ہو سکیں${escapeHtmlSearch(serverMsg)}۔ اگر یہ مسئلہ برقرار رہے تو چیک کریں کہ Vercel پر OPENAI_API_KEY سیٹ ہے۔</p>`;
-      return;
-    }
-    const lines = data.summary.split('\n').map(l=> l.trim()).filter(Boolean);
-    const rows = lines.map(line=>{
-      const cleaned = line.replace(/^🔹\s*/, '');
-      return `<p style="color:var(--text); margin:4px 0;">🔹 ${escapeHtmlSearch(cleaned)}</p>`;
-    }).join('');
-    bodyEl.innerHTML = rows || `<p style="color:var(--text); margin:4px 0;">کوئی معلومات نہیں ملیں۔</p>`;
-  }catch(e){
-    const msg = (e && e.name === 'AbortError') ? 'سرور کی طرف سے جواب آنے میں بہت وقت لگ گیا۔' : 'معلومات حاصل نہیں ہو سکیں۔ انٹرنیٹ کنکشن چیک کریں۔';
-    bodyEl.innerHTML = `<p style="color:var(--text); margin:4px 0;">⚠️ ${msg}</p>`;
-  }
 }
 
 const pmSimpleMizajNames = {asabi:'اعصابی', adalati:'عضلاتی', ghudi:'غدی'};
