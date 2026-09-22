@@ -4364,6 +4364,14 @@ function pmNormalizeWord(text){
 // موجودہ بیماریوں کی فہرست (diseaseList — جو مزاج کی تشخیص میں پہلے سے استعمال ہوتی ہے) میں سے
 // وہی بیماریاں دکھائیں جن کا نام مکمل طور پر لکھا گیا ہو (لفظ کا صرف ایک ٹکڑا/حصہ لکھنے پر نہیں —
 // مثلاً "مح" لکھنے پر کچھ نہیں دکھایا جائے گا، مگر "سردرد" یا "اعصابی سردرد" مکمل لکھنے پر دکھایا جائے گا)
+// چیک کریں کہ لکھا گیا لفظ کسی بیماری کے "عضو" کے نام سے مکمل میل کھاتا ہے —
+// تاکہ عضو کا نام لکھنے پر (مثلاً "معدہ" یا "جگر") اس عضو کی تمام بیماریاں دکھائی جا سکیں،
+// نہ صرف وہ بیماریاں جن کے اپنے نام میں وہ لفظ لکھا ہو
+function pmOrganMatchesQuery(organField, normQuery){
+  if(!organField) return false;
+  const parts = String(organField).split(/،| و /).map(s=> pmNormalizeWord(s)).filter(Boolean);
+  return parts.some(part=> part === normQuery || part.split(' ').includes(normQuery));
+}
 function pmFindMatchingDiseases(query){
   const normQuery = pmNormalizeWord(query);
   if(!normQuery) return [];
@@ -4373,7 +4381,7 @@ function pmFindMatchingDiseases(query){
     const normName = pmNormalizeWord(d.name);
     if(!normName) return;
     const tokens = normName.split(' ');
-    const isMatch = normName === normQuery || tokens.includes(normQuery);
+    const isMatch = normName === normQuery || tokens.includes(normQuery) || pmOrganMatchesQuery(d.organ, normQuery);
     if(!isMatch) return;
     const key = d.name + '|' + d.mizaj + '|' + d.tendency;
     if(seen.has(key)) return;
@@ -4414,28 +4422,19 @@ function pmRenderMatchingDiseases(matchedDiseases){
   const card = document.createElement('div');
   card.className = 'mujarrab-card';
   card.style.marginBottom = '16px';
-  // ایک ہی عضو/بیماری کے مختلف نام والی اندراجات کو ایک ہی گروپ میں اکٹھا کریں
+  // صرف بالکل ایک جیسے نام والی اندراجات کو اکٹھا کریں (ایک ہی بیماری، مختلف مزاج) —
+  // مختلف بیماریوں کو (چاہے ایک ہی عضو سے متعلق ہوں) الگ الگ ہی رکھیں
   const groups = new Map();
   matchedDiseases.forEach(d=>{
-    const key = d.organ || d.name;
-    if(!groups.has(key)) groups.set(key, { names:new Map(), cats:[] });
+    const key = d.name;
+    if(!groups.has(key)) groups.set(key, { label:d.name, cats:[] });
     const g = groups.get(key);
-    g.names.set(d.name, (g.names.get(d.name)||0) + 1);
     const catName = mizajNumberMap[d.tendency] || '';
     if(catName && !g.cats.includes(catName)) g.cats.push(catName);
   });
   const rows = [];
   groups.forEach(g=>{
-    // فہرست میں سب سے زیادہ دہرایا گیا نام بطور نمائندہ لیبل منتخب کریں
-    // (برابری کی صورت میں لمبا نام ترجیح دیں)
-    let label = '';
-    let bestCount = 0;
-    g.names.forEach((count, n)=>{
-      if(count > bestCount || (count === bestCount && n.length > label.length)){
-        bestCount = count;
-        label = n;
-      }
-    });
+    const label = g.label;
     let catsText = '';
     if(g.cats.length === 1){
       catsText = ' زیادہ تر '+escapeHtmlSearch(g.cats[0])+' میں ہو سکتی ہے۔';
