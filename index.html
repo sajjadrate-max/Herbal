@@ -370,15 +370,15 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <div id="pmMizajResults" style="margin-top:12px;"></div>
   </div>
 
-  <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
-    <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">تلاش کریں</h3>
+  <!-- "تلاش کریں" کا الگ باکس اب صارف کو نظر نہیں آتا — اوپر "بیماری کے مزاج" کی فہرست میں سے
+       نام منتخب کرنے پر یہی سسٹم خودکار طور پر پس منظر میں چلتا ہے (PDF کتابوں میں تلاش)۔
+       عناصر یہاں چھپا کر رکھے گئے ہیں تاکہ موجودہ کوڈ بغیر کسی تبدیلی کے کام کرتا رہے۔ -->
+  <div style="display:none;">
     <input class="search" id="pmSearchInput" list="pmDiseaseSuggestions" placeholder="کوئی لفظ یا جملہ لکھیں...">
     <datalist id="pmDiseaseSuggestions"></datalist>
-    <div style="text-align:center; margin-top:10px;">
-      <button class="btn" id="pmSearchBtn" disabled onclick="pmRunSearch()" style="border-radius:20px; padding:10px 24px;">تلاش کریں</button>
-    </div>
-    <div id="pmSummary" style="color:var(--muted); font-size:.9rem; text-align:center; margin-top:10px;"></div>
+    <button class="btn" id="pmSearchBtn" disabled onclick="pmRunSearch()">تلاش کریں</button>
   </div>
+  <div id="pmSummary" style="color:var(--muted); font-size:.9rem; text-align:center; margin:-8px 0 16px;"></div>
 
   <div id="pmFilesOwnerWrap" style="display:none;">
     <div style="text-align:center; margin-bottom:16px;">
@@ -4529,6 +4529,11 @@ pmPopulateMizajSelect();
     row.style.background = 'rgba(255,213,0,0.15)';
     const matched = pmFindMatchingDiseases(val);
     pmRenderMatchingDiseases(matched, resultsEl);
+    // اسی منتخب کردہ لفظ سے "تلاش کریں" والا PDF سرچ بھی خودکار طور پر چلائیں
+    if(pmSearchInputEl){
+      pmSearchInputEl.value = val;
+      pmRunSearch();
+    }
   });
   if(filterEl){
     filterEl.addEventListener('input', ()=>{
