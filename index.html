@@ -365,8 +365,14 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
     <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">بیماری کے مزاج</h3>
     <p style="color:var(--muted); font-size:.85rem; text-align:center; margin-bottom:10px;">نیچے فہرست میں سے بیماری یا عضو کا نام پر ٹیپ کریں — یہاں خود سے لکھنے کی ضرورت نہیں</p>
-    <input class="search" id="pmMizajFilter" placeholder="فہرست میں سے تلاش کے لیے (اختیاری) لکھیں..." style="margin-bottom:8px;">
-    <div id="pmMizajOptionsList" style="max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:var(--card);"></div>
+    <div id="pmMizajSelectedBox" style="display:none; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border:1px solid var(--gold); border-radius:8px; background:rgba(255,213,0,0.1); margin-bottom:8px;">
+      <span id="pmMizajSelectedLabel" style="color:var(--gold-soft); font-weight:bold;"></span>
+      <button class="btn secondary" type="button" style="padding:5px 14px; font-size:.8rem;" onclick="pmMizajShowList()">تبدیل کریں</button>
+    </div>
+    <div id="pmMizajListWrap">
+      <input class="search" id="pmMizajFilter" placeholder="فہرست میں سے تلاش کے لیے (اختیاری) لکھیں..." style="margin-bottom:8px;">
+      <div id="pmMizajOptionsList" style="max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:var(--card);"></div>
+    </div>
     <div id="pmMizajResults" style="margin-top:12px;"></div>
   </div>
 
@@ -4585,6 +4591,25 @@ function pmRenderMizajOptionsList(options){
   listEl.innerHTML = options.map(o=> `<div class="pm-mizaj-option" data-val="${escapeHtmlSearch(o)}" style="padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; color:var(--text);">${escapeHtmlSearch(o)}</div>`).join('');
 }
 pmPopulateMizajSelect();
+// ایک نام منتخب ہونے کے بعد پوری فہرست چھپا کر صرف منتخب شدہ نام دکھائیں — "تبدیل کریں" دبانے پر دوبارہ فہرست کھلے
+function pmMizajHideList(val){
+  const wrap = document.getElementById('pmMizajListWrap');
+  const box = document.getElementById('pmMizajSelectedBox');
+  const label = document.getElementById('pmMizajSelectedLabel');
+  if(!wrap || !box || !label) return;
+  wrap.style.display = 'none';
+  label.textContent = val;
+  box.style.display = 'flex';
+}
+function pmMizajShowList(){
+  const wrap = document.getElementById('pmMizajListWrap');
+  const box = document.getElementById('pmMizajSelectedBox');
+  if(!wrap || !box) return;
+  box.style.display = 'none';
+  wrap.style.display = '';
+  const filterEl = document.getElementById('pmMizajFilter');
+  if(filterEl) filterEl.focus();
+}
 (function(){
   const listEl = document.getElementById('pmMizajOptionsList');
   const resultsEl = document.getElementById('pmMizajResults');
@@ -4600,6 +4625,8 @@ pmPopulateMizajSelect();
     row.style.background = 'rgba(255,213,0,0.15)';
     const matched = pmFindMatchingDiseases(val);
     pmRenderMatchingDiseases(matched, resultsEl);
+    // منتخب کرنے کے بعد پوری فہرست چھپا دیں — صرف منتخب کردہ نام نظر آئے، ساتھ باقی فہرست نہ آئے
+    pmMizajHideList(val);
     // اسی منتخب کردہ بیماری کے diseaseList میں موجود تمام متبادل ناموں سے بھی PDF سرچ خودکار طور پر چلائیں
     if(pmSearchInputEl){
       const terms = pmGetPdfSearchTerms(val);
