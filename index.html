@@ -5010,9 +5010,57 @@ function pmRunSearch(customTerms){
       : '';
     const termLabel = terms.length > 1 ? `<p style="color:var(--muted); font-size:.8rem; margin:2px 0 6px;">(نام: ${escapeHtmlSearch(m.matchedTerm)})</p>` : '';
     const sysLabel = `<p style="color:var(--gold-soft); font-size:.8rem; margin:2px 0 6px;">📚 حکمت: ${escapeHtmlSearch(pmGetFileSystem(m.fileName))}</p>`;
-    card.innerHTML = `<h4>📄 صفحہ ${m.displayPageNum}</h4>${sysLabel}${termLabel}<p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
+    const editBtnHtml = `<button class="btn secondary" onclick="pmOpenTextEditor('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; margin-right:6px; padding:6px 16px; font-size:.82rem; border-radius:16px;">✏️ متن درست کریں</button>`;
+    card.innerHTML = `<h4>📄 صفحہ ${m.displayPageNum}</h4>${sysLabel}${termLabel}<p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}${editBtnHtml}`;
     pmResultsEl.appendChild(card);
   });
+}
+
+// ---------- OCR سے غلط/الجھا ہوا نکلنے والا متن خود ہاتھ سے درست کرنے کا آپشن ----------
+// خصوصاً نستعلیق (خطاطی) رسم الخط والی پرانی کتابوں میں خودکار OCR اکثر غلط پڑھتا ہے،
+// اس لیے صارف خود PDF دیکھ کر صحیح متن یہاں لکھ سکتا ہے — یہ ہمیشہ کے لیے محفوظ ہو جائے گا
+// اور اگلی بار سے تلاش میں درست نتیجہ آئے گا۔
+function pmOpenTextEditor(fileName, pageNum){
+  const entry = pmLibrary.find(f=> f.fileName === fileName);
+  if(!entry){ alert('یہ فائل نہیں ملی۔'); return; }
+  const page = entry.pages.find(p=> p.pageNum === pageNum);
+  if(!page){ alert('یہ صفحہ نہیں ملا۔'); return; }
+  const canSave = !!entry.file; // بلٹ اِن کتابوں میں اصل فائل موجود نہیں، اس لیے مستقل محفوظ نہیں ہو سکتا
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:999; padding:20px;';
+  modal.innerHTML = `
+    <div style="background:var(--navy); border:1px solid var(--gold); border-radius:10px; max-width:640px; width:100%; max-height:85vh; overflow:auto; padding:20px;">
+      <h3 style="margin-top:0; color:var(--gold);">${escapeHtmlSearch(fileName)} — صفحہ ${page.printedPageNum || page.pageNum} کا متن درست کریں</h3>
+      <p style="color:var(--muted); font-size:.85rem;">اگر OCR نے یہ صفحہ غلط/الجھا ہوا پڑھا ہے (خصوصاً نستعلیق خطاطی والی کتابوں میں ایسا ہو سکتا ہے) تو نیچے دیے گئے خانے میں خود صحیح متن لکھ کر محفوظ کر دیں — اگلی بار سے تلاش میں یہی درست متن استعمال ہو گا۔</p>
+      <textarea id="pmTextEditorArea" style="width:100%; min-height:220px; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:1rem; font-family:inherit;">${escapeHtmlSearch(page.text || '')}</textarea>
+      <div style="text-align:center; margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        ${canSave ? `<button class="btn" id="pmTextEditorSaveBtn" style="padding:9px 20px;">محفوظ کریں</button>` : `<p style="color:var(--muted); font-size:.8rem;">(نوٹ: یہ سائٹ کے ساتھ شامل بلٹ اِن کتاب ہے، اس لیے یہاں سے تبدیلی مستقل محفوظ نہیں ہو سکتی)</p>`}
+        <button class="btn secondary" style="padding:9px 20px;" onclick="this.closest('div[style*=fixed]').remove()">بند کریں</button>
+      </div>
+      <p id="pmTextEditorStatus" style="color:var(--gold-soft); font-size:.85rem; text-align:center; margin-top:10px;"></p>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  if(canSave){
+    const saveBtn = modal.querySelector('#pmTextEditorSaveBtn');
+    saveBtn.addEventListener('click', async ()=>{
+      const newText = modal.querySelector('#pmTextEditorArea').value;
+      page.text = newText;
+      page.ocr = true;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'محفوظ ہو رہا ہے...';
+      try{
+        await herbalIdbPut('pmFiles', { fileName: entry.fileName, blob: entry.file, pages: entry.pages, addedAt: Date.now() });
+        pmAutoDetectAndSetFileSystem(entry.fileName, entry.pages, pmRowsByName[entry.fileName]);
+        modal.querySelector('#pmTextEditorStatus').textContent = 'محفوظ ہو گیا — اب دوبارہ تلاش کریں تو درست متن نظر آئے گا۔';
+        saveBtn.textContent = 'محفوظ ہو گیا ✓';
+      }catch(err){
+        modal.querySelector('#pmTextEditorStatus').textContent = 'محفوظ نہیں ہو سکا — دوبارہ کوشش کریں۔';
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'محفوظ کریں';
+      }
+    });
+  }
 }
 
 // دی گئی فائل کا اصل PDF (بائٹس) دستیاب ہے یا نہیں — صرف اپ لوڈ کی گئی فائلوں کے پاس اصل PDF ہوتا ہے،
@@ -5570,13 +5618,56 @@ function hzRunSearch(){
       ? `<button class="btn secondary" onclick="hzOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(query)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
     const sysLabel = `<p style="color:var(--gold-soft); font-size:.8rem; margin:2px 0 6px;">📚 حکمت: ${escapeHtmlSearch(pmGetFileSystem(m.fileName))}</p>`;
-    card.innerHTML = `<h4>🌿 صفحہ ${m.displayPageNum}</h4>${sysLabel}<p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
+    const editBtnHtml = `<button class="btn secondary" onclick="hzOpenTextEditor('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; margin-right:6px; padding:6px 16px; font-size:.82rem; border-radius:16px;">✏️ متن درست کریں</button>`;
+    card.innerHTML = `<h4>🌿 صفحہ ${m.displayPageNum}</h4>${sysLabel}<p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}${editBtnHtml}`;
     hzResultsEl.appendChild(card);
   });
 }
 function hzCanOpenFile(fileName){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
   return !!(entry && entry.pdfDoc);
+}
+function hzOpenTextEditor(fileName, pageNum){
+  const entry = hzLibrary.find(f=> f.fileName === fileName);
+  if(!entry){ alert('یہ فائل نہیں ملی۔'); return; }
+  const page = entry.pages.find(p=> p.pageNum === pageNum);
+  if(!page){ alert('یہ صفحہ نہیں ملا۔'); return; }
+  const canSave = !!entry.file;
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:999; padding:20px;';
+  modal.innerHTML = `
+    <div style="background:var(--navy); border:1px solid var(--gold); border-radius:10px; max-width:640px; width:100%; max-height:85vh; overflow:auto; padding:20px;">
+      <h3 style="margin-top:0; color:var(--gold);">${escapeHtmlSearch(fileName)} — صفحہ ${page.printedPageNum || page.pageNum} کا متن درست کریں</h3>
+      <p style="color:var(--muted); font-size:.85rem;">اگر OCR نے یہ صفحہ غلط/الجھا ہوا پڑھا ہے (خصوصاً نستعلیق خطاطی والی کتابوں میں ایسا ہو سکتا ہے) تو نیچے دیے گئے خانے میں خود صحیح متن لکھ کر محفوظ کر دیں — اگلی بار سے تلاش میں یہی درست متن استعمال ہو گا۔</p>
+      <textarea id="hzTextEditorArea" style="width:100%; min-height:220px; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:1rem; font-family:inherit;">${escapeHtmlSearch(page.text || '')}</textarea>
+      <div style="text-align:center; margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        ${canSave ? `<button class="btn" id="hzTextEditorSaveBtn" style="padding:9px 20px;">محفوظ کریں</button>` : `<p style="color:var(--muted); font-size:.8rem;">(نوٹ: یہ سائٹ کے ساتھ شامل بلٹ اِن کتاب ہے، اس لیے یہاں سے تبدیلی مستقل محفوظ نہیں ہو سکتی)</p>`}
+        <button class="btn secondary" style="padding:9px 20px;" onclick="this.closest('div[style*=fixed]').remove()">بند کریں</button>
+      </div>
+      <p id="hzTextEditorStatus" style="color:var(--gold-soft); font-size:.85rem; text-align:center; margin-top:10px;"></p>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  if(canSave){
+    const saveBtn = modal.querySelector('#hzTextEditorSaveBtn');
+    saveBtn.addEventListener('click', async ()=>{
+      const newText = modal.querySelector('#hzTextEditorArea').value;
+      page.text = newText;
+      page.ocr = true;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'محفوظ ہو رہا ہے...';
+      try{
+        await herbalIdbPut('hzFiles', { fileName: entry.fileName, blob: entry.file, pages: entry.pages, addedAt: Date.now() });
+        pmAutoDetectAndSetFileSystem(entry.fileName, entry.pages, hzRowsByName[entry.fileName]);
+        modal.querySelector('#hzTextEditorStatus').textContent = 'محفوظ ہو گیا — اب دوبارہ تلاش کریں تو درست متن نظر آئے گا۔';
+        saveBtn.textContent = 'محفوظ ہو گیا ✓';
+      }catch(err){
+        modal.querySelector('#hzTextEditorStatus').textContent = 'محفوظ نہیں ہو سکا — دوبارہ کوشش کریں۔';
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'محفوظ کریں';
+      }
+    });
+  }
 }
 function hzOpenPdfAtPage(fileName, pageNum, queryText){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
