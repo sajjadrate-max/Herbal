@@ -3941,9 +3941,16 @@ async function pmHandleFiles(fileListInput){
 function pmAddFileRow(name){
   const row = document.createElement('div');
   row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; font-size:.9rem; color:var(--text);';
-  row.innerHTML = `<span>${escapeHtmlSearch(name)}</span><span class="pm-status" style="color:var(--muted);">پڑھی جا رہی ہے...</span><button class="pm-preview-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;">متن دیکھیں</button><button class="pm-ocr-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;"></button><div class="pm-ocr-progress" style="display:none; color:var(--muted); font-size:.8rem; width:100%;"></div>`;
+  row.innerHTML = `<span>${escapeHtmlSearch(name)}</span><span class="pm-status" style="color:var(--muted);">پڑھی جا رہی ہے...</span><span class="pm-system-badge" style="color:var(--gold-soft); font-size:.78rem;"></span><button class="pm-preview-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;">متن دیکھیں</button><button class="pm-ocr-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;"></button><div class="pm-ocr-progress" style="display:none; color:var(--muted); font-size:.8rem; width:100%;"></div>`;
+  pmUpdateFileSystemBadge(row, name);
   pmFileListEl.appendChild(row);
   return row;
+}
+function pmUpdateFileSystemBadge(row, name){
+  const badge = row && row.querySelector('.pm-system-badge');
+  if(!badge) return;
+  const sys = pmGetFileSystem(name);
+  badge.textContent = (sys && sys !== 'غیر متعین') ? ('📚 ' + sys) : '';
 }
 
 async function pmDeleteFile(fileName, row){
@@ -4075,6 +4082,8 @@ async function pmProcessFile(file, fromStorage, cachedPages){
     }
     const fileEntry = { fileName:file.name, pages, pdfDoc:doc, file };
     pmLibrary.push(fileEntry);
+    // فائل کے اپنے متن کو دیکھ کر خودکار طور پر اندازہ لگائیں کہ یہ کس حکمت کی کتاب ہے
+    pmAutoDetectAndSetFileSystem(file.name, pages, row);
     // نئی اپ لوڈ کی گئی فائل کو مستقل محفوظ کر دیں — اگلی بار صفحہ کھلنے پر یا index.html اپ ڈیٹ ہونے پر بھی موجود رہے گی
     // (متن بھی ساتھ محفوظ کیا جاتا ہے تاکہ OCR کا نتیجہ بھی ہمیشہ کے لیے برقرار رہے)
     if(!fromStorage){
@@ -4133,8 +4142,66 @@ pmSearchInputEl.addEventListener('input', ()=>{
   }catch(e){ console.error('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
 })();
 
-// سائٹ کے ساتھ مستقل طور پر شامل کی گئی کتابیں — یہ ہر وزیٹر کو خودکار طور پر دستیاب ہوتی ہیں،
-// کسی اپ لوڈ کی ضرورت نہیں۔ متن پہلے سے نکالا/OCR کیا جا چکا ہے اور data/ فولڈر میں JSON فائلوں کی صورت میں محفوظ ہے۔
+// ہر PDF کس "حکمت"/طبی نظام کی کتاب ہے (قانون مفرد اعضاء، طب یونانی، ہومیوپیتھک، ایلوپیتھک وغیرہ) —
+// یہ سرچ نتائج میں دکھایا جاتا ہے تاکہ صارف کو پتا چلے کہ معلومات کس طرزِ علاج سے آئی ہیں۔
+// سائٹ کے ساتھ مستقل شامل کتابوں کی نوعیت یہاں پہلے سے طے شدہ ہے (چونکہ ان کا مواد معلوم ہے)۔
+// اپ لوڈ کی گئی (owner کی) فائلوں کی نوعیت localStorage میں محفوظ رہتی ہے — فائل فہرست میں موجود
+// ڈراپ ڈاؤن سے منتخب کی جا سکتی ہے۔
+const PM_SYSTEM_OPTIONS = ['غیر متعین','قانون مفرد اعضاء','طب یونانی (روایتی)','ہومیوپیتھک','ایلوپیتھک (جدید طب)','عمومی طبی نصاب','غیر طبی/دیگر'];
+const PM_BUILTIN_FILE_SYSTEMS = {
+  'BIOCHEMISTRY_FOR_PARAMEDICS.pdf': 'عمومی طبی نصاب',
+  'COMPUTER_SCIENCE_FOR_PARAMEDICS.pdf': 'غیر طبی/دیگر',
+  'PHARMACY_BOOK.pdf': 'ایلوپیتھک (جدید طب)',
+  'PRACTICE_OF_MEDICINE_PART_1.pdf': 'ایلوپیتھک (جدید طب)',
+  'ULTRASOUND.pdf': 'ایلوپیتھک (جدید طب)'
+};
+function pmGetFileSystemMap(){
+  try{ return JSON.parse(localStorage.getItem('herbalFileSystemMap') || '{}'); }catch(e){ return {}; }
+}
+function pmGetFileSystem(fileName){
+  if(PM_BUILTIN_FILE_SYSTEMS[fileName]) return PM_BUILTIN_FILE_SYSTEMS[fileName];
+  const map = pmGetFileSystemMap();
+  return map[fileName] || 'غیر متعین';
+}
+function pmSetFileSystem(fileName, value){
+  const map = pmGetFileSystemMap();
+  if(value && value !== 'غیر متعین') map[fileName] = value; else delete map[fileName];
+  try{ localStorage.setItem('herbalFileSystemMap', JSON.stringify(map)); }catch(e){}
+}
+
+// ---------- PDF کے اپنے متن کو دیکھ کر خودکار طور پر اندازہ لگانا کہ یہ کس حکمت کی کتاب ہے ----------
+// ہر کتاب میں عموماً شروع کے صفحات (ٹائٹل/انتساب/تعارف) میں اس کے اپنے نظامِ علاج کا ذکر آ جاتا ہے،
+// اسی بنیاد پر یہاں الفاظ گن کر فیصلہ کیا جاتا ہے — صارف کو خود منتخب کرنے کی ضرورت نہیں۔
+const PM_SYSTEM_KEYWORDS = [
+  { system:'قانون مفرد اعضاء', words:['مفرد اعضاء','مفرد عضو','قانونِ مفرد اعضاء','اعصابی عضلاتی','عضلاتی اعصابی','عضلاتی غدی','غدی عضلاتی','غدی اعصابی','اعصابی غدی','تین اعضائے رئیسہ'] },
+  { system:'ہومیوپیتھک', words:['ہومیوپیتھک','ہومیوپیتھی','homeopath','homoeopath','پوٹینسی','potency','dilution','ریپرٹری','repertory'] },
+  { system:'ایلوپیتھک (جدید طب)', words:['ایلوپیتھک','allopathic','clinical','diagnosis','syndrome','pathology','pharmacology','dosage','mg/kg','symptoms and signs'] },
+  { system:'طب یونانی (روایتی)', words:['طب یونانی','یونانی طب','حکیم اجمل خان','بوعلی سینا','جالینوس','بقراط','معجون','خمیرہ','جوارش','سکنجبین','عرق مصفی خون'] }
+];
+function pmDetectFileSystemFromPages(pages){
+  if(!Array.isArray(pages) || !pages.length) return null;
+  const sample = pages.slice(0, 15).map(p=> (p.title||'') + ' ' + (p.text||'')).join(' \n ').toLowerCase();
+  if(!sample.trim()) return null;
+  let bestSystem = null, bestScore = 0;
+  PM_SYSTEM_KEYWORDS.forEach(entry=>{
+    let score = 0;
+    entry.words.forEach(w=>{
+      const needle = w.toLowerCase();
+      let idx = 0;
+      while((idx = sample.indexOf(needle, idx)) !== -1){ score++; idx += needle.length; }
+    });
+    if(score > bestScore){ bestScore = score; bestSystem = entry.system; }
+  });
+  return (bestScore >= 2) ? bestSystem : null;
+}
+function pmAutoDetectAndSetFileSystem(fileName, pages, row){
+  if(PM_BUILTIN_FILE_SYSTEMS[fileName]) return; // بلٹ اِن کتابوں کی نوعیت پہلے سے طے شدہ ہے
+  const detected = pmDetectFileSystemFromPages(pages);
+  if(detected){
+    pmSetFileSystem(fileName, detected);
+    if(row) pmUpdateFileSystemBadge(row, fileName);
+  }
+}
 const PM_BUILTIN_DATA_FILES = [
   'data/pm-data-biochemistry.json',
   'data/pm-data-computer-science.json',
@@ -4319,6 +4386,8 @@ async function pmRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
     try{
       await herbalIdbPut('pmFiles', { fileName:fileEntry.fileName, blob:fileEntry.file, pages:fileEntry.pages, addedAt:Date.now() });
     }catch(e){ console.error('OCR متن محفوظ نہیں ہو سکا:', e); }
+    // OCR سے اب متن مل چکا ہے تو دوبارہ خودکار طور پر حکمت کا اندازہ لگائیں (پہلے تصویر والے صفحات پر متن نہیں تھا)
+    pmAutoDetectAndSetFileSystem(fileEntry.fileName, fileEntry.pages, row);
     if(cancelled){
       progressEl.textContent = `روک دیا گیا — ${currentDone}/${currentTotal} صفحات پر OCR ہو چکا ہے (یہ اب سرچ میں شامل اور مستقل محفوظ ہیں)۔`;
       ocrBtn.style.display = 'none';
@@ -4945,7 +5014,8 @@ function pmRunSearch(customTerms){
       ? `<button class="btn secondary" onclick="pmOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(m.matchedTerm)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
     const termLabel = terms.length > 1 ? `<p style="color:var(--muted); font-size:.8rem; margin:2px 0 6px;">(نام: ${escapeHtmlSearch(m.matchedTerm)})</p>` : '';
-    card.innerHTML = `<h4>📄 صفحہ ${m.displayPageNum}</h4>${termLabel}<p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
+    const sysLabel = `<p style="color:var(--gold-soft); font-size:.8rem; margin:2px 0 6px;">📚 حکمت: ${escapeHtmlSearch(pmGetFileSystem(m.fileName))}</p>`;
+    card.innerHTML = `<h4>📄 صفحہ ${m.displayPageNum}</h4>${sysLabel}${termLabel}<p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
     pmResultsEl.appendChild(card);
   });
 }
@@ -5141,7 +5211,8 @@ async function hzHandleFiles(fileListInput){
 function hzAddFileRow(name){
   const row = document.createElement('div');
   row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; font-size:.9rem; color:var(--text);';
-  row.innerHTML = `<span>${escapeHtmlSearch(name)}</span><span class="hz-status" style="color:var(--muted);">پڑھی جا رہی ہے...</span><button class="hz-preview-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;">متن دیکھیں</button><button class="hz-ocr-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;"></button><div class="hz-ocr-progress" style="display:none; color:var(--muted); font-size:.8rem; width:100%;"></div>`;
+  row.innerHTML = `<span>${escapeHtmlSearch(name)}</span><span class="hz-status" style="color:var(--muted);">پڑھی جا رہی ہے...</span><span class="pm-system-badge" style="color:var(--gold-soft); font-size:.78rem;"></span><button class="hz-preview-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;">متن دیکھیں</button><button class="hz-ocr-btn btn secondary" style="display:none; padding:6px 14px; font-size:.8rem;"></button><div class="hz-ocr-progress" style="display:none; color:var(--muted); font-size:.8rem; width:100%;"></div>`;
+  pmUpdateFileSystemBadge(row, name);
   hzFileListEl.appendChild(row);
   return row;
 }
@@ -5254,6 +5325,8 @@ async function hzProcessFile(file, fromStorage, cachedPages){
     }
     const fileEntry = { fileName:file.name, pages, pdfDoc:doc, file };
     hzLibrary.push(fileEntry);
+    // فائل کے اپنے متن کو دیکھ کر خودکار طور پر اندازہ لگائیں کہ یہ کس حکمت کی کتاب ہے
+    pmAutoDetectAndSetFileSystem(file.name, pages, row);
     // نئی اپ لوڈ کی گئی فائل کو مستقل محفوظ کر دیں — اگلی بار صفحہ کھلنے پر یا index.html اپ ڈیٹ ہونے پر بھی موجود رہے گی
     // (متن بھی ساتھ محفوظ کیا جاتا ہے تاکہ OCR کا نتیجہ بھی ہمیشہ کے لیے برقرار رہے)
     if(!fromStorage){
@@ -5422,6 +5495,8 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
     try{
       await herbalIdbPut('hzFiles', { fileName:fileEntry.fileName, blob:fileEntry.file, pages:fileEntry.pages, addedAt:Date.now() });
     }catch(e){ console.error('OCR متن محفوظ نہیں ہو سکا:', e); }
+    // OCR سے اب متن مل چکا ہے تو دوبارہ خودکار طور پر حکمت کا اندازہ لگائیں (پہلے تصویر والے صفحات پر متن نہیں تھا)
+    pmAutoDetectAndSetFileSystem(fileEntry.fileName, fileEntry.pages, row);
     if(cancelled){
       progressEl.textContent = `روک دیا گیا — ${currentDone}/${currentTotal} صفحات پر OCR ہو چکا ہے (یہ اب سرچ میں شامل اور مستقل محفوظ ہیں)۔`;
       ocrBtn.style.display = 'none';
@@ -5487,7 +5562,8 @@ function hzRunSearch(){
     const openBtnHtml = canOpen
       ? `<button class="btn secondary" onclick="hzOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(query)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
-    card.innerHTML = `<h4>🌿 صفحہ ${m.displayPageNum}</h4><p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
+    const sysLabel = `<p style="color:var(--gold-soft); font-size:.8rem; margin:2px 0 6px;">📚 حکمت: ${escapeHtmlSearch(pmGetFileSystem(m.fileName))}</p>`;
+    card.innerHTML = `<h4>🌿 صفحہ ${m.displayPageNum}</h4>${sysLabel}<p style="color:var(--text); margin:6px 0;">${m.snippet}</p>${openBtnHtml}`;
     hzResultsEl.appendChild(card);
   });
 }
