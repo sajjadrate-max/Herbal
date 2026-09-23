@@ -4998,16 +4998,9 @@ function pmRunSearch(customTerms){
     return;
   }
   pmLastMatches = matches;
-  const usedTextFallback = titleMatches.length === 0 && textMatches.length > 0;
-  const usedLooseFallback = titleMatches.length === 0 && textMatches.length === 0 && looseMatches.length > 0;
   pmSummaryEl.textContent = terms.length > 1
     ? `"${primaryQuery}" اور اس کے ${terms.length-1} متبادل نام مل کر کل ${matches.length} صفحات پر ملے۔`
     : `"${primaryQuery}" کل ${matches.length} صفحات پر ملا۔`;
-  if(usedTextFallback){
-    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted); margin:0;">نوٹ: یہ لفظ کسی صفحے کے بڑے عنوان میں نہیں ملا، اس لیے نیچے صفحے کے متن میں ملنے والے نتائج دکھائے جا رہے ہیں۔</p></div>`;
-  } else if(usedLooseFallback){
-    pmResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted); margin:0;">نوٹ: یہ لفظ مکمل/الگ لفظ کے طور پر نہیں ملا (شاید OCR نے ساتھ والے لفظ سے جوڑ دیا ہو)، اس لیے قریبی نتائج دکھائے جا رہے ہیں۔</p></div>`;
-  }
   matches.forEach(m=>{
     const card = document.createElement('div');
     card.className = 'mujarrab-card';
@@ -5549,14 +5542,7 @@ function hzRunSearch(){
     hzResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا — یہ لفظ کسی بھی صفحے کے عنوان یا متن میں نہیں ملا۔<br>کل صفحات: ${totalPages}، جن میں سے متن نکلا ہوا ہے: ${ocrPages}۔ اگر یہ تعداد کم ہو تو فائل ابھی مکمل OCR نہیں ہوئی — اوپر فائل کے ساتھ "OCR چلائیں" دبائیں۔</p></div>`;
     return;
   }
-  const usedTextFallback = titleMatches.length === 0 && textMatches.length > 0;
-  const usedLooseFallback = titleMatches.length === 0 && textMatches.length === 0 && looseMatches.length > 0;
   hzSummaryEl.textContent = `"${query}" کل ${matches.length} صفحات پر ملا۔`;
-  if(usedTextFallback){
-    hzResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted); margin:0;">نوٹ: یہ لفظ کسی صفحے کے بڑے عنوان میں نہیں ملا، اس لیے نیچے صفحے کے متن میں ملنے والے نتائج دکھائے جا رہے ہیں۔</p></div>`;
-  } else if(usedLooseFallback){
-    hzResultsEl.innerHTML += `<div class="result-card"><p style="color:var(--muted); margin:0;">نوٹ: یہ لفظ مکمل/الگ لفظ کے طور پر نہیں ملا (شاید OCR نے ساتھ والے لفظ سے جوڑ دیا ہو)، اس لیے قریبی نتائج دکھائے جا رہے ہیں۔</p></div>`;
-  }
   matches.forEach(m=>{
     const card = document.createElement('div');
     card.className = 'mujarrab-card';
