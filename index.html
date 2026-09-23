@@ -4180,7 +4180,9 @@ const PM_SYSTEM_KEYWORDS = [
 ];
 function pmDetectFileSystemFromPages(pages){
   if(!Array.isArray(pages) || !pages.length) return null;
-  const sample = pages.slice(0, 15).map(p=> (p.title||'') + ' ' + (p.text||'')).join(' \n ').toLowerCase();
+  // پورے صفحات میں سے تلاش کریں (صرف شروع کے چند صفحات نہیں) — کیونکہ نظامِ علاج کا ذکر
+  // بعض کتابوں میں دیباچے کی بجائے درمیان میں یا کسی اور صفحے پر بھی آ سکتا ہے
+  const sample = pages.map(p=> (p.title||'') + ' ' + (p.text||'')).join(' \n ').toLowerCase();
   if(!sample.trim()) return null;
   let bestSystem = null, bestScore = 0;
   PM_SYSTEM_KEYWORDS.forEach(entry=>{
