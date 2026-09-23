@@ -5148,10 +5148,29 @@ function herbalClosePdfPageModal(){
   if(modal) modal.style.display = 'none';
 }
 
+// جملے کو کاٹتے وقت درمیانی لفظ کو ادھورا کاٹنے کی بجائے، شروع اور آخر میں نزدیک ترین خالی جگہ
+// (لفظ کی حد) تک پیچھے/آگے بڑھا دیں — تاکہ ہر لفظ مکمل نظر آئے، آدھا نہ کٹے
+function pmSnapSnippetBounds(text, start, end, maxExtra){
+  maxExtra = maxExtra || 40;
+  const isSpace = ch=> ch===' ' || ch==='\n' || ch==='\t' || ch==='\r';
+  let s = start;
+  if(s > 0){
+    let moved = 0;
+    while(s > 0 && !isSpace(text[s-1]) && moved < maxExtra){ s--; moved++; }
+  }
+  let e = end;
+  if(e < text.length){
+    let moved = 0;
+    while(e < text.length && !isSpace(text[e]) && moved < maxExtra){ e++; moved++; }
+  }
+  return { start:s, end:e };
+}
 function pmBuildSnippet(text, startOrig, endOrig){
   const radius = 60;
-  const start = Math.max(0, startOrig - radius);
-  const end = Math.min(text.length, endOrig + radius);
+  let start = Math.max(0, startOrig - radius);
+  let end = Math.min(text.length, endOrig + radius);
+  const snapped = pmSnapSnippetBounds(text, start, end);
+  start = snapped.start; end = snapped.end;
   let before = escapeHtmlSearch(text.slice(start, startOrig));
   let match = escapeHtmlSearch(text.slice(startOrig, endOrig));
   let after = escapeHtmlSearch(text.slice(endOrig, end));
@@ -5569,8 +5588,10 @@ function hzOpenPdfAtPage(fileName, pageNum, queryText){
 }
 function hzBuildSnippet(text, startOrig, endOrig){
   const radius = 60;
-  const start = Math.max(0, startOrig - radius);
-  const end = Math.min(text.length, endOrig + radius);
+  let start = Math.max(0, startOrig - radius);
+  let end = Math.min(text.length, endOrig + radius);
+  const snapped = pmSnapSnippetBounds(text, start, end);
+  start = snapped.start; end = snapped.end;
   let before = escapeHtmlSearch(text.slice(start, startOrig));
   let match = escapeHtmlSearch(text.slice(startOrig, endOrig));
   let after = escapeHtmlSearch(text.slice(endOrig, end));
