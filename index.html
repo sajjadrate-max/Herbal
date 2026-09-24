@@ -5037,8 +5037,7 @@ function pmRunSearch(customTerms){
       : '';
     const termLabel = terms.length > 1 ? `<p style="color:var(--muted); font-size:.8rem; margin:2px 0 6px;">(نام: ${escapeHtmlSearch(m.matchedTerm)})</p>` : '';
     const sysLabel = `<p style="color:var(--gold-soft); font-size:.8rem; margin:2px 0 6px;">📚 حکمت: ${escapeHtmlSearch(pmGetFileSystem(m.fileName))}</p>`;
-    const editBtnHtml = `<button class="btn secondary" onclick="pmOpenTextEditor('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; margin-right:6px; padding:6px 16px; font-size:.82rem; border-radius:16px;">✏️ متن درست کریں</button>`;
-    card.innerHTML = `<h4>📄 صفحہ ${m.displayPageNum}</h4>${sysLabel}${termLabel}${openBtnHtml}${editBtnHtml}`;
+    card.innerHTML = `<h4>📄 صفحہ ${m.displayPageNum}</h4>${sysLabel}${termLabel}${openBtnHtml}`;
     pmResultsEl.appendChild(card);
   });
 }
@@ -5645,8 +5644,7 @@ function hzRunSearch(){
       ? `<button class="btn secondary" onclick="hzOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(query)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
     const sysLabel = `<p style="color:var(--gold-soft); font-size:.8rem; margin:2px 0 6px;">📚 حکمت: ${escapeHtmlSearch(pmGetFileSystem(m.fileName))}</p>`;
-    const editBtnHtml = `<button class="btn secondary" onclick="hzOpenTextEditor('${escapeJsAttr(m.fileName)}', ${m.pageNum})" style="margin-top:8px; margin-right:6px; padding:6px 16px; font-size:.82rem; border-radius:16px;">✏️ متن درست کریں</button>`;
-    card.innerHTML = `<h4>🌿 صفحہ ${m.displayPageNum}</h4>${sysLabel}${openBtnHtml}${editBtnHtml}`;
+    card.innerHTML = `<h4>🌿 صفحہ ${m.displayPageNum}</h4>${sysLabel}${openBtnHtml}`;
     hzResultsEl.appendChild(card);
   });
 }
