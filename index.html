@@ -3994,10 +3994,10 @@ function pmRenderBookList(){
     const openBtnHtml = canOpen
       ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenFullPdf('${escapeJsAttr(f.fileName)}')">📖 کھولیں</button>`
       : '';
-    // بلٹ اِن کتابوں کو عارضی طور پر ہٹانے کا بٹن — صرف جانچ پڑتال کے لیے، بعد میں ختم کر دیا جائے گا
+    // بلٹ اِن کتاب ہمیشہ کے لیے (اسی براؤزر میں) اور اپ لوڈ کردہ کتاب کو بھی ہٹانے کا بٹن
     const deleteBtnHtml = f.builtin
       ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem; color:#ff8080; border-color:#ff8080;" onclick="if(confirm('کیا واقعی \\'${escapeJsAttr(f.fileName)}\\' فہرست سے ہٹائیں؟')) pmHideBuiltin('${escapeJsAttr(f.fileName)}')">🗑️ ہٹائیں</button>`
-      : '';
+      : `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem; color:#ff8080; border-color:#ff8080;" onclick="if(confirm('کیا واقعی \\'${escapeJsAttr(f.fileName)}\\' حذف کریں؟')) pmDeleteFile('${escapeJsAttr(f.fileName)}', null)">🗑️ ہٹائیں</button>`;
     return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
       <span style="flex:1; min-width:160px;">${escapeHtmlSearch(f.fileName)}</span>
       <span style="color:var(--muted); font-size:.78rem;">${kind} · ${textPages}/${totalPages} صفحات میں متن · ${escapeHtmlSearch(sys)}</span>
