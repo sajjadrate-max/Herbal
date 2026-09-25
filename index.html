@@ -3989,7 +3989,8 @@ function pmRenderBookList(){
     const textPages = f.pages.filter(p=> p.text && p.text.trim()).length;
     const sys = pmGetFileSystem(f.fileName);
     const kind = f.builtin ? 'بلٹ اِن' : 'اپ لوڈ کردہ';
-    const canOpen = !!(f.pdfDoc) || (f.builtin && !!PM_BUILTIN_PDF_FILES[f.fileName]);
+    const canOpen = true; // اپ لوڈ کردہ کتاب کے پاس ہمیشہ pdfDoc ہوتا ہے؛ بلٹ اِن کتاب کی اصل PDF جڑ (root)
+    // میں اسی fileName سے تلاش کی جاتی ہے — نہ ملے تو "کھولیں" دبانے پر خود واضح پیغام آ جائے گا
     const openBtnHtml = canOpen
       ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenFullPdf('${escapeJsAttr(f.fileName)}')">📖 کھولیں</button>`
       : '';
@@ -4274,8 +4275,30 @@ const PM_BUILTIN_DATA_FILES = [
   'pm-data-laboratory-test-guide.json',
   'pm-data-mera-mutb.json'
 ];
+// GitHub ریپو کی جڑ (root) میں موجود فائلوں کی فہرست خود بخود حاصل کریں — اس طرح مستقبل میں
+// کوئی نئی pm-data-*.json فائل صرف وہیں اپ لوڈ کرنے سے خود بخود شامل ہو جائے گی،
+// اوپر والی مستقل فہرست (PM_BUILTIN_DATA_FILES) میں دوبارہ نام لکھنے کی ضرورت نہیں رہے گی۔
+// (اگر کسی وجہ سے یہ فہرست حاصل نہ ہو سکے — مثلاً انٹرنیٹ کی خرابی یا GitHub کی حد — تو اوپر
+// والی مستقل فہرست بطور محفوظ متبادل استعمال ہو گی)
+async function pmDiscoverBuiltinDataFiles(){
+  try{
+    const res = await pmWithTimeout(fetch('https://api.github.com/repos/sajjadrate-max/Herbal/contents/'), 8000);
+    if(!res.ok) return PM_BUILTIN_DATA_FILES;
+    const items = await res.json();
+    if(!Array.isArray(items)) return PM_BUILTIN_DATA_FILES;
+    const jsonFiles = items
+      .filter(it=> it && it.type === 'file' && /^pm-data-.*\.json$/i.test(it.name))
+      .map(it=> it.name);
+    return jsonFiles.length ? jsonFiles : PM_BUILTIN_DATA_FILES;
+  }catch(e){
+    // GitHub سے خودکار فہرست نہ ملے تو خاموشی سے محفوظ (fallback) فہرست استعمال کر لیں —
+    // یہ نارمل ہے (خاص طور پر جب فائل براہِ راست پری ویو میں کھولی جائے)، اس لیے کنسول میں کچھ نہیں دکھاتے
+    return PM_BUILTIN_DATA_FILES;
+  }
+}
 (async function pmLoadBuiltinData(){
-  for(const url of PM_BUILTIN_DATA_FILES){
+  const fileList = await pmDiscoverBuiltinDataFiles();
+  for(const url of fileList){
     try{
       const res = await fetch(url);
       if(!res.ok) continue;
@@ -4283,6 +4306,7 @@ const PM_BUILTIN_DATA_FILES = [
       if(!data || !Array.isArray(data.pages)) continue;
       const fName = data.fileName || url;
       if(pmIsBuiltinHidden(fName)) continue; // صارف نے یہ کتاب ہٹا رکھی ہے
+      if(pmLibrary.some(f=> f.fileName === fName)) continue; // ڈپلیکیٹ سے بچاؤ
       pmLibrary.push({
         fileName: fName,
         pages: data.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', ocr:true })),
@@ -5349,24 +5373,11 @@ function herbalCloseFullPdfModal(){
   const modal = document.getElementById('herbalFullPdfModal');
   if(modal) modal.style.display = 'none';
 }
-// بلٹ اِن کتابوں میں سے جن کی اصل PDF فائل (سائز مناسب ہونے کی وجہ سے) سائٹ پر رکھی گئی ہے،
-// ان کا راستہ یہاں درج ہے — تاکہ "کھولیں" دبانے پر وہ اصل فائل براؤزر میں لوڈ کر کے دکھائی جا سکے۔
-// (تین بڑی انگریزی کتابیں — فارمیسی، پریکٹس آف میڈیسن، الٹراساؤنڈ — سائز میں بہت بڑی ہیں،
-// اس لیے ان کی اصل PDF یہاں شامل نہیں کی جا سکی؛ ان میں صرف متن تلاش کام کرے گی)
-const PM_BUILTIN_PDF_FILES = {
-  'Apna_Ilaj_Khud_Karen_Practice_of_Medicine.pdf': 'Apna_Ilaj_Khud_Karen_Practice_of_Medicine.pdf',
-  'BIOCHEMISTRY_FOR_PARAMEDICS.pdf': 'BIOCHEMISTRY_FOR_PARAMEDICS.pdf',
-  'COMPUTER_SCIENCE_FOR_PARAMEDICS.pdf': 'COMPUTER_SCIENCE_FOR_PARAMEDICS.pdf',
-  'Laboratory_Test_Guide.pdf': 'Laboratory_Test_Guide.pdf',
-  'Mardon_Kay_Amraaz.pdf': 'Mardon_Kay_Amraaz.pdf',
-  'Mufrad_Aza_Aur_Amraz_e_Jild.pdf': 'Mufrad_Aza_Aur_Amraz_e_Jild.pdf',
-  'Nizamat_e_Jism_Yaseen_Dunyapuri.pdf': 'Nizamat_e_Jism_Yaseen_Dunyapuri.pdf',
-  'Orton_Kay_Amraaz.pdf': 'Orton_Kay_Amraaz.pdf',
-  'Qanoon_mufradaza_or_dama.pdf': 'Qanoon_mufradaza_or_dama.pdf',
-  'Tashkhees_o_Tajveez_Ilaj_Bil_Mufrad_Aza.pdf': 'Tashkhees_o_Tajveez_Ilaj_Bil_Mufrad_Aza.pdf',
-  'Tehqiqat_o_Ilaj.pdf': 'Tehqiqat_o_Ilaj.pdf',
-  'Mera_Mutb.pdf': 'Mera_Mutb.pdf'
-};
+// بلٹ اِن کتاب کی اصل PDF فائل GitHub کی جڑ (root) میں بالکل اسی نام سے تلاش کی جاتی ہے جو
+// اس کی pm-data-*.json کے اندر "fileName" میں لکھا ہے — اس طرح جیسے ہی اصل PDF بھی اُسی جگہ
+// (بالکل ویسے ہی نام سے) اپ لوڈ کی جائے، "کھولیں" بٹن خود بخود کام کرنے لگتا ہے، کوڈ میں الگ سے
+// کچھ لکھنے کی ضرورت نہیں پڑتی۔ اگر وہ فائل وہاں موجود نہ ہو (یا حجم کی وجہ سے شامل نہ کی گئی ہو)
+// تو نیچے واضح پیغام دکھا دیا جاتا ہے۔
 async function pmOpenFullPdf(fileName){
   const entry = pmLibrary.find(f=> f.fileName === fileName);
   if(!entry){ return; }
@@ -5374,10 +5385,9 @@ async function pmOpenFullPdf(fileName){
     herbalOpenFullPdfViewer(entry, 1);
     return;
   }
-  // بلٹ اِن کتاب — اگر اس کی اصل PDF سائٹ پر موجود ہے تو ابھی (صرف اسی وقت جب صارف کھولے) ڈاؤن لوڈ کریں
-  const pdfPath = entry.builtin ? PM_BUILTIN_PDF_FILES[fileName] : null;
+  const pdfPath = entry.builtin ? fileName : null; // ریپو کی جڑ میں بالکل اسی fileName سے فائل ڈھونڈیں
   if(!pdfPath){
-    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں (فائل کا حجم بہت بڑا ہونے کی وجہ سے)۔');
+    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں (فائل کا حجم بہت بڑا ہونے کی وجہ سے یا ابھی اپ لوڈ نہیں ہوئی)۔');
     return;
   }
   const btns = document.querySelectorAll(`button[onclick="pmOpenFullPdf('${fileName.replace(/'/g,"\\'")}')"]`);
