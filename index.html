@@ -4006,7 +4006,11 @@ function pmRenderBookList(){
     </div>`;
   }).join('');
   const totalAll = pmLibrary.reduce((s,f)=> s+f.pages.length, 0);
-  el.innerHTML = rows + `<p style="color:var(--muted); font-size:.78rem; text-align:center; margin-top:8px;">کل ${pmLibrary.length} کتابیں، ${totalAll} صفحات</p>`;
+  const hiddenCount = pmGetHiddenBuiltins().length;
+  const restoreHtml = hiddenCount
+    ? `<div style="text-align:center; margin-top:10px;"><button class="btn secondary" style="padding:6px 16px; font-size:.8rem;" onclick="pmRestoreHiddenBuiltins()">♻️ ہٹائی گئی ${hiddenCount} بلٹ اِن کتابیں واپس لائیں</button></div>`
+    : '';
+  el.innerHTML = rows + `<p style="color:var(--muted); font-size:.78rem; text-align:center; margin-top:8px;">کل ${pmLibrary.length} کتابیں، ${totalAll} صفحات</p>` + restoreHtml;
 }
 function pmSetRowStatus(row, text, color){
   const s = row.querySelector('.pm-status');
@@ -4206,7 +4210,9 @@ const PM_BUILTIN_FILE_SYSTEMS = {
   'Qanoon_mufradaza_or_dama.pdf': 'قانون مفرد اعضاء',
   'Tashkhees_o_Tajveez_Ilaj_Bil_Mufrad_Aza.pdf': 'قانون مفرد اعضاء',
   // گائناکالوجی / آبسٹیٹرکس / نیونیٹولوجی — ڈاکٹر محمد عثمان (جدید طب کی نصابی کتاب)
-  'GYNAECOLOGY_BOOK_DIGITAL.pdf': 'ایلوپیتھک (جدید طب)'
+  'GYNAECOLOGY_BOOK_DIGITAL.pdf': 'ایلوپیتھک (جدید طب)',
+  // مردوں کے امراض — ڈاکٹر محمد عثمان (تمام نسخے ہومیوپیتھک ادویات کے ہیں)
+  'Mardon_Kay_Amraaz.pdf': 'ہومیوپیتھک'
   // باقی کتابوں (Tehqiqat_o_Ilaj.pdf، Apna_Ilaj_Khud_Karen_Practice_of_Medicine.pdf، Orton/Mardon Kay Amraaz،
   // Nizamat_e_Jism، Mufrad_Aza_Aur_Amraz_e_Jild، Laboratory_Test_Guide) کی حکمت OCR کے الجھے ہوئے متن سے
   // یقین سے طے نہیں ہو سکی، اس لیے "غیر متعین" ہی رہے گی
@@ -5555,6 +5561,11 @@ function pmHideBuiltin(fileName){
   if(idx !== -1) pmLibrary.splice(idx, 1);
   pmSearchBtnEl.disabled = pmLibrary.length === 0;
   pmRenderBookList();
+}
+// پہلے "ہٹائیں" سے چھپائی گئی تمام بلٹ اِن کتابیں دوبارہ فہرست اور تلاش میں لے آئیں
+function pmRestoreHiddenBuiltins(){
+  try{ localStorage.removeItem('herbalHiddenBuiltins'); }catch(e){}
+  location.reload();
 }
 
 // جملے کو کاٹتے وقت درمیانی لفظ کو ادھورا کاٹنے کی بجائے، شروع اور آخر میں نزدیک ترین خالی جگہ
