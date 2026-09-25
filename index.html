@@ -358,13 +358,13 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
 
 <section class="page-section" id="page-pdfmulti">
   <h2 class="section-title">بیماری کی تلاش</h2>
-  <div class="note">لفظ لکھیں، بتا دیا جائے گا۔ <span onclick="togglePmNoteDetail()" style="cursor:pointer; color:var(--gold-soft); font-size:.85rem; user-select:none;">مزید تفصیل <span id="pmNoteDetailArrow">▾</span></span>
+  <div class="note" style="padding:8px 14px; font-size:.85rem; margin-bottom:10px;">لفظ لکھیں، بتا دیا جائے گا۔ <span onclick="togglePmNoteDetail()" style="cursor:pointer; color:var(--gold-soft); font-size:.8rem; user-select:none;">مزید تفصیل <span id="pmNoteDetailArrow">▾</span></span>
     <p id="pmNoteDetail" style="display:none; margin-top:6px;">لفظ لکھیں — بتایا جائے گا کہ وہ کس فائل کے کس صفحہ پر موجود ہے۔ یہ تلاش مکمل طور پر آف لائن، آپ کے اپنے فون/کمپیوٹر کے اندر ہی ہوتی ہے — کوئی معلومات انٹرنیٹ پر نہیں بھیجی جاتیں۔</p>
   </div>
 
   <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
-    <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">بیماری کے مزاج</h3>
-    <p style="color:var(--muted); font-size:.85rem; text-align:center; margin-bottom:10px;">نیچے فہرست میں سے بیماری یا عضو کا نام پر ٹیپ کریں — یہاں خود سے لکھنے کی ضرورت نہیں</p>
+    <h3 style="color:var(--gold-soft); margin-bottom:6px; text-align:center;">بیماری کے مزاج</h3>
+    <p style="color:var(--muted); font-size:.8rem; text-align:center; margin-bottom:6px;">نیچے فہرست میں سے بیماری یا عضو کا نام پر ٹیپ کریں — یہاں خود سے لکھنے کی ضرورت نہیں</p>
     <div id="pmMizajSelectedBox" style="display:none; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border:1px solid var(--gold); border-radius:8px; background:rgba(255,213,0,0.1); margin-bottom:8px;">
       <span id="pmMizajSelectedLabel" style="color:var(--gold-soft); font-weight:bold;"></span>
       <button class="btn secondary" type="button" style="padding:5px 14px; font-size:.8rem;" onclick="pmMizajShowList()">تبدیل کریں</button>
@@ -3991,7 +3991,7 @@ function pmRenderBookList(){
     const kind = f.builtin ? 'بلٹ اِن' : 'اپ لوڈ کردہ';
     const canOpen = !!(f.pdfDoc); // صرف اپ لوڈ کردہ کتابوں کے پاس اصل PDF ہوتا ہے، بلٹ اِن کے پاس صرف متن
     const openBtnHtml = canOpen
-      ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenPdfAtPage('${escapeJsAttr(f.fileName)}', 1, '')">📖 کھولیں</button>`
+      ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenFullPdf('${escapeJsAttr(f.fileName)}')">📖 کھولیں</button>`
       : '';
     return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
       <span style="flex:1; min-width:160px;">${escapeHtmlSearch(f.fileName)}</span>
@@ -5264,6 +5264,82 @@ async function herbalShowPdfPage(entry, pageNum, queryText){
 function herbalClosePdfPageModal(){
   const modal = document.getElementById('herbalPdfPageModal');
   if(modal) modal.style.display = 'none';
+}
+
+// مکمل PDF دکھانے والا viewer — صفحہ بہ صفحہ آگے/پیچھے جا کر پوری کتاب پڑھی جا سکتی ہے
+// (صرف اپ لوڈ کردہ کتابوں کے لیے کام کرتا ہے، کیونکہ صرف انہی کے پاس اصل PDF فائل/pdfDoc موجود ہوتا ہے)
+let herbalFullPdfState = { entry:null, pageNum:1, totalPages:0 };
+async function herbalOpenFullPdfViewer(entry, startPage){
+  herbalFullPdfState.entry = entry;
+  herbalFullPdfState.totalPages = (entry.pdfDoc && entry.pdfDoc.numPages) || entry.pages.length || 1;
+  herbalFullPdfState.pageNum = Math.min(Math.max(1, startPage||1), herbalFullPdfState.totalPages);
+
+  let modal = document.getElementById('herbalFullPdfModal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'herbalFullPdfModal';
+    modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:9999; overflow:auto; text-align:center; padding:14px 10px;';
+    modal.innerHTML = `
+      <div style="max-width:760px; margin:0 auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+          <span id="herbalFullPdfTitle" style="color:var(--gold-soft); font-size:.82rem;"></span>
+          <button onclick="herbalCloseFullPdfModal()" style="background:var(--gold); color:var(--navy); border:none; border-radius:16px; padding:6px 16px; cursor:pointer; flex-shrink:0;">بند کریں ✕</button>
+        </div>
+        <div id="herbalFullPdfLoading" style="color:#fff; padding:30px;">لوڈ ہو رہا ہے...</div>
+        <div id="herbalFullPdfBlock" style="display:none;">
+          <canvas id="herbalFullPdfCanvas" style="max-width:100%; height:auto; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,.5);"></canvas>
+        </div>
+        <div style="display:flex; justify-content:center; align-items:center; gap:14px; margin-top:14px; flex-wrap:wrap;">
+          <button onclick="herbalFullPdfNav(-1)" style="background:var(--card); color:var(--gold-soft); border:1px solid var(--gold); border-radius:16px; padding:6px 16px; cursor:pointer;">◀ پچھلا</button>
+          <span id="herbalFullPdfPageIndicator" style="color:#fff; font-size:.9rem; min-width:110px;"></span>
+          <button onclick="herbalFullPdfNav(1)" style="background:var(--card); color:var(--gold-soft); border:1px solid var(--gold); border-radius:16px; padding:6px 16px; cursor:pointer;">اگلا ▶</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e=>{ if(e.target === modal) herbalCloseFullPdfModal(); });
+  }
+  modal.style.display = 'block';
+  const titleEl = document.getElementById('herbalFullPdfTitle');
+  if(titleEl) titleEl.textContent = entry.fileName + ' — کل ' + herbalFullPdfState.totalPages + ' صفحات';
+  await herbalRenderFullPdfCurrentPage();
+}
+async function herbalRenderFullPdfCurrentPage(){
+  const canvas = document.getElementById('herbalFullPdfCanvas');
+  const block = document.getElementById('herbalFullPdfBlock');
+  const loadingEl = document.getElementById('herbalFullPdfLoading');
+  if(!canvas || !block || !loadingEl) return;
+  block.style.display = 'none';
+  loadingEl.style.display = 'block';
+  loadingEl.textContent = 'لوڈ ہو رہا ہے...';
+  try{
+    await herbalRenderPdfPageToCanvas(herbalFullPdfState.entry, herbalFullPdfState.pageNum, canvas, '');
+    loadingEl.style.display = 'none';
+    block.style.display = 'block';
+    const indEl = document.getElementById('herbalFullPdfPageIndicator');
+    if(indEl) indEl.textContent = 'صفحہ ' + herbalFullPdfState.pageNum + ' / ' + herbalFullPdfState.totalPages;
+  }catch(e){
+    console.error('Full PDF render error:', e);
+    loadingEl.textContent = 'معذرت، یہ صفحہ دکھانے میں خرابی ہوئی۔';
+  }
+}
+function herbalFullPdfNav(delta){
+  const st = herbalFullPdfState;
+  const next = st.pageNum + delta;
+  if(next < 1 || next > st.totalPages) return;
+  st.pageNum = next;
+  herbalRenderFullPdfCurrentPage();
+}
+function herbalCloseFullPdfModal(){
+  const modal = document.getElementById('herbalFullPdfModal');
+  if(modal) modal.style.display = 'none';
+}
+function pmOpenFullPdf(fileName){
+  const entry = pmLibrary.find(f=> f.fileName === fileName);
+  if(!entry || !entry.pdfDoc){
+    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں۔');
+    return;
+  }
+  herbalOpenFullPdfViewer(entry, 1);
 }
 
 // جملے کو کاٹتے وقت درمیانی لفظ کو ادھورا کاٹنے کی بجائے، شروع اور آخر میں نزدیک ترین خالی جگہ
