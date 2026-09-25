@@ -3989,14 +3989,19 @@ function pmRenderBookList(){
     const textPages = f.pages.filter(p=> p.text && p.text.trim()).length;
     const sys = pmGetFileSystem(f.fileName);
     const kind = f.builtin ? 'بلٹ اِن' : 'اپ لوڈ کردہ';
-    const canOpen = !!(f.pdfDoc); // صرف اپ لوڈ کردہ کتابوں کے پاس اصل PDF ہوتا ہے، بلٹ اِن کے پاس صرف متن
+    const canOpen = !!(f.pdfDoc) || (f.builtin && !!PM_BUILTIN_PDF_FILES[f.fileName]);
     const openBtnHtml = canOpen
       ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenFullPdf('${escapeJsAttr(f.fileName)}')">📖 کھولیں</button>`
+      : '';
+    // بلٹ اِن کتابوں کو عارضی طور پر ہٹانے کا بٹن — صرف جانچ پڑتال کے لیے، بعد میں ختم کر دیا جائے گا
+    const deleteBtnHtml = f.builtin
+      ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem; color:#ff8080; border-color:#ff8080;" onclick="if(confirm('کیا واقعی \\'${escapeJsAttr(f.fileName)}\\' فہرست سے ہٹائیں؟')) pmHideBuiltin('${escapeJsAttr(f.fileName)}')">🗑️ ہٹائیں</button>`
       : '';
     return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
       <span style="flex:1; min-width:160px;">${escapeHtmlSearch(f.fileName)}</span>
       <span style="color:var(--muted); font-size:.78rem;">${kind} · ${textPages}/${totalPages} صفحات میں متن · ${escapeHtmlSearch(sys)}</span>
       ${openBtnHtml}
+      ${deleteBtnHtml}
     </div>`;
   }).join('');
   const totalAll = pmLibrary.reduce((s,f)=> s+f.pages.length, 0);
@@ -4266,7 +4271,8 @@ const PM_BUILTIN_DATA_FILES = [
   'pm-data-nizamat-e-jism.json',
   'pm-data-mufrad-aza-amraz-jild.json',
   'pm-data-tashkhees-o-tajveez-mufrad-aza.json',
-  'pm-data-laboratory-test-guide.json'
+  'pm-data-laboratory-test-guide.json',
+  'pm-data-mera-mutb.json'
 ];
 (async function pmLoadBuiltinData(){
   for(const url of PM_BUILTIN_DATA_FILES){
@@ -4275,8 +4281,10 @@ const PM_BUILTIN_DATA_FILES = [
       if(!res.ok) continue;
       const data = await res.json();
       if(!data || !Array.isArray(data.pages)) continue;
+      const fName = data.fileName || url;
+      if(pmIsBuiltinHidden(fName)) continue; // صارف نے یہ کتاب ہٹا رکھی ہے
       pmLibrary.push({
-        fileName: data.fileName || url,
+        fileName: fName,
         pages: data.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', ocr:true })),
         builtin: true
       });
@@ -5341,13 +5349,69 @@ function herbalCloseFullPdfModal(){
   const modal = document.getElementById('herbalFullPdfModal');
   if(modal) modal.style.display = 'none';
 }
-function pmOpenFullPdf(fileName){
+// بلٹ اِن کتابوں میں سے جن کی اصل PDF فائل (سائز مناسب ہونے کی وجہ سے) سائٹ پر رکھی گئی ہے،
+// ان کا راستہ یہاں درج ہے — تاکہ "کھولیں" دبانے پر وہ اصل فائل براؤزر میں لوڈ کر کے دکھائی جا سکے۔
+// (تین بڑی انگریزی کتابیں — فارمیسی، پریکٹس آف میڈیسن، الٹراساؤنڈ — سائز میں بہت بڑی ہیں،
+// اس لیے ان کی اصل PDF یہاں شامل نہیں کی جا سکی؛ ان میں صرف متن تلاش کام کرے گی)
+const PM_BUILTIN_PDF_FILES = {
+  'Apna_Ilaj_Khud_Karen_Practice_of_Medicine.pdf': 'Apna_Ilaj_Khud_Karen_Practice_of_Medicine.pdf',
+  'BIOCHEMISTRY_FOR_PARAMEDICS.pdf': 'BIOCHEMISTRY_FOR_PARAMEDICS.pdf',
+  'COMPUTER_SCIENCE_FOR_PARAMEDICS.pdf': 'COMPUTER_SCIENCE_FOR_PARAMEDICS.pdf',
+  'Laboratory_Test_Guide.pdf': 'Laboratory_Test_Guide.pdf',
+  'Mardon_Kay_Amraaz.pdf': 'Mardon_Kay_Amraaz.pdf',
+  'Mufrad_Aza_Aur_Amraz_e_Jild.pdf': 'Mufrad_Aza_Aur_Amraz_e_Jild.pdf',
+  'Nizamat_e_Jism_Yaseen_Dunyapuri.pdf': 'Nizamat_e_Jism_Yaseen_Dunyapuri.pdf',
+  'Orton_Kay_Amraaz.pdf': 'Orton_Kay_Amraaz.pdf',
+  'Qanoon_mufradaza_or_dama.pdf': 'Qanoon_mufradaza_or_dama.pdf',
+  'Tashkhees_o_Tajveez_Ilaj_Bil_Mufrad_Aza.pdf': 'Tashkhees_o_Tajveez_Ilaj_Bil_Mufrad_Aza.pdf',
+  'Tehqiqat_o_Ilaj.pdf': 'Tehqiqat_o_Ilaj.pdf',
+  'Mera_Mutb.pdf': 'Mera_Mutb.pdf'
+};
+async function pmOpenFullPdf(fileName){
   const entry = pmLibrary.find(f=> f.fileName === fileName);
-  if(!entry || !entry.pdfDoc){
-    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں۔');
+  if(!entry){ return; }
+  if(entry.pdfDoc){
+    herbalOpenFullPdfViewer(entry, 1);
     return;
   }
-  herbalOpenFullPdfViewer(entry, 1);
+  // بلٹ اِن کتاب — اگر اس کی اصل PDF سائٹ پر موجود ہے تو ابھی (صرف اسی وقت جب صارف کھولے) ڈاؤن لوڈ کریں
+  const pdfPath = entry.builtin ? PM_BUILTIN_PDF_FILES[fileName] : null;
+  if(!pdfPath){
+    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں (فائل کا حجم بہت بڑا ہونے کی وجہ سے)۔');
+    return;
+  }
+  const btns = document.querySelectorAll(`button[onclick="pmOpenFullPdf('${fileName.replace(/'/g,"\\'")}')"]`);
+  btns.forEach(b=>{ b.disabled = true; b.textContent = 'لوڈ ہو رہا ہے...'; });
+  try{
+    const res = await fetch(pdfPath);
+    if(!res.ok) throw new Error('fetch failed: ' + res.status);
+    const buf = await res.arrayBuffer();
+    const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    entry.pdfDoc = doc;
+    herbalOpenFullPdfViewer(entry, 1);
+  }catch(e){
+    console.error('builtin PDF load error:', e);
+    alert('معذرت، اصل PDF لوڈ کرنے میں خرابی ہوئی۔ انٹرنیٹ کنکشن چیک کر کے دوبارہ کوشش کریں۔');
+  }finally{
+    btns.forEach(b=>{ b.disabled = false; b.textContent = '📖 کھولیں'; });
+  }
+}
+
+// بلٹ اِن کتابوں کو عارضی طور پر فہرست/تلاش سے ہٹانے کی سہولت — صرف اسی براؤزر میں یاد رہتی ہے (localStorage)
+function pmGetHiddenBuiltins(){
+  try{ return JSON.parse(localStorage.getItem('herbalHiddenBuiltins') || '[]'); }catch(e){ return []; }
+}
+function pmIsBuiltinHidden(fileName){
+  return pmGetHiddenBuiltins().includes(fileName);
+}
+function pmHideBuiltin(fileName){
+  const list = pmGetHiddenBuiltins();
+  if(!list.includes(fileName)) list.push(fileName);
+  try{ localStorage.setItem('herbalHiddenBuiltins', JSON.stringify(list)); }catch(e){}
+  const idx = pmLibrary.findIndex(f=> f.fileName === fileName);
+  if(idx !== -1) pmLibrary.splice(idx, 1);
+  pmSearchBtnEl.disabled = pmLibrary.length === 0;
+  pmRenderBookList();
 }
 
 // جملے کو کاٹتے وقت درمیانی لفظ کو ادھورا کاٹنے کی بجائے، شروع اور آخر میں نزدیک ترین خالی جگہ
