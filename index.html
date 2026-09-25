@@ -371,7 +371,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     </div>
     <div id="pmMizajListWrap">
       <input class="search" id="pmMizajFilter" placeholder="فہرست میں سے تلاش کے لیے (اختیاری) لکھیں..." style="margin-bottom:8px;">
-      <div id="pmMizajOptionsList" style="max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:var(--card);"></div>
+      <div id="pmMizajOptionsList" style="max-height:150px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; background:var(--card);"></div>
     </div>
     <div id="pmMizajResults" style="margin-top:12px;"></div>
   </div>
@@ -4197,9 +4197,11 @@ const PM_BUILTIN_FILE_SYSTEMS = {
   'PRACTICE_OF_MEDICINE_PART_1.pdf': 'ایلوپیتھک (جدید طب)',
   'ULTRASOUND.pdf': 'ایلوپیتھک (جدید طب)',
   // کتاب کے اپنے عنوان (Title) سے واضح ہے کہ یہ قانون مفرد اعضاء کی کتاب ہے
-  'Qanoon_mufradaza_or_dama.pdf': 'قانون مفرد اعضاء'
-  // باقی 2 نئی کتابوں (Tehqiqat_o_Ilaj.pdf، Apna_Ilaj_Khud_Karen_Practice_of_Medicine.pdf) کی حکمت
-  // OCR کے الجھے ہوئے متن سے یقین سے طے نہیں ہو سکی، اس لیے "غیر متعین" ہی رہے گی
+  'Qanoon_mufradaza_or_dama.pdf': 'قانون مفرد اعضاء',
+  'Tashkhees_o_Tajveez_Ilaj_Bil_Mufrad_Aza.pdf': 'قانون مفرد اعضاء'
+  // باقی کتابوں (Tehqiqat_o_Ilaj.pdf، Apna_Ilaj_Khud_Karen_Practice_of_Medicine.pdf، Orton/Mardon Kay Amraaz،
+  // Nizamat_e_Jism، Mufrad_Aza_Aur_Amraz_e_Jild، Laboratory_Test_Guide) کی حکمت OCR کے الجھے ہوئے متن سے
+  // یقین سے طے نہیں ہو سکی، اس لیے "غیر متعین" ہی رہے گی
 };
 function pmGetFileSystemMap(){
   try{ return JSON.parse(localStorage.getItem('herbalFileSystemMap') || '{}'); }catch(e){ return {}; }
@@ -4258,7 +4260,13 @@ const PM_BUILTIN_DATA_FILES = [
   'data/pm-data-ultrasound.json',
   'data/pm-data-qanoon-mufrad-aza-dama.json',
   'data/pm-data-tehqiqat-o-ilaj.json',
-  'data/pm-data-apna-ilaj-khud-karen.json'
+  'data/pm-data-apna-ilaj-khud-karen.json',
+  'data/pm-data-orton-kay-amraaz.json',
+  'data/pm-data-mardon-kay-amraaz.json',
+  'data/pm-data-nizamat-e-jism.json',
+  'data/pm-data-mufrad-aza-amraz-jild.json',
+  'data/pm-data-tashkhees-o-tajveez-mufrad-aza.json',
+  'data/pm-data-laboratory-test-guide.json'
 ];
 (async function pmLoadBuiltinData(){
   for(const url of PM_BUILTIN_DATA_FILES){
