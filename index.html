@@ -3989,9 +3989,14 @@ function pmRenderBookList(){
     const textPages = f.pages.filter(p=> p.text && p.text.trim()).length;
     const sys = pmGetFileSystem(f.fileName);
     const kind = f.builtin ? 'بلٹ اِن' : 'اپ لوڈ کردہ';
+    const canOpen = !!(f.pdfDoc); // صرف اپ لوڈ کردہ کتابوں کے پاس اصل PDF ہوتا ہے، بلٹ اِن کے پاس صرف متن
+    const openBtnHtml = canOpen
+      ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenPdfAtPage('${escapeJsAttr(f.fileName)}', 1, '')">📖 کھولیں</button>`
+      : '';
     return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
       <span style="flex:1; min-width:160px;">${escapeHtmlSearch(f.fileName)}</span>
       <span style="color:var(--muted); font-size:.78rem;">${kind} · ${textPages}/${totalPages} صفحات میں متن · ${escapeHtmlSearch(sys)}</span>
+      ${openBtnHtml}
     </div>`;
   }).join('');
   const totalAll = pmLibrary.reduce((s,f)=> s+f.pages.length, 0);
