@@ -4159,7 +4159,11 @@ const PM_BUILTIN_FILE_SYSTEMS = {
   'COMPUTER_SCIENCE_FOR_PARAMEDICS.pdf': 'غیر طبی/دیگر',
   'PHARMACY_BOOK.pdf': 'ایلوپیتھک (جدید طب)',
   'PRACTICE_OF_MEDICINE_PART_1.pdf': 'ایلوپیتھک (جدید طب)',
-  'ULTRASOUND.pdf': 'ایلوپیتھک (جدید طب)'
+  'ULTRASOUND.pdf': 'ایلوپیتھک (جدید طب)',
+  // کتاب کے اپنے عنوان (Title) سے واضح ہے کہ یہ قانون مفرد اعضاء کی کتاب ہے
+  'Qanoon_mufradaza_or_dama.pdf': 'قانون مفرد اعضاء'
+  // باقی 2 نئی کتابوں (Tehqiqat_o_Ilaj.pdf، Apna_Ilaj_Khud_Karen_Practice_of_Medicine.pdf) کی حکمت
+  // OCR کے الجھے ہوئے متن سے یقین سے طے نہیں ہو سکی، اس لیے "غیر متعین" ہی رہے گی
 };
 function pmGetFileSystemMap(){
   try{ return JSON.parse(localStorage.getItem('herbalFileSystemMap') || '{}'); }catch(e){ return {}; }
@@ -4215,7 +4219,10 @@ const PM_BUILTIN_DATA_FILES = [
   'data/pm-data-computer-science.json',
   'data/pm-data-pharmacy.json',
   'data/pm-data-practice-of-medicine.json',
-  'data/pm-data-ultrasound.json'
+  'data/pm-data-ultrasound.json',
+  'data/pm-data-qanoon-mufrad-aza-dama.json',
+  'data/pm-data-tehqiqat-o-ilaj.json',
+  'data/pm-data-apna-ilaj-khud-karen.json'
 ];
 (async function pmLoadBuiltinData(){
   for(const url of PM_BUILTIN_DATA_FILES){
