@@ -376,6 +376,13 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <div id="pmMizajResults" style="margin-top:12px;"></div>
   </div>
 
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:16px;">
+    <h4 style="color:var(--gold-soft); margin-bottom:8px; text-align:center; font-size:.95rem;">📚 دستیاب کتابیں (فی الحال تلاش میں شامل)</h4>
+    <div id="pmBookListEl" style="font-size:.85rem; color:var(--text);">
+      <p style="color:var(--muted); text-align:center;">لوڈ ہو رہی ہیں...</p>
+    </div>
+  </div>
+
   <!-- "تلاش کریں" کا الگ باکس اب صارف کو نظر نہیں آتا — اوپر "بیماری کے مزاج" کی فہرست میں سے
        نام منتخب کرنے پر یہی سسٹم خودکار طور پر پس منظر میں چلتا ہے (PDF کتابوں میں تلاش)۔
        عناصر یہاں چھپا کر رکھے گئے ہیں تاکہ موجودہ کوڈ بغیر کسی تبدیلی کے کام کرتا رہے۔ -->
@@ -3966,6 +3973,29 @@ async function pmDeleteFile(fileName, row){
   delete pmRowsByName[fileName];
   try{ await herbalIdbDelete('pmFiles', fileName); }catch(e){}
   pmSearchBtnEl.disabled = pmLibrary.length === 0;
+  pmRenderBookList();
+}
+// فی الحال تلاش میں شامل تمام کتابوں (بلٹ اِن + خود اپ لوڈ کی گئی) کی فہرست دکھائیں —
+// تاکہ صارف خود دیکھ سکے کہ کون سی کتاب لوڈ ہوئی ہے اور کون سی نہیں (خاص طور پر نئی شامل کی گئی کتابوں کی تصدیق کے لیے مفید)
+function pmRenderBookList(){
+  const el = document.getElementById('pmBookListEl');
+  if(!el) return;
+  if(!pmLibrary.length){
+    el.innerHTML = '<p style="color:var(--muted); text-align:center;">ابھی کوئی کتاب لوڈ نہیں ہوئی۔</p>';
+    return;
+  }
+  const rows = pmLibrary.map(f=>{
+    const totalPages = f.pages.length;
+    const textPages = f.pages.filter(p=> p.text && p.text.trim()).length;
+    const sys = pmGetFileSystem(f.fileName);
+    const kind = f.builtin ? 'بلٹ اِن' : 'اپ لوڈ کردہ';
+    return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
+      <span style="flex:1; min-width:160px;">${escapeHtmlSearch(f.fileName)}</span>
+      <span style="color:var(--muted); font-size:.78rem;">${kind} · ${textPages}/${totalPages} صفحات میں متن · ${escapeHtmlSearch(sys)}</span>
+    </div>`;
+  }).join('');
+  const totalAll = pmLibrary.reduce((s,f)=> s+f.pages.length, 0);
+  el.innerHTML = rows + `<p style="color:var(--muted); font-size:.78rem; text-align:center; margin-top:8px;">کل ${pmLibrary.length} کتابیں، ${totalAll} صفحات</p>`;
 }
 function pmSetRowStatus(row, text, color){
   const s = row.querySelector('.pm-status');
@@ -4122,6 +4152,7 @@ async function pmProcessFile(file, fromStorage, cachedPages){
     pmSetRowStatus(row, 'فائل نہیں پڑھی جا سکی: ' + (err && err.message ? err.message : 'نامعلوم خرابی'), '#e0524f');
   }
   pmSearchBtnEl.disabled = pmLibrary.length === 0;
+  pmRenderBookList();
 }
 
 pmSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') pmRunSearch(); });
@@ -4239,6 +4270,7 @@ const PM_BUILTIN_DATA_FILES = [
     }catch(e){ console.error('built-in PDF data لوڈ نہیں ہو سکا:', url, e); }
   }
   pmSearchBtnEl.disabled = pmLibrary.length === 0;
+  pmRenderBookList();
 })();
 
 function pmNormalizeChar(ch){
