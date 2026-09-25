@@ -5305,6 +5305,42 @@ function herbalClosePdfPageModal(){
 
 // مکمل PDF دکھانے والا viewer — صفحہ بہ صفحہ آگے/پیچھے جا کر پوری کتاب پڑھی جا سکتی ہے
 // (صرف اپ لوڈ کردہ کتابوں کے لیے کام کرتا ہے، کیونکہ صرف انہی کے پاس اصل PDF فائل/pdfDoc موجود ہوتا ہے)
+// جب کسی صفحے کے لیے الفاظ کی پوزیشن (bounding box) محفوظ نہ ہو (جیسے سرور پر OCR کی گئی بلٹ اِن کتابیں)،
+// تب بھی صرف متن دیکھ کر اندازہ لگائیں کہ کتاب کا اپنا چھپا ہوا صفحہ نمبر کیا ہے — پہلی/آخری لائنوں میں
+// تنہا لکھے ہندسے تلاش کر کے (عموماً صفحہ نمبر اسی طرح صفحے کے اوپر یا نیچے چھپا ہوتا ہے)
+function herbalDetectPrintedPageNumberFromText(text){
+  if(!text) return null;
+  const lines = String(text).split('\n').map(l=> l.trim()).filter(Boolean);
+  if(!lines.length) return null;
+  const isNumLine = l=> /^[0-9۰-۹]{1,4}$/.test(l);
+  const urduDigits = '۰۱۲۳۴۵۶۷۸۹';
+  const toNum = l=> parseInt(l.replace(/[۰-۹]/g, d=> String(urduDigits.indexOf(d))), 10);
+  const candidates = [...lines.slice(0,2), ...lines.slice(-2)].filter(isNumLine);
+  if(!candidates.length) return null;
+  const num = toNum(candidates[0]);
+  return isNaN(num) ? null : num;
+}
+// کسی کتاب (entry) کے تمام صفحات کا نقشہ بنائیں: "کتاب کا اپنا چھپا ہوا صفحہ نمبر" → "PDF فائل میں اصل صفحہ نمبر"
+// (ایک بار بنا کر entry پر محفوظ کر لیا جاتا ہے تاکہ بار بار نہ بنانا پڑے)
+function herbalBuildPrintedPageMap(entry){
+  if(!entry) return {};
+  if(entry._printedPageMap) return entry._printedPageMap;
+  const map = {};
+  (entry.pages||[]).forEach(p=>{
+    let printed = null;
+    if(Array.isArray(p.words) && p.words.length){
+      printed = herbalDetectPrintedPageNumber(p.words);
+    }
+    if(printed === null){
+      printed = herbalDetectPrintedPageNumberFromText(p.text);
+    }
+    if(printed !== null && !(printed in map)){
+      map[printed] = p.pageNum;
+    }
+  });
+  entry._printedPageMap = map;
+  return map;
+}
 let herbalFullPdfState = { entry:null, pageNum:1, totalPages:0, queryText:'' };
 async function herbalOpenFullPdfViewer(entry, startPage, queryText){
   herbalFullPdfState.entry = entry;
@@ -5363,23 +5399,44 @@ async function herbalRenderFullPdfCurrentPage(){
     loadingEl.style.display = 'none';
     block.style.display = 'block';
     const pageInputEl = document.getElementById('herbalFullPdfPageInput');
-    if(pageInputEl) pageInputEl.value = herbalFullPdfState.pageNum;
+    if(pageInputEl){
+      const printedNum = herbalGetPrintedNumberForPage(herbalFullPdfState.entry, herbalFullPdfState.pageNum);
+      pageInputEl.value = (printedNum !== null) ? printedNum : herbalFullPdfState.pageNum;
+    }
   }catch(e){
     console.error('Full PDF render error:', e);
     loadingEl.textContent = 'معذرت، یہ صفحہ دکھانے میں خرابی ہوئی۔';
   }
 }
-// صفحہ نمبر کے خانے میں لکھ کر "جائیں" دبانے (یا Enter دبانے) پر سیدھا اسی صفحہ پر چلے جائیں
+// دیے گئے اصل (raw) PDF صفحہ نمبر کے مطابق، اس صفحہ پر PDF کے اندر خود چھپا ہوا نمبر واپس دیں
+// (اگر پتا نہ چل سکے تو null — اس صورت میں خانے میں وہی اصل نمبر دکھایا جاتا ہے)
+function herbalGetPrintedNumberForPage(entry, rawPageNum){
+  if(!entry) return null;
+  const map = herbalBuildPrintedPageMap(entry);
+  for(const printedKey in map){
+    if(map[printedKey] === rawPageNum) return parseInt(printedKey, 10);
+  }
+  return null;
+}
+// صفحہ نمبر کے خانے میں لکھ کر "جائیں" دبانے (یا Enter دبانے) پر سیدھا اسی صفحہ پر چلے جائیں —
+// پہلے چیک کیا جاتا ہے کہ یہ نمبر PDF کے اندر خود چھپے ہوئے (پرنٹڈ) صفحہ نمبر سے میچ کرتا ہے یا نہیں؛
+// اگر ملے تو وہی اصل صفحہ کھولیں، ورنہ لکھے گئے نمبر کو براہ راست PDF فائل کے صفحہ نمبر کے طور پر استعمال کریں
 function herbalFullPdfGoToInputPage(){
   const pageInputEl = document.getElementById('herbalFullPdfPageInput');
   if(!pageInputEl) return;
   const num = parseInt(pageInputEl.value, 10);
   const st = herbalFullPdfState;
-  if(isNaN(num) || num < 1 || num > st.totalPages){
-    alert('براہِ کرم 1 سے ' + st.totalPages + ' کے درمیان صفحہ نمبر لکھیں۔');
+  if(isNaN(num)){
+    alert('براہِ کرم صفحہ نمبر لکھیں۔');
     return;
   }
-  st.pageNum = num;
+  const map = herbalBuildPrintedPageMap(st.entry);
+  let targetPage = (num in map) ? map[num] : num;
+  if(targetPage < 1 || targetPage > st.totalPages){
+    alert('یہ صفحہ نمبر نہیں ملا۔ براہِ کرم 1 سے ' + st.totalPages + ' کے درمیان صفحہ نمبر لکھیں۔');
+    return;
+  }
+  st.pageNum = targetPage;
   st.queryText = ''; // خود لکھے گئے صفحہ نمبر پر پرانی تلاش کی زرد نشاندہی نہ دکھائیں
   herbalRenderFullPdfCurrentPage();
 }
