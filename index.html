@@ -5463,6 +5463,39 @@ function herbalCloseFullPdfModal(){
 // کسی بھی لائبریری (pmLibrary یا hzLibrary) کی کتاب — چاہے اپ لوڈ کردہ ہو یا بلٹ اِن — کو مکمل
 // PDF ویور میں کھولنے کی مشترکہ منطق۔ بلٹ اِن کتاب کی اصل فائل ابھی لوڈ نہ ہوئی ہو تو خود بخود
 // (ریپو کی جڑ میں اسی fileName سے) ڈاؤن لوڈ کر کے کھول دیتی ہے۔
+// بہت بڑی بلٹ اِن کتابیں (GitHub کی 25MB حد کی وجہ سے) کئی چھوٹی PDF فائلوں میں تقسیم ہیں۔
+// یہاں بتایا گیا ہے کہ کون سا صفحہ کس فائل میں ہے؛ صفحہ نمبر اصل کتاب والے ہی رہتے ہیں۔
+const PM_BUILTIN_PDF_PARTS = {
+  'GYNAECOLOGY_BOOK_DIGITAL.pdf': [
+    { file:'GYNAECOLOGY_part1.pdf', from:1,   to:180 },
+    { file:'GYNAECOLOGY_part2.pdf', from:181, to:360 },
+    { file:'GYNAECOLOGY_part3.pdf', from:361, to:538 }
+  ]
+};
+// کئی حصوں کو ایک ہی PDF کی طرح ظاہر کرنے والا ہلکا سا ریپر (numPages + getPage) — ہر حصہ پہلی ضرورت پر ہی لوڈ ہوتا ہے
+function herbalMakeMultiPartPdfDoc(parts){
+  const cache = {};
+  function loadPart(part){
+    if(!cache[part.file]){
+      cache[part.file] = (async ()=>{
+        const res = await fetch(part.file);
+        if(!res.ok){ const er = new Error('fetch failed: ' + res.status); if(res.status===404) er.notFound = part.file; throw er; }
+        const buf = await res.arrayBuffer();
+        return pdfjsLib.getDocument({ data: buf }).promise;
+      })();
+      cache[part.file].catch(()=>{ delete cache[part.file]; });
+    }
+    return cache[part.file];
+  }
+  return {
+    numPages: parts[parts.length-1].to,
+    async getPage(n){
+      const part = parts.find(p=> n >= p.from && n <= p.to) || parts[0];
+      const doc = await loadPart(part);
+      return doc.getPage(n - part.from + 1);
+    }
+  };
+}
 async function herbalOpenLibraryPdf(entry, pageNum, queryText, btnSelector){
   if(!entry){ return; }
   if(entry.pdfDoc){
@@ -5477,15 +5510,26 @@ async function herbalOpenLibraryPdf(entry, pageNum, queryText, btnSelector){
   const btns = btnSelector ? document.querySelectorAll(btnSelector) : [];
   btns.forEach(b=>{ b.disabled = true; b.textContent = 'لوڈ ہو رہا ہے...'; });
   try{
-    const res = await fetch(pdfPath);
-    if(!res.ok) throw new Error('fetch failed: ' + res.status);
-    const buf = await res.arrayBuffer();
-    const doc = await pdfjsLib.getDocument({ data: buf }).promise;
-    entry.pdfDoc = doc;
+    const parts = PM_BUILTIN_PDF_PARTS[pdfPath];
+    if(parts){
+      // بڑی کتاب کئی حصوں میں — صرف وہی حصہ ڈاؤن لوڈ ہو گا جس میں مطلوبہ صفحہ ہے
+      const doc = herbalMakeMultiPartPdfDoc(parts);
+      await doc.getPage(pageNum || 1); // پہلا مطلوبہ حصہ لوڈ کر کے یقینی بنائیں کہ فائل موجود ہے
+      entry.pdfDoc = doc;
+    }else{
+      const res = await fetch(pdfPath);
+      if(!res.ok){ const er = new Error('fetch failed: ' + res.status); if(res.status===404) er.notFound = pdfPath; throw er; }
+      const buf = await res.arrayBuffer();
+      entry.pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+    }
     herbalOpenFullPdfViewer(entry, pageNum || 1, queryText || '');
   }catch(e){
     console.error('builtin PDF load error:', e);
-    alert('معذرت، اصل PDF لوڈ کرنے میں خرابی ہوئی۔ انٹرنیٹ کنکشن چیک کر کے دوبارہ کوشش کریں۔');
+    if(e && e.notFound){
+      alert('اس کتاب کی اصل PDF فائل ابھی سائٹ پر اپ لوڈ نہیں ہوئی (فائل نہیں ملی: ' + e.notFound + ')۔ تلاش کام کرتی رہے گی، صرف "کھولیں" کے لیے فائل ریپو کی جڑ میں رکھنی ہو گی۔');
+    }else{
+      alert('معذرت، اصل PDF لوڈ کرنے میں خرابی ہوئی۔ انٹرنیٹ کنکشن چیک کر کے دوبارہ کوشش کریں۔');
+    }
   }finally{
     btns.forEach(b=>{ b.disabled = false; b.textContent = '📖 کھولیں'; });
   }
