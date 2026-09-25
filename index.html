@@ -5182,13 +5182,10 @@ function pmCanOpenFile(fileName){
 function escapeJsAttr(s){
   return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 }
-function pmOpenPdfAtPage(fileName, pageNum, queryText){
+async function pmOpenPdfAtPage(fileName, pageNum, queryText){
   const entry = pmLibrary.find(f=> f.fileName === fileName);
-  if(!entry || !entry.pdfDoc){
-    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں، اس لیے صفحہ نہیں دکھایا جا سکتا۔');
-    return;
-  }
-  herbalShowPdfPage(entry, pageNum, queryText);
+  if(!entry){ return; }
+  await herbalOpenLibraryPdf(entry, pageNum, queryText, null);
 }
 
 // PDF کا صرف ایک مخصوص صفحہ دکھانے کے لیے مشترکہ modal — pdf.js سے وہ صفحہ کینوس پر رینڈر کر کے دکھایا جاتا ہے،
@@ -5308,11 +5305,12 @@ function herbalClosePdfPageModal(){
 
 // مکمل PDF دکھانے والا viewer — صفحہ بہ صفحہ آگے/پیچھے جا کر پوری کتاب پڑھی جا سکتی ہے
 // (صرف اپ لوڈ کردہ کتابوں کے لیے کام کرتا ہے، کیونکہ صرف انہی کے پاس اصل PDF فائل/pdfDoc موجود ہوتا ہے)
-let herbalFullPdfState = { entry:null, pageNum:1, totalPages:0 };
-async function herbalOpenFullPdfViewer(entry, startPage){
+let herbalFullPdfState = { entry:null, pageNum:1, totalPages:0, queryText:'' };
+async function herbalOpenFullPdfViewer(entry, startPage, queryText){
   herbalFullPdfState.entry = entry;
   herbalFullPdfState.totalPages = (entry.pdfDoc && entry.pdfDoc.numPages) || entry.pages.length || 1;
   herbalFullPdfState.pageNum = Math.min(Math.max(1, startPage||1), herbalFullPdfState.totalPages);
+  herbalFullPdfState.queryText = queryText || '';
 
   let modal = document.getElementById('herbalFullPdfModal');
   if(!modal){
@@ -5331,7 +5329,12 @@ async function herbalOpenFullPdfViewer(entry, startPage){
         </div>
         <div style="display:flex; justify-content:center; align-items:center; gap:14px; margin-top:14px; flex-wrap:wrap;">
           <button onclick="herbalFullPdfNav(-1)" style="background:var(--card); color:var(--gold-soft); border:1px solid var(--gold); border-radius:16px; padding:6px 16px; cursor:pointer;">◀ پچھلا</button>
-          <span id="herbalFullPdfPageIndicator" style="color:#fff; font-size:.9rem; min-width:110px;"></span>
+          <span style="color:#fff; font-size:.9rem; display:flex; align-items:center; gap:6px;">
+            صفحہ
+            <input id="herbalFullPdfPageInput" type="number" min="1" style="width:64px; text-align:center; padding:4px 6px; border-radius:8px; border:1px solid var(--gold); background:var(--card); color:#fff; font-size:.9rem;" onkeydown="if(event.key==='Enter') herbalFullPdfGoToInputPage()">
+            / <span id="herbalFullPdfTotalPagesLabel"></span>
+            <button onclick="herbalFullPdfGoToInputPage()" style="background:var(--gold); color:var(--navy); border:none; border-radius:14px; padding:4px 12px; font-size:.78rem; cursor:pointer;">جائیں</button>
+          </span>
           <button onclick="herbalFullPdfNav(1)" style="background:var(--card); color:var(--gold-soft); border:1px solid var(--gold); border-radius:16px; padding:6px 16px; cursor:pointer;">اگلا ▶</button>
         </div>
       </div>`;
@@ -5341,6 +5344,10 @@ async function herbalOpenFullPdfViewer(entry, startPage){
   modal.style.display = 'block';
   const titleEl = document.getElementById('herbalFullPdfTitle');
   if(titleEl) titleEl.textContent = entry.fileName + ' — کل ' + herbalFullPdfState.totalPages + ' صفحات';
+  const totalLabelEl = document.getElementById('herbalFullPdfTotalPagesLabel');
+  if(totalLabelEl) totalLabelEl.textContent = herbalFullPdfState.totalPages;
+  const pageInputEl = document.getElementById('herbalFullPdfPageInput');
+  if(pageInputEl) pageInputEl.max = herbalFullPdfState.totalPages;
   await herbalRenderFullPdfCurrentPage();
 }
 async function herbalRenderFullPdfCurrentPage(){
@@ -5352,21 +5359,36 @@ async function herbalRenderFullPdfCurrentPage(){
   loadingEl.style.display = 'block';
   loadingEl.textContent = 'لوڈ ہو رہا ہے...';
   try{
-    await herbalRenderPdfPageToCanvas(herbalFullPdfState.entry, herbalFullPdfState.pageNum, canvas, '');
+    await herbalRenderPdfPageToCanvas(herbalFullPdfState.entry, herbalFullPdfState.pageNum, canvas, herbalFullPdfState.queryText);
     loadingEl.style.display = 'none';
     block.style.display = 'block';
-    const indEl = document.getElementById('herbalFullPdfPageIndicator');
-    if(indEl) indEl.textContent = 'صفحہ ' + herbalFullPdfState.pageNum + ' / ' + herbalFullPdfState.totalPages;
+    const pageInputEl = document.getElementById('herbalFullPdfPageInput');
+    if(pageInputEl) pageInputEl.value = herbalFullPdfState.pageNum;
   }catch(e){
     console.error('Full PDF render error:', e);
     loadingEl.textContent = 'معذرت، یہ صفحہ دکھانے میں خرابی ہوئی۔';
   }
+}
+// صفحہ نمبر کے خانے میں لکھ کر "جائیں" دبانے (یا Enter دبانے) پر سیدھا اسی صفحہ پر چلے جائیں
+function herbalFullPdfGoToInputPage(){
+  const pageInputEl = document.getElementById('herbalFullPdfPageInput');
+  if(!pageInputEl) return;
+  const num = parseInt(pageInputEl.value, 10);
+  const st = herbalFullPdfState;
+  if(isNaN(num) || num < 1 || num > st.totalPages){
+    alert('براہِ کرم 1 سے ' + st.totalPages + ' کے درمیان صفحہ نمبر لکھیں۔');
+    return;
+  }
+  st.pageNum = num;
+  st.queryText = ''; // خود لکھے گئے صفحہ نمبر پر پرانی تلاش کی زرد نشاندہی نہ دکھائیں
+  herbalRenderFullPdfCurrentPage();
 }
 function herbalFullPdfNav(delta){
   const st = herbalFullPdfState;
   const next = st.pageNum + delta;
   if(next < 1 || next > st.totalPages) return;
   st.pageNum = next;
+  st.queryText = ''; // اگلے/پچھلے صفحے پر جانے کے بعد پرانی تلاش کی زرد نشاندہی نہ دکھائیں
   herbalRenderFullPdfCurrentPage();
 }
 function herbalCloseFullPdfModal(){
@@ -5378,19 +5400,21 @@ function herbalCloseFullPdfModal(){
 // (بالکل ویسے ہی نام سے) اپ لوڈ کی جائے، "کھولیں" بٹن خود بخود کام کرنے لگتا ہے، کوڈ میں الگ سے
 // کچھ لکھنے کی ضرورت نہیں پڑتی۔ اگر وہ فائل وہاں موجود نہ ہو (یا حجم کی وجہ سے شامل نہ کی گئی ہو)
 // تو نیچے واضح پیغام دکھا دیا جاتا ہے۔
-async function pmOpenFullPdf(fileName){
-  const entry = pmLibrary.find(f=> f.fileName === fileName);
+// کسی بھی لائبریری (pmLibrary یا hzLibrary) کی کتاب — چاہے اپ لوڈ کردہ ہو یا بلٹ اِن — کو مکمل
+// PDF ویور میں کھولنے کی مشترکہ منطق۔ بلٹ اِن کتاب کی اصل فائل ابھی لوڈ نہ ہوئی ہو تو خود بخود
+// (ریپو کی جڑ میں اسی fileName سے) ڈاؤن لوڈ کر کے کھول دیتی ہے۔
+async function herbalOpenLibraryPdf(entry, pageNum, queryText, btnSelector){
   if(!entry){ return; }
   if(entry.pdfDoc){
-    herbalOpenFullPdfViewer(entry, 1);
+    herbalOpenFullPdfViewer(entry, pageNum || 1, queryText || '');
     return;
   }
-  const pdfPath = entry.builtin ? fileName : null; // ریپو کی جڑ میں بالکل اسی fileName سے فائل ڈھونڈیں
+  const pdfPath = entry.builtin ? entry.fileName : null; // ریپو کی جڑ میں بالکل اسی fileName سے فائل ڈھونڈیں
   if(!pdfPath){
     alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں (فائل کا حجم بہت بڑا ہونے کی وجہ سے یا ابھی اپ لوڈ نہیں ہوئی)۔');
     return;
   }
-  const btns = document.querySelectorAll(`button[onclick="pmOpenFullPdf('${fileName.replace(/'/g,"\\'")}')"]`);
+  const btns = btnSelector ? document.querySelectorAll(btnSelector) : [];
   btns.forEach(b=>{ b.disabled = true; b.textContent = 'لوڈ ہو رہا ہے...'; });
   try{
     const res = await fetch(pdfPath);
@@ -5398,13 +5422,18 @@ async function pmOpenFullPdf(fileName){
     const buf = await res.arrayBuffer();
     const doc = await pdfjsLib.getDocument({ data: buf }).promise;
     entry.pdfDoc = doc;
-    herbalOpenFullPdfViewer(entry, 1);
+    herbalOpenFullPdfViewer(entry, pageNum || 1, queryText || '');
   }catch(e){
     console.error('builtin PDF load error:', e);
     alert('معذرت، اصل PDF لوڈ کرنے میں خرابی ہوئی۔ انٹرنیٹ کنکشن چیک کر کے دوبارہ کوشش کریں۔');
   }finally{
     btns.forEach(b=>{ b.disabled = false; b.textContent = '📖 کھولیں'; });
   }
+}
+async function pmOpenFullPdf(fileName){
+  const entry = pmLibrary.find(f=> f.fileName === fileName);
+  const sel = `button[onclick="pmOpenFullPdf('${fileName.replace(/'/g,"\\'")}')"]`;
+  await herbalOpenLibraryPdf(entry, 1, '', sel);
 }
 
 // بلٹ اِن کتابوں کو عارضی طور پر فہرست/تلاش سے ہٹانے کی سہولت — صرف اسی براؤزر میں یاد رہتی ہے (localStorage)
@@ -5896,13 +5925,10 @@ function hzOpenTextEditor(fileName, pageNum){
     });
   }
 }
-function hzOpenPdfAtPage(fileName, pageNum, queryText){
+async function hzOpenPdfAtPage(fileName, pageNum, queryText){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
-  if(!entry || !entry.pdfDoc){
-    alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں، اس لیے صفحہ نہیں دکھایا جا سکتا۔');
-    return;
-  }
-  herbalShowPdfPage(entry, pageNum, queryText);
+  if(!entry){ return; }
+  await herbalOpenLibraryPdf(entry, pageNum, queryText, null);
 }
 function hzBuildSnippet(text, startOrig, endOrig){
   const radius = 60;
