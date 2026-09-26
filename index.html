@@ -4001,11 +4001,7 @@ function pmRenderBookList(){
     </div>`;
   }).join('');
   const totalAll = pmLibrary.reduce((s,f)=> s+f.pages.length, 0);
-  const hiddenCount = pmGetHiddenBuiltins().length;
-  const restoreHtml = hiddenCount
-    ? `<div style="text-align:center; margin-top:10px;"><button class="btn secondary" style="padding:6px 16px; font-size:.8rem;" onclick="pmRestoreHiddenBuiltins()">♻️ ہٹائی گئی ${hiddenCount} بلٹ اِن کتابیں واپس لائیں</button></div>`
-    : '';
-  el.innerHTML = rows + `<p style="color:var(--muted); font-size:.78rem; text-align:center; margin-top:8px;">کل ${pmLibrary.length} کتابیں، ${totalAll} صفحات</p>` + restoreHtml;
+  el.innerHTML = rows + `<p style="color:var(--muted); font-size:.78rem; text-align:center; margin-top:8px;">کل ${pmLibrary.length} کتابیں، ${totalAll} صفحات</p>`;
 }
 function pmSetRowStatus(row, text, color){
   const s = row.querySelector('.pm-status');
@@ -4261,23 +4257,14 @@ function pmAutoDetectAndSetFileSystem(fileName, pages, row){
     if(row) pmUpdateFileSystemBadge(row, fileName);
   }
 }
+// سائٹ میں شامل مستقل (بلٹ اِن) کتابیں — صرف یہی کتابیں سب کو نظر آئیں گی اور تلاش میں شامل ہوں گی۔
+// نئی کتاب شامل کرنی ہو تو اس کی pm-data-*.json فائل کا نام یہاں لکھنا لازمی ہے
+// (ریپو میں کوئی اور فائل پڑی ہو تو وہ خود بخود شامل نہیں ہو گی)
 const PM_BUILTIN_DATA_FILES = [
-  'pm-data-biochemistry.json',
-  'pm-data-computer-science.json',
-  'pm-data-pharmacy.json',
-  'pm-data-practice-of-medicine.json',
-  'pm-data-ultrasound.json',
-  'pm-data-qanoon-mufrad-aza-dama.json',
-  'pm-data-tehqiqat-o-ilaj.json',
-  'pm-data-apna-ilaj-khud-karen.json',
-  'pm-data-orton-kay-amraaz.json',
+  'pm-data-gynaecology.json',
   'pm-data-mardon-kay-amraaz.json',
   'pm-data-nizamat-e-jism.json',
-  'pm-data-mufrad-aza-amraz-jild.json',
-  'pm-data-tashkhees-o-tajveez-mufrad-aza.json',
-  'pm-data-laboratory-test-guide.json',
-  'pm-data-mera-mutb.json',
-  'pm-data-gynaecology.json'
+  'pm-data-tashkhees-o-tajveez-mufrad-aza.json'
 ];
 // GitHub ریپو کی جڑ (root) میں موجود فائلوں کی فہرست خود بخود حاصل کریں — اس طرح مستقبل میں
 // کوئی نئی pm-data-*.json فائل صرف وہیں اپ لوڈ کرنے سے خود بخود شامل ہو جائے گی،
@@ -4301,7 +4288,7 @@ async function pmDiscoverBuiltinDataFiles(){
   }
 }
 (async function pmLoadBuiltinData(){
-  const fileList = await pmDiscoverBuiltinDataFiles();
+  const fileList = PM_BUILTIN_DATA_FILES; // صرف اوپر والی مقررہ فہرست — ریپو کی باقی فائلیں شامل نہیں ہوتیں
   for(const url of fileList){
     try{
       const res = await fetch(url);
@@ -4309,7 +4296,6 @@ async function pmDiscoverBuiltinDataFiles(){
       const data = await res.json();
       if(!data || !Array.isArray(data.pages)) continue;
       const fName = data.fileName || url;
-      if(pmIsBuiltinHidden(fName)) continue; // صارف نے یہ کتاب ہٹا رکھی ہے
       if(pmLibrary.some(f=> f.fileName === fName)) continue; // ڈپلیکیٹ سے بچاؤ
       pmLibrary.push({
         fileName: fName,
@@ -5356,32 +5342,44 @@ async function herbalOpenFullPdfViewer(entry, startPage, queryText){
   if(!modal){
     modal = document.createElement('div');
     modal.id = 'herbalFullPdfModal';
-    modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:9999; overflow:auto; text-align:center; padding:14px 10px;';
+    modal.style.cssText = 'display:none; position:fixed; inset:0; background:#000; z-index:9999; overflow:hidden;';
     modal.innerHTML = `
-      <div style="max-width:760px; margin:0 auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
-          <span id="herbalFullPdfTitle" style="color:var(--gold-soft); font-size:.82rem;"></span>
-          <button onclick="herbalCloseFullPdfModal()" style="background:var(--gold); color:var(--navy); border:none; border-radius:16px; padding:6px 16px; cursor:pointer; flex-shrink:0;">بند کریں ✕</button>
+      <div id="herbalFullPdfTopBar" style="position:absolute; top:0; left:0; right:0; z-index:3; display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; background:linear-gradient(rgba(0,0,0,.85), rgba(0,0,0,0)); transition:opacity .25s;">
+        <span id="herbalFullPdfTitle" style="color:var(--gold-soft); font-size:.75rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; text-align:right;"></span>
+        <button onclick="herbalCloseFullPdfModal()" style="background:var(--gold); color:var(--navy); border:none; border-radius:16px; padding:5px 14px; font-size:.85rem; cursor:pointer; flex-shrink:0;">بند کریں ✕</button>
+      </div>
+      <div id="herbalFullPdfLoading" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; z-index:1;">لوڈ ہو رہا ہے...</div>
+      <div id="herbalFullPdfBlock" style="display:none; position:absolute; inset:0; overflow:auto; touch-action:pan-x pan-y pinch-zoom; -webkit-overflow-scrolling:touch;">
+        <div style="min-height:100%; display:flex; align-items:center; justify-content:center;">
+          <canvas id="herbalFullPdfCanvas" style="display:block; width:100vw; height:auto; transition:transform .18s ease, opacity .18s ease;"></canvas>
         </div>
-        <div id="herbalFullPdfLoading" style="color:#fff; padding:30px;">لوڈ ہو رہا ہے...</div>
-        <div id="herbalFullPdfBlock" style="display:none; touch-action:pan-y pinch-zoom;">
-          <canvas id="herbalFullPdfCanvas" style="max-width:100%; height:auto; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,.5); transition:transform .18s ease, opacity .18s ease;"></canvas>
-        </div>
-        <div style="color:var(--gold-soft); font-size:.78rem; margin-top:8px;">👆 صفحہ بدلنے کے لیے انگلی سے سرکائیں: دائیں طرف ← اگلا صفحہ، بائیں طرف → پچھلا صفحہ</div>
-        <div style="display:flex; justify-content:center; align-items:center; gap:14px; margin-top:14px; flex-wrap:wrap;">
-          <span style="color:#fff; font-size:.9rem; display:flex; align-items:center; gap:6px;">
-            صفحہ
-            <input id="herbalFullPdfPageInput" type="number" min="1" style="width:64px; text-align:center; padding:4px 6px; border-radius:8px; border:1px solid var(--gold); background:var(--card); color:#fff; font-size:.9rem;" onkeydown="if(event.key==='Enter') herbalFullPdfGoToInputPage()">
-            / <span id="herbalFullPdfTotalPagesLabel"></span>
-            <button onclick="herbalFullPdfGoToInputPage()" style="background:var(--gold); color:var(--navy); border:none; border-radius:14px; padding:4px 12px; font-size:.78rem; cursor:pointer;">جائیں</button>
-          </span>
-        </div>
+      </div>
+      <div id="herbalFullPdfBottomBar" style="position:absolute; bottom:0; left:0; right:0; z-index:3; padding:8px 10px 10px; background:linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.85)); text-align:center; transition:opacity .25s;">
+        <span style="color:#fff; font-size:.85rem; display:inline-flex; align-items:center; gap:6px;">
+          صفحہ
+          <input id="herbalFullPdfPageInput" type="number" min="1" style="width:58px; text-align:center; padding:3px 6px; border-radius:8px; border:1px solid var(--gold); background:var(--card); color:#fff; font-size:.85rem;" onkeydown="if(event.key==='Enter') herbalFullPdfGoToInputPage()">
+          / <span id="herbalFullPdfTotalPagesLabel"></span>
+          <button onclick="herbalFullPdfGoToInputPage()" style="background:var(--gold); color:var(--navy); border:none; border-radius:14px; padding:3px 12px; font-size:.75rem; cursor:pointer;">جائیں</button>
+        </span>
+        <div style="color:var(--gold-soft); font-size:.7rem; margin-top:4px;">👆 اگلا صفحہ: انگلی نیچے سے اوپر یا دائیں سرکائیں · پچھلا: اوپر سے نیچے یا بائیں · ایک بار چھوئیں: بٹن چھپائیں/دکھائیں</div>
       </div>`;
     document.body.appendChild(modal);
-    modal.addEventListener('click', e=>{ if(e.target === modal) herbalCloseFullPdfModal(); });
     herbalAttachFullPdfSwipe(document.getElementById('herbalFullPdfBlock'));
+    // صفحے پر ایک بار چھونے سے اوپر/نیچے کی پٹیاں چھپ جائیں یا واپس آ جائیں — تاکہ پورا صفحہ صاف نظر آئے
+    document.getElementById('herbalFullPdfBlock').addEventListener('click', ()=>{
+      if(Date.now() - (herbalFullPdfState.lastSwipeAt || 0) < 400) return;
+      ['herbalFullPdfTopBar','herbalFullPdfBottomBar'].forEach(id=>{
+        const bar = document.getElementById(id);
+        const hide = bar.style.opacity !== '0';
+        bar.style.opacity = hide ? '0' : '1';
+        bar.style.pointerEvents = hide ? 'none' : 'auto';
+      });
+    });
   }
   modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  // فون کی اپنی اوپر/نیچے والی پٹیاں بھی چھپا کر پوری اسکرین پر کھولیں (جہاں براؤزر اجازت دے)
+  try{ if(!document.fullscreenElement && modal.requestFullscreen) modal.requestFullscreen().catch(()=>{}); }catch(e){}
   const titleEl = document.getElementById('herbalFullPdfTitle');
   if(titleEl) titleEl.textContent = entry.fileName + ' — کل ' + herbalFullPdfState.totalPages + ' صفحات';
   const totalLabelEl = document.getElementById('herbalFullPdfTotalPagesLabel');
@@ -5396,12 +5394,12 @@ async function herbalRenderFullPdfCurrentPage(){
   const loadingEl = document.getElementById('herbalFullPdfLoading');
   if(!canvas || !block || !loadingEl) return;
   block.style.display = 'none';
-  loadingEl.style.display = 'block';
+  loadingEl.style.display = 'flex';
   loadingEl.textContent = 'لوڈ ہو رہا ہے...';
   try{
     await herbalRenderPdfPageToCanvas(herbalFullPdfState.entry, herbalFullPdfState.pageNum, canvas, herbalFullPdfState.queryText);
     loadingEl.style.display = 'none';
-    block.style.display = 'block';
+    block.style.display = 'block'; block.scrollTop = 0;
     const pageInputEl = document.getElementById('herbalFullPdfPageInput');
     if(pageInputEl){
       const printedNum = herbalGetPrintedNumberForPage(herbalFullPdfState.entry, herbalFullPdfState.pageNum);
@@ -5456,12 +5454,28 @@ function herbalAttachFullPdfSwipe(el){
     active = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
   }, {passive:true});
   el.addEventListener('touchmove', e=>{ if(e.touches.length !== 1) active = false; }, {passive:true});
+  let startScrollTop = 0;
+  el.addEventListener('touchstart', ()=>{ startScrollTop = el.scrollTop; }, {passive:true});
   el.addEventListener('touchend', e=>{
     if(!active) return; active = false;
     const t = e.changedTouches[0];
     const dx = t.clientX - sx, dy = t.clientY - sy;
-    if(Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5 || Date.now() - st > 800) return;
-    herbalFullPdfSwipeTo(dx > 0 ? 1 : -1);
+    if(Date.now() - st > 800) return;
+    // دائیں/بائیں سرکانا
+    if(Math.abs(dx) >= 50 && Math.abs(dx) >= Math.abs(dy) * 1.5){
+      herbalFullPdfState.lastSwipeAt = Date.now();
+      herbalFullPdfSwipeTo(dx > 0 ? 1 : -1, 'x');
+      return;
+    }
+    // نیچے سے اوپر سرکانا = اگلا صفحہ، اوپر سے نیچے = پچھلا صفحہ۔
+    // اگر صفحہ اسکرین سے لمبا ہو تو پہلے عام طرح اسکرول ہو گا؛ صفحے کے آخر (یا شروع) پر پہنچ کر سرکانے سے صفحہ بدلے گا
+    if(Math.abs(dy) >= 60 && Math.abs(dy) >= Math.abs(dx) * 1.5){
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      const atBottom = startScrollTop >= maxScroll - 4;
+      const atTop = startScrollTop <= 4;
+      if(dy < 0 && atBottom){ herbalFullPdfState.lastSwipeAt = Date.now(); herbalFullPdfSwipeTo(1, 'y'); }
+      else if(dy > 0 && atTop){ herbalFullPdfState.lastSwipeAt = Date.now(); herbalFullPdfSwipeTo(-1, 'y'); }
+    }
   }, {passive:true});
   // کمپیوٹر پر کی بورڈ کے تیر والے بٹن سے بھی صفحہ بدلیں
   document.addEventListener('keydown', e=>{
@@ -5472,13 +5486,15 @@ function herbalAttachFullPdfSwipe(el){
     else if(e.key === 'ArrowRight') herbalFullPdfSwipeTo(-1);
   });
 }
-function herbalFullPdfSwipeTo(delta){
+function herbalFullPdfSwipeTo(delta, axis){
   const st = herbalFullPdfState;
   const next = st.pageNum + delta;
   if(next < 1 || next > st.totalPages) return;
   const canvas = document.getElementById('herbalFullPdfCanvas');
   if(canvas){
-    canvas.style.transform = 'translateX(' + (delta > 0 ? 40 : -40) + 'px)';
+    canvas.style.transform = axis === 'y'
+      ? 'translateY(' + (delta > 0 ? -40 : 40) + 'px)'
+      : 'translateX(' + (delta > 0 ? 40 : -40) + 'px)';
     canvas.style.opacity = '0.3';
     setTimeout(()=>{ canvas.style.transform = ''; canvas.style.opacity = ''; }, 200);
   }
@@ -5495,6 +5511,8 @@ function herbalFullPdfNav(delta){
 function herbalCloseFullPdfModal(){
   const modal = document.getElementById('herbalFullPdfModal');
   if(modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+  try{ if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); }catch(e){}
 }
 // بلٹ اِن کتاب کی اصل PDF فائل GitHub کی جڑ (root) میں بالکل اسی نام سے تلاش کی جاتی ہے جو
 // اس کی pm-data-*.json کے اندر "fileName" میں لکھا ہے — اس طرح جیسے ہی اصل PDF بھی اُسی جگہ
@@ -5596,11 +5614,6 @@ function pmHideBuiltin(fileName){
   if(idx !== -1) pmLibrary.splice(idx, 1);
   pmSearchBtnEl.disabled = pmLibrary.length === 0;
   pmRenderBookList();
-}
-// پہلے "ہٹائیں" سے چھپائی گئی تمام بلٹ اِن کتابیں دوبارہ فہرست اور تلاش میں لے آئیں
-function pmRestoreHiddenBuiltins(){
-  try{ localStorage.removeItem('herbalHiddenBuiltins'); }catch(e){}
-  location.reload();
 }
 
 // جملے کو کاٹتے وقت درمیانی لفظ کو ادھورا کاٹنے کی بجائے، شروع اور آخر میں نزدیک ترین خالی جگہ
