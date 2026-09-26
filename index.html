@@ -5332,10 +5332,42 @@ function herbalBuildPrintedPageMap(entry){
   return map;
 }
 let herbalFullPdfState = { entry:null, pageNum:1, totalPages:0, queryText:'' };
+// اسکین شدہ کتابوں میں کسی PDF صفحے پر کتاب کا ایک صفحہ ہوتا ہے اور کسی پر کھلی کتاب کے دو صفحے۔
+// یہاں ہر PDF صفحے کی شکل دیکھ کر ایک ترتیب (vmap) بنائی جاتی ہے: جو صفحہ چوڑا (دو صفحوں والا) ہو
+// اسے بیچ سے دو حصوں میں بانٹا جاتا ہے — پہلے دایاں حصہ (اردو کتاب کا پہلا صفحہ) پھر بایاں —
+// تاکہ ہر بار ایک ہی صفحہ دکھے اور صفحہ نمبر ترتیب سے چلیں۔
+async function herbalBuildSpreadMap(entry){
+  if(entry._vmap) return entry._vmap;
+  const doc = entry.pdfDoc;
+  const n = (doc && doc.numPages) || entry.pages.length || 1;
+  const vmap = [];
+  // کئی حصوں میں بٹی بڑی کتاب (مثلاً گائناکالوجی) کے صفحات پہلے ہی ایک ایک ہیں — انہیں نہیں بانٹنا
+  const canInspect = doc && !(PM_BUILTIN_PDF_PARTS && PM_BUILTIN_PDF_PARTS[entry.fileName]) && n <= 600;
+  for(let p=1; p<=n; p++){
+    let isSpread = false;
+    if(canInspect){
+      try{
+        const page = await doc.getPage(p);
+        const vp = page.getViewport({ scale: 1, rotation: page.rotate || 0 });
+        isSpread = vp.width > vp.height * 1.15;
+      }catch(e){}
+    }
+    if(isSpread){ vmap.push({ raw:p, part:'R' }); vmap.push({ raw:p, part:'L' }); }
+    else vmap.push({ raw:p, part:'full' });
+  }
+  entry._vmap = vmap;
+  entry._hasSpreads = vmap.some(v=> v.part !== 'full');
+  return vmap;
+}
 async function herbalOpenFullPdfViewer(entry, startPage, queryText){
   herbalFullPdfState.entry = entry;
-  herbalFullPdfState.totalPages = (entry.pdfDoc && entry.pdfDoc.numPages) || entry.pages.length || 1;
-  herbalFullPdfState.pageNum = Math.min(Math.max(1, startPage||1), herbalFullPdfState.totalPages);
+  const vmap = await herbalBuildSpreadMap(entry);
+  herbalFullPdfState.vmap = vmap;
+  herbalFullPdfState.totalPages = vmap.length;
+  // باہر سے آنے والا صفحہ نمبر اصل PDF کا ہوتا ہے — اسے نئی ترتیب کے پہلے متعلقہ صفحے میں بدلیں
+  const rawStart = Math.max(1, startPage||1);
+  const vIdx = vmap.findIndex(v=> v.raw === rawStart);
+  herbalFullPdfState.pageNum = vIdx >= 0 ? vIdx + 1 : 1;
   herbalFullPdfState.queryText = queryText || '';
 
   let modal = document.getElementById('herbalFullPdfModal');
@@ -5397,13 +5429,26 @@ async function herbalRenderFullPdfCurrentPage(){
   loadingEl.style.display = 'flex';
   loadingEl.textContent = 'لوڈ ہو رہا ہے...';
   try{
-    await herbalRenderPdfPageToCanvas(herbalFullPdfState.entry, herbalFullPdfState.pageNum, canvas, herbalFullPdfState.queryText);
+    const st = herbalFullPdfState;
+    const v = (st.vmap && st.vmap[st.pageNum-1]) || { raw: st.pageNum, part:'full' };
+    if(v.part === 'full'){
+      await herbalRenderPdfPageToCanvas(st.entry, v.raw, canvas, st.queryText);
+    }else{
+      // پورا صفحہ الگ کینوس پر بنا کر اس کا دایاں یا بایاں آدھا حصہ دکھائیں
+      const tmp = document.createElement('canvas');
+      await herbalRenderPdfPageToCanvas(st.entry, v.raw, tmp, st.queryText);
+      const half = Math.floor(tmp.width / 2);
+      const sx = v.part === 'R' ? tmp.width - half : 0;
+      canvas.width = half; canvas.height = tmp.height;
+      canvas.getContext('2d').drawImage(tmp, sx, 0, half, tmp.height, 0, 0, half, tmp.height);
+    }
     loadingEl.style.display = 'none';
     block.style.display = 'block'; block.scrollTop = 0;
     const pageInputEl = document.getElementById('herbalFullPdfPageInput');
     if(pageInputEl){
-      const printedNum = herbalGetPrintedNumberForPage(herbalFullPdfState.entry, herbalFullPdfState.pageNum);
-      pageInputEl.value = (printedNum !== null) ? printedNum : herbalFullPdfState.pageNum;
+      // دو صفحوں والی کتاب میں ترتیب وار نمبر دکھائیں؛ ورنہ پہلے کی طرح کتاب کا چھپا ہوا نمبر (اگر معلوم ہو)
+      const printedNum = st.entry._hasSpreads ? null : herbalGetPrintedNumberForPage(st.entry, v.raw);
+      pageInputEl.value = (printedNum !== null) ? printedNum : st.pageNum;
     }
   }catch(e){
     console.error('Full PDF render error:', e);
@@ -5432,8 +5477,14 @@ function herbalFullPdfGoToInputPage(){
     alert('براہِ کرم صفحہ نمبر لکھیں۔');
     return;
   }
-  const map = herbalBuildPrintedPageMap(st.entry);
-  let targetPage = (num in map) ? map[num] : num;
+  let targetPage = num;
+  if(!st.entry._hasSpreads){
+    const map = herbalBuildPrintedPageMap(st.entry);
+    if(num in map){
+      const idx = (st.vmap || []).findIndex(v=> v.raw === map[num]);
+      targetPage = idx >= 0 ? idx + 1 : map[num];
+    }
+  }
   if(targetPage < 1 || targetPage > st.totalPages){
     alert('یہ صفحہ نمبر نہیں ملا۔ براہِ کرم 1 سے ' + st.totalPages + ' کے درمیان صفحہ نمبر لکھیں۔');
     return;
