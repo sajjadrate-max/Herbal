@@ -3984,7 +3984,7 @@ function pmRenderBookList(){
     el.innerHTML = '<p style="color:var(--muted); text-align:center;">ابھی کوئی کتاب لوڈ نہیں ہوئی۔</p>';
     return;
   }
-  const rows = pmLibrary.map(f=>{
+  const rows = pmLibrary.map((f, idx)=>{
     const totalPages = f.pages.length;
     const textPages = f.pages.filter(p=> p.text && p.text.trim()).length;
     const sys = pmGetFileSystem(f.fileName);
@@ -3995,7 +3995,7 @@ function pmRenderBookList(){
       ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenFullPdf('${escapeJsAttr(f.fileName)}')">📖 کھولیں</button>`
       : '';
     return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
-      <span style="flex:1; min-width:160px;">${escapeHtmlSearch(f.fileName)}</span>
+      <span style="flex:1; min-width:160px;"><b style="color:var(--gold); margin-left:6px;">${idx+1}۔</b> ${escapeHtmlSearch(f.fileName)}</span>
       <span style="color:var(--muted); font-size:.78rem;">${kind} · ${textPages}/${totalPages} صفحات میں متن · ${escapeHtmlSearch(sys)}</span>
       ${openBtnHtml}
     </div>`;
