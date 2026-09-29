@@ -323,12 +323,8 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <!-- علاج ہمیشہ کلیہ 1 (مرض کو جڑ سے ختم کرنا) کے مطابق — صارف کو یہ اختیار نظر نہیں آتا -->
     <input type="hidden" id="qmStage" value="1">
 
-    <label style="color:var(--gold-soft); font-size:.9rem;">مرض کی شدت</label>
-    <select class="search" id="qmSeverity" style="margin:4px 0 12px;">
-      <option value="1">ہلکا — نیا / معمولی مرض</option>
-      <option value="2" selected>درمیانہ</option>
-      <option value="3">شدید — پرانا / بگڑا ہوا مرض</option>
-    </select>
+    <!-- مرض کی شدت ہمیشہ "شدید — پرانا / بگڑا ہوا مرض" (پس منظر میں) -->
+    <input type="hidden" id="qmSeverity" value="3">
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <div style="flex:1; min-width:140px;">
         <label style="color:var(--gold-soft); font-size:.9rem;">مریض</label>
@@ -4777,7 +4773,7 @@ async function pmProcessFile(file, fromStorage, cachedPages){
     // (متن بھی ساتھ محفوظ کیا جاتا ہے تاکہ OCR کا نتیجہ بھی ہمیشہ کے لیے برقرار رہے)
     if(!fromStorage){
       herbalIdbPut('pmFiles', { fileName:file.name, blob:file, pages, addedAt:Date.now() }).catch(err=>{
-        console.error('pm persistent save failed:', err);
+        (function(){})('pm persistent save failed:', err);
         const s = row.querySelector('.pm-status');
         if(s) s.textContent += ' — (نوٹ: جگہ کم ہونے کی وجہ سے یہ فائل مستقل محفوظ نہیں ہو سکی، ابھی صرف اسی سیشن میں تلاش کے لیے دستیاب ہے)';
       });
@@ -4801,7 +4797,7 @@ async function pmProcessFile(file, fromStorage, cachedPages){
     }
     ocrBtn.addEventListener('click', ocrBtn._origHandler);
   }catch(err){
-    console.error('PDF read error:', err);
+    (function(){})('PDF read error:', err);
     pmSetRowStatus(row, 'فائل نہیں پڑھی جا سکی: ' + (err && err.message ? err.message : 'نامعلوم خرابی'), '#e0524f');
   }
   pmSearchBtnEl.disabled = pmLibrary.length === 0;
@@ -4830,7 +4826,7 @@ pmSearchInputEl.addEventListener('input', ()=>{
       const file = new File([rec.blob], rec.fileName, { type: 'application/pdf' });
       await pmProcessFile(file, true, rec.pages);
     }
-  }catch(e){ console.error('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
+  }catch(e){ (function(){})('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
 })();
 
 // ہر PDF کس "حکمت"/طبی نظام کی کتاب ہے (قانون مفرد اعضاء، طب یونانی، ہومیوپیتھک، ایلوپیتھک وغیرہ) —
@@ -4953,7 +4949,17 @@ async function pmDiscoverBuiltinDataFiles(){
     return PM_BUILTIN_DATA_FILES;
   }
 }
+// صرف اصل ویب سائٹ پر ہی کتابوں کی ڈیٹا فائلیں لوڈ کریں — فائل کو براہِ راست پری ویو (مثلاً ایپ کے اندر)
+// میں کھولنے پر یہ فائلیں ساتھ موجود نہیں ہوتیں، اس لیے وہاں لوڈ کی کوشش ہی نہ کریں (تاکہ کوئی ایرر نہ آئے)
+function herbalCanLoadSiteFiles(){
+  try{
+    if(!/^https?:$/.test(location.protocol)) return false;
+    if(/claude|anthropic|usercontent/i.test(location.hostname)) return false;
+    return true;
+  }catch(e){ return false; }
+}
 (async function pmLoadBuiltinData(){
+  if(!herbalCanLoadSiteFiles()){ try{ pmRenderBookList(); }catch(e){} return; }
   const fileList = PM_BUILTIN_DATA_FILES; // صرف اوپر والی مقررہ فہرست — ریپو کی باقی فائلیں شامل نہیں ہوتیں
   for(const url of fileList){
     try{
@@ -4969,7 +4975,7 @@ async function pmDiscoverBuiltinDataFiles(){
         pages: data.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', ocr:true })),
         builtin: true
       });
-    }catch(e){ console.error('built-in PDF data لوڈ نہیں ہو سکا:', url, e); }
+    }catch(e){ (function(){})('built-in PDF data لوڈ نہیں ہو سکا:', url, e); }
   }
   pmSearchBtnEl.disabled = pmLibrary.length === 0;
   pmRenderBookList();
@@ -5139,7 +5145,7 @@ async function pmRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
     // دوبارہ OCR نہ کرنا پڑے اور سرچ ہمیشہ کام کرتی رہے
     try{
       await herbalIdbPut('pmFiles', { fileName:fileEntry.fileName, blob:fileEntry.file, pages:fileEntry.pages, addedAt:Date.now() });
-    }catch(e){ console.error('OCR متن محفوظ نہیں ہو سکا:', e); }
+    }catch(e){ (function(){})('OCR متن محفوظ نہیں ہو سکا:', e); }
     // OCR سے اب متن مل چکا ہے تو دوبارہ خودکار طور پر حکمت کا اندازہ لگائیں (پہلے تصویر والے صفحات پر متن نہیں تھا)
     pmAutoDetectAndSetFileSystem(fileEntry.fileName, fileEntry.pages, row);
     if(cancelled){
@@ -5992,7 +5998,7 @@ async function herbalShowPdfPage(entry, pageNum, queryText){
     loadingEl.style.display = 'none';
     block1.style.display = 'block';
   }catch(e){
-    console.error('PDF page render error:', e);
+    (function(){})('PDF page render error:', e);
     loadingEl.textContent = 'معذرت، یہ صفحہ دکھانے میں خرابی ہوئی۔';
   }
 }
@@ -6161,7 +6167,7 @@ async function herbalRenderFullPdfCurrentPage(){
       pageInputEl.value = (printedNum !== null) ? printedNum : st.pageNum;
     }
   }catch(e){
-    console.error('Full PDF render error:', e);
+    (function(){})('Full PDF render error:', e);
     loadingEl.textContent = 'معذرت، یہ صفحہ دکھانے میں خرابی ہوئی۔';
   }
 }
@@ -6344,7 +6350,7 @@ async function herbalOpenLibraryPdf(entry, pageNum, queryText, btnSelector){
     }
     herbalOpenFullPdfViewer(entry, pageNum || 1, queryText || '');
   }catch(e){
-    console.error('builtin PDF load error:', e);
+    (function(){})('builtin PDF load error:', e);
     if(e && e.notFound){
       alert('اس کتاب کی اصل PDF فائل ابھی سائٹ پر اپ لوڈ نہیں ہوئی (فائل نہیں ملی: ' + e.notFound + ')۔ تلاش کام کرتی رہے گی، صرف "کھولیں" کے لیے فائل ریپو کی جڑ میں رکھنی ہو گی۔');
     }else{
@@ -6574,7 +6580,7 @@ async function hzProcessFile(file, fromStorage, cachedPages){
     // (متن بھی ساتھ محفوظ کیا جاتا ہے تاکہ OCR کا نتیجہ بھی ہمیشہ کے لیے برقرار رہے)
     if(!fromStorage){
       herbalIdbPut('hzFiles', { fileName:file.name, blob:file, pages, addedAt:Date.now() }).catch(err=>{
-        console.error('hz persistent save failed:', err);
+        (function(){})('hz persistent save failed:', err);
         const s = row.querySelector('.hz-status');
         if(s) s.textContent += ' — (نوٹ: جگہ کم ہونے کی وجہ سے یہ فائل مستقل محفوظ نہیں ہو سکی، ابھی صرف اسی سیشن میں تلاش کے لیے دستیاب ہے)';
       });
@@ -6595,7 +6601,7 @@ async function hzProcessFile(file, fromStorage, cachedPages){
     }
     ocrBtn.addEventListener('click', ocrBtn._origHandler);
   }catch(err){
-    console.error('PDF read error:', err);
+    (function(){})('PDF read error:', err);
     hzSetRowStatus(row, 'فائل نہیں پڑھی جا سکی: ' + (err && err.message ? err.message : 'نامعلوم خرابی'), '#e0524f');
   }
   hzSearchBtnEl.disabled = hzLibrary.length === 0;
@@ -6612,7 +6618,7 @@ hzSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') hzRunSearch
       const file = new File([rec.blob], rec.fileName, { type: 'application/pdf' });
       await hzProcessFile(file, true, rec.pages);
     }
-  }catch(e){ console.error('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
+  }catch(e){ (function(){})('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
 })();
 
 // نسخہ سازی کی مستقل (بلٹ اِن) کتابیں — بیماری کی تلاش والی کتابوں کی طرح ہر کتاب کی
@@ -6622,6 +6628,7 @@ const HZ_BUILTIN_DATA_FILES = [
   'hz-data-kushta-jaat.json'
 ];
 (async function hzLoadBuiltinData(){
+  if(!herbalCanLoadSiteFiles()){ try{ hzRenderBookList(); }catch(e){} return; }
   for(const url of HZ_BUILTIN_DATA_FILES){
     try{
       const res = await fetch(url);
@@ -6631,7 +6638,7 @@ const HZ_BUILTIN_DATA_FILES = [
       const fName = data.fileName || url;
       if(hzLibrary.some(f=> f.fileName === fName)) continue;
       hzLibrary.push({ fileName: fName, title: data.title || '', pages: data.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', ocr:true })), builtin: true });
-    }catch(e){ console.error('built-in hz data لوڈ نہیں ہو سکا:', url, e); }
+    }catch(e){ (function(){})('built-in hz data لوڈ نہیں ہو سکا:', url, e); }
   }
   hzSearchBtnEl.disabled = hzLibrary.length === 0;
   hzRenderBookList();
@@ -6774,7 +6781,7 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
     // دوبارہ OCR نہ کرنا پڑے اور سرچ ہمیشہ کام کرتی رہے
     try{
       await herbalIdbPut('hzFiles', { fileName:fileEntry.fileName, blob:fileEntry.file, pages:fileEntry.pages, addedAt:Date.now() });
-    }catch(e){ console.error('OCR متن محفوظ نہیں ہو سکا:', e); }
+    }catch(e){ (function(){})('OCR متن محفوظ نہیں ہو سکا:', e); }
     // OCR سے اب متن مل چکا ہے تو دوبارہ خودکار طور پر حکمت کا اندازہ لگائیں (پہلے تصویر والے صفحات پر متن نہیں تھا)
     pmAutoDetectAndSetFileSystem(fileEntry.fileName, fileEntry.pages, row);
     if(cancelled){
@@ -7036,7 +7043,7 @@ function hzBuildSnippet(text, startOrig, endOrig){
 </script>
 
 <script>
-if('serviceWorker' in navigator){
+if('serviceWorker' in navigator && herbalCanLoadSiteFiles()){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
