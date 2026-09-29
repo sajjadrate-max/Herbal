@@ -304,44 +304,10 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   <div id="nuskhaResult" style="margin-top:20px;"></div>
 
   <h3 style="color:var(--gold); text-align:center; margin:30px 0 6px; padding-top:20px; border-top:1px solid var(--border);">جڑی بوٹیوں کی کتابوں میں تلاش</h3>
-  <div class="note">جڑی بوٹیوں سے متعلق اپنی PDF کتابیں شامل کریں، پھر مزاج اور بیماری کا نام لکھ کر تلاش کریں — بتایا جائے گا کس کتاب کے کس صفحے پر اس مزاج/بیماری کے لیے موزوں جڑی بوٹی کا ذکر ہے۔ سب کام آپ کے اپنے فون/کمپیوٹر میں ہوتا ہے، کوئی فائل انٹرنیٹ پر نہیں جاتی۔ ایک بار شامل کی گئی فائل ہمیشہ کے لیے محفوظ رہتی ہے — دوبارہ صفحہ کھولنے یا سائٹ اپ ڈیٹ ہونے پر بھی موجود رہے گی، جب تک آپ خود "ہٹائیں" نہ دبائیں۔</div>
-
-  <div id="hzUploadOwnerWrap" style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
-    <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">فائلیں شامل کریں</h3>
-
-    <div id="hzLockGate" style="text-align:center;">
-      <p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">🔒 یہ حصہ محفوظ ہے — آگے بڑھنے کے لیے پاس ورڈ درج کریں۔</p>
-      <input type="password" id="hzPasswordInput" placeholder="پاس ورڈ" class="search" style="max-width:280px; margin:0 auto; display:block;">
-      <button class="btn" onclick="hzCheckPassword()" style="margin-top:10px; border-radius:20px; padding:8px 22px;">کھولیں</button>
-      <p id="hzPasswordError" style="color:#e0524f; font-size:.85rem; margin-top:8px; display:none;">غلط پاس ورڈ — دوبارہ کوشش کریں۔</p>
-    </div>
-
-    <div id="hzUploadArea" style="display:none;">
-      <label id="hzDropZone" style="display:block; border:2px dashed var(--border); border-radius:10px; padding:26px; text-align:center; cursor:pointer;">
-        <input type="file" id="hzFileInput" accept="application/pdf" multiple style="display:none;">
-        <div style="color:var(--text);">یہاں کلک کریں یا PDF فائلیں گھسیٹ کر چھوڑیں</div>
-        <div style="color:var(--muted); font-size:.85rem; margin-top:6px;">ایک سے زیادہ فائلیں ایک ساتھ منتخب کی جا سکتی ہیں</div>
-      </label>
-      <div id="hzFileList" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;"></div>
-    </div>
-  </div>
-
-  <div id="hzDeleteOwnerWrap">
-    <div style="text-align:center; margin-bottom:16px;">
-      <span onclick="toggleHzDeleteSection()" style="cursor:pointer; color:var(--gold-soft); font-size:.85rem; user-select:none;">PDF ہٹائیں <span id="hzDeleteSectionArrow">▾</span></span>
-    </div>
-    <div id="hzDeleteSection" style="display:none; background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
-      <div id="hzDeleteLockGate" style="text-align:center;">
-        <p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">🔒 فائل ہٹانے کے لیے پاس ورڈ درج کریں۔</p>
-        <input type="password" id="hzDeletePasswordInput" placeholder="پاس ورڈ" class="search" style="max-width:280px; margin:0 auto; display:block;">
-        <button class="btn" onclick="hzCheckDeletePassword()" style="margin-top:10px; border-radius:20px; padding:8px 22px;">کھولیں</button>
-        <p id="hzDeletePasswordError" style="color:#e0524f; font-size:.85rem; margin-top:8px; display:none;">غلط پاس ورڈ — دوبارہ کوشش کریں۔</p>
-      </div>
-      <div id="hzDeleteListArea" style="display:none;">
-        <div id="hzDeleteList" style="display:flex; flex-direction:column; gap:8px;"></div>
-        <p id="hzDeleteEmptyMsg" style="color:var(--muted); font-size:.85rem; text-align:center; display:none;">کوئی فائل موجود نہیں۔</p>
-      </div>
-    </div>
+  <div class="note">مزاج اور بیماری یا جڑی بوٹی کا نام لکھ کر تلاش کریں — بتایا جائے گا سائٹ میں شامل کس کتاب کے کس صفحے پر اس کا ذکر ہے۔</div>
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:16px;">
+    <h4 style="color:var(--gold-soft); margin-bottom:8px; text-align:center; font-size:.95rem;">📚 دستیاب کتابیں (فی الحال تلاش میں شامل)</h4>
+    <div id="hzBookListEl" style="font-size:.85rem; color:var(--text);"><p style="color:var(--muted); text-align:center;">لوڈ ہو رہی ہیں...</p></div>
   </div>
 
   <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
@@ -393,54 +359,6 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   </div>
   <div id="pmSummary" style="color:var(--muted); font-size:.9rem; text-align:center; margin:-8px 0 16px;"></div>
 
-  <div id="pmFilesOwnerWrap" style="display:none;">
-    <div style="text-align:center; margin-bottom:16px;">
-      <span onclick="togglePmFilesSection()" style="cursor:pointer; color:var(--gold-soft); font-size:.85rem; user-select:none;">فائلیں شامل کریں <span id="pmFilesSectionArrow">▾</span></span>
-    </div>
-
-    <div id="pmFilesSection" style="display:none; background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
-      <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">فائلیں شامل کریں</h3>
-
-      <div id="pmLockGate" style="text-align:center;">
-        <p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">🔒 یہ حصہ محفوظ ہے — آگے بڑھنے کے لیے پاس ورڈ درج کریں۔</p>
-        <input type="password" id="pmPasswordInput" placeholder="پاس ورڈ" class="search" style="max-width:280px; margin:0 auto; display:block;">
-        <button class="btn" onclick="pmCheckPassword()" style="margin-top:10px; border-radius:20px; padding:8px 22px;">کھولیں</button>
-        <p id="pmPasswordError" style="color:#e0524f; font-size:.85rem; margin-top:8px; display:none;">غلط پاس ورڈ — دوبارہ کوشش کریں۔</p>
-      </div>
-
-      <div id="pmUploadArea" style="display:none;">
-        <label id="pmDropZone" style="display:block; border:2px dashed var(--border); border-radius:10px; padding:26px; text-align:center; cursor:pointer;">
-          <input type="file" id="pmFileInput" accept="application/pdf" multiple style="display:none;">
-          <div style="color:var(--text);">یہاں کلک کریں یا PDF فائلیں گھسیٹ کر چھوڑیں</div>
-          <div style="color:var(--muted); font-size:.85rem; margin-top:6px;">ایک سے زیادہ فائلیں ایک ساتھ منتخب کی جا سکتی ہیں</div>
-        </label>
-        <div id="pmFileList" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;"></div>
-        <div style="text-align:center; margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
-          <button class="btn secondary" onclick="pmExportExtractedText()" style="border-radius:20px; padding:8px 20px; font-size:.85rem;">📤 نکالا گیا متن بھیجیں (ڈاؤن لوڈ کریں)</button>
-          <p style="color:var(--muted); font-size:.78rem; margin-top:8px;">اوپر شامل کی گئی تمام فائلوں کا نکالا گیا/OCR شدہ متن ایک چھوٹی JSON فائل میں محفوظ ہو کر ڈاؤن لوڈ ہو جائے گا — یہ فائل مجھے (ڈیویلپر کو) بھیج دیں تاکہ سائٹ میں مستقل شامل کر سکوں۔</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="pmDeleteOwnerWrap" style="display:none;">
-    <div style="text-align:center; margin-bottom:16px;">
-      <span onclick="togglePmDeleteSection()" style="cursor:pointer; color:var(--gold-soft); font-size:.85rem; user-select:none;">PDF ہٹائیں <span id="pmDeleteSectionArrow">▾</span></span>
-    </div>
-    <div id="pmDeleteSection" style="display:none; background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
-      <div id="pmDeleteLockGate" style="text-align:center;">
-        <p style="color:var(--muted); font-size:.9rem; margin-bottom:10px;">🔒 فائل ہٹانے کے لیے پاس ورڈ درج کریں۔</p>
-        <input type="password" id="pmDeletePasswordInput" placeholder="پاس ورڈ" class="search" style="max-width:280px; margin:0 auto; display:block;">
-        <button class="btn" onclick="pmCheckDeletePassword()" style="margin-top:10px; border-radius:20px; padding:8px 22px;">کھولیں</button>
-        <p id="pmDeletePasswordError" style="color:#e0524f; font-size:.85rem; margin-top:8px; display:none;">غلط پاس ورڈ — دوبارہ کوشش کریں۔</p>
-      </div>
-      <div id="pmDeleteListArea" style="display:none;">
-        <div id="pmDeleteList" style="display:flex; flex-direction:column; gap:8px;"></div>
-        <p id="pmDeleteEmptyMsg" style="color:var(--muted); font-size:.85rem; text-align:center; display:none;">کوئی فائل موجود نہیں۔</p>
-      </div>
-    </div>
-  </div>
-
   <div id="pmResults"></div>
 </section>
 
@@ -471,7 +389,7 @@ function herbalInitOwnerMode(){
     }
     const isOwner = localStorage.getItem('herbalOwnerMode') === '1';
     if(isOwner){
-      ['hzUploadOwnerWrap','hzDeleteOwnerWrap','pmFilesOwnerWrap','pmDeleteOwnerWrap'].forEach(id=>{
+      [].forEach(id=>{
         const el = document.getElementById(id);
         if(el) el.style.display = '';
       });
@@ -3927,19 +3845,19 @@ function pmCheckPassword(){
     err.style.display = 'block';
   }
 }
-document.getElementById('pmPasswordInput').addEventListener('keydown', e=>{ if(e.key === 'Enter') pmCheckPassword(); });
+document.getElementById('pmPasswordInput')?.addEventListener('keydown', e=>{ if(e.key === 'Enter') pmCheckPassword(); });
 
 let pmLibrary = []; // { fileName, pages:[{pageNum, text, ocr}], pdfDoc }
 const pmRowsByName = {}; // fileName -> file-row element (تاکہ ایک ہی نام کی فائل دوبارہ اپ لوڈ کرنے پر پرانی قطار دوبارہ نمایاں کی جا سکے)
 
-pmDropZoneEl.addEventListener('dragover', e=>{ e.preventDefault(); pmDropZoneEl.style.borderColor = 'var(--gold)'; });
-pmDropZoneEl.addEventListener('dragleave', ()=>{ pmDropZoneEl.style.borderColor = 'var(--border)'; });
-pmDropZoneEl.addEventListener('drop', e=>{
+pmDropZoneEl?.addEventListener('dragover', e=>{ e.preventDefault(); pmDropZoneEl.style.borderColor = 'var(--gold)'; });
+pmDropZoneEl?.addEventListener('dragleave', ()=>{ pmDropZoneEl.style.borderColor = 'var(--border)'; });
+pmDropZoneEl?.addEventListener('drop', e=>{
   e.preventDefault();
   pmDropZoneEl.style.borderColor = 'var(--border)';
   pmHandleFiles(e.dataTransfer.files);
 });
-pmFileInputEl.addEventListener('change', ()=> pmHandleFiles(pmFileInputEl.files));
+pmFileInputEl?.addEventListener('change', ()=> pmHandleFiles(pmFileInputEl.files));
 
 async function pmHandleFiles(fileListInput){
   const files = Array.from(fileListInput).filter(f=> f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
@@ -4032,7 +3950,7 @@ function pmCheckDeletePassword(){
     err.style.display = 'block';
   }
 }
-document.getElementById('pmDeletePasswordInput').addEventListener('keydown', e=>{ if(e.key === 'Enter') pmCheckDeletePassword(); });
+document.getElementById('pmDeletePasswordInput')?.addEventListener('keydown', e=>{ if(e.key === 'Enter') pmCheckDeletePassword(); });
 
 function pmRenderDeleteList(){
   const listEl = document.getElementById('pmDeleteList');
@@ -4176,6 +4094,7 @@ pmSearchInputEl.addEventListener('input', ()=>{
 // پہلے سے محفوظ شدہ PDF فائلیں خودکار طور پر لوڈ کر دیں تاکہ تلاش فوراً کام کرے
 // (فائلیں انتخابی طور پر پاس ورڈ کے بغیر بھی سرچ کے قابل رہتی ہیں — پاس ورڈ صرف نئی فائل شامل/ہٹانے کے لیے ہے)
 (async function pmLoadStoredFiles(){
+  return; // ویب سائٹ سے PDF اپ لوڈ کا نظام ختم — اب صرف سائٹ میں شامل (بلٹ اِن) کتابیں
   try{
     const records = await herbalIdbGetAll('pmFiles');
     for(const rec of records){
@@ -4212,7 +4131,8 @@ const PM_BUILTIN_FILE_SYSTEMS = {
   'Kushta_Jaat_Ki_Pehli_Kitab.pdf': 'طب یونانی (روایتی)',
   'Amraz_e_Jild.pdf': 'قانون مفرد اعضاء',
   'Amraz_e_Pistan.pdf': 'طب یونانی (روایتی)',
-  'Tahqiqat_e_Amraz_e_Niswan.pdf': 'قانون مفرد اعضاء'
+  'Tahqiqat_e_Amraz_e_Niswan.pdf': 'قانون مفرد اعضاء',
+  'Khawas_ul_Mufradat_Ghudi.pdf': 'قانون مفرد اعضاء'
   // باقی کتابوں (Tehqiqat_o_Ilaj.pdf، Apna_Ilaj_Khud_Karen_Practice_of_Medicine.pdf، Orton/Mardon Kay Amraaz،
   // Nizamat_e_Jism، Mufrad_Aza_Aur_Amraz_e_Jild، Laboratory_Test_Guide) کی حکمت OCR کے الجھے ہوئے متن سے
   // یقین سے طے نہیں ہو سکی، اس لیے "غیر متعین" ہی رہے گی
@@ -5727,7 +5647,7 @@ function hzCheckPassword(){
     err.style.display = 'block';
   }
 }
-document.getElementById('hzPasswordInput').addEventListener('keydown', e=>{ if(e.key === 'Enter') hzCheckPassword(); });
+document.getElementById('hzPasswordInput')?.addEventListener('keydown', e=>{ if(e.key === 'Enter') hzCheckPassword(); });
 
 const hzFileInputEl = document.getElementById('hzFileInput');
 const hzDropZoneEl = document.getElementById('hzDropZone');
@@ -5740,14 +5660,14 @@ const hzResultsEl = document.getElementById('hzResults');
 let hzLibrary = []; // { fileName, pages:[{pageNum, text, ocr}], pdfDoc }
 const hzRowsByName = {}; // fileName -> file-row element (تاکہ ایک ہی نام کی فائل دوبارہ اپ لوڈ کرنے پر پرانی قطار دوبارہ نمایاں کی جا سکے)
 
-hzDropZoneEl.addEventListener('dragover', e=>{ e.preventDefault(); hzDropZoneEl.style.borderColor = 'var(--gold)'; });
-hzDropZoneEl.addEventListener('dragleave', ()=>{ hzDropZoneEl.style.borderColor = 'var(--border)'; });
-hzDropZoneEl.addEventListener('drop', e=>{
+hzDropZoneEl?.addEventListener('dragover', e=>{ e.preventDefault(); hzDropZoneEl.style.borderColor = 'var(--gold)'; });
+hzDropZoneEl?.addEventListener('dragleave', ()=>{ hzDropZoneEl.style.borderColor = 'var(--border)'; });
+hzDropZoneEl?.addEventListener('drop', e=>{
   e.preventDefault();
   hzDropZoneEl.style.borderColor = 'var(--border)';
   hzHandleFiles(e.dataTransfer.files);
 });
-hzFileInputEl.addEventListener('change', ()=> hzHandleFiles(hzFileInputEl.files));
+hzFileInputEl?.addEventListener('change', ()=> hzHandleFiles(hzFileInputEl.files));
 
 async function hzHandleFiles(fileListInput){
   const files = Array.from(fileListInput).filter(f=> f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
@@ -5805,7 +5725,7 @@ function hzCheckDeletePassword(){
     err.style.display = 'block';
   }
 }
-document.getElementById('hzDeletePasswordInput').addEventListener('keydown', e=>{ if(e.key === 'Enter') hzCheckDeletePassword(); });
+document.getElementById('hzDeletePasswordInput')?.addEventListener('keydown', e=>{ if(e.key === 'Enter') hzCheckDeletePassword(); });
 
 function hzRenderDeleteList(){
   const listEl = document.getElementById('hzDeleteList');
@@ -5913,6 +5833,7 @@ hzSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') hzRunSearch
 
 // پہلے سے محفوظ شدہ PDF فائلیں خودکار طور پر لوڈ کر دیں تاکہ تلاش فوراً کام کرے
 (async function hzLoadStoredFiles(){
+  return; // ویب سائٹ سے PDF اپ لوڈ کا نظام ختم — اب صرف سائٹ میں شامل (بلٹ اِن) کتابیں
   try{
     const records = await herbalIdbGetAll('hzFiles');
     for(const rec of records){
@@ -5922,6 +5843,36 @@ hzSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') hzRunSearch
   }catch(e){ console.error('محفوظ شدہ PDF فائلیں لوڈ نہیں ہو سکیں:', e); }
 })();
 
+// نسخہ سازی کی مستقل (بلٹ اِن) کتابیں — بیماری کی تلاش والی کتابوں کی طرح ہر کتاب کی
+// hz-data-*.json فائل ریپو کی جڑ میں ہے، اور اصل PDF بھی اسی میں لکھے fileName سے وہیں رکھی جاتی ہے
+const HZ_BUILTIN_DATA_FILES = [
+  'hz-data-khawas-ul-mufradat-ghudi.json'
+];
+(async function hzLoadBuiltinData(){
+  for(const url of HZ_BUILTIN_DATA_FILES){
+    try{
+      const res = await fetch(url);
+      if(!res.ok) continue;
+      const data = await res.json();
+      if(!data || !Array.isArray(data.pages)) continue;
+      const fName = data.fileName || url;
+      if(hzLibrary.some(f=> f.fileName === fName)) continue;
+      hzLibrary.push({ fileName: fName, title: data.title || '', pages: data.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', ocr:true })), builtin: true });
+    }catch(e){ console.error('built-in hz data لوڈ نہیں ہو سکا:', url, e); }
+  }
+  hzSearchBtnEl.disabled = hzLibrary.length === 0;
+  hzRenderBookList();
+})();
+function hzRenderBookList(){
+  const el = document.getElementById('hzBookListEl');
+  if(!el) return;
+  if(!hzLibrary.length){ el.innerHTML = '<p style="color:var(--muted); text-align:center;">ابھی کوئی کتاب لوڈ نہیں ہوئی۔</p>'; return; }
+  el.innerHTML = hzLibrary.map((f, idx)=> `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
+      <span style="flex:1; min-width:160px;"><b style="color:var(--gold); margin-left:6px;">${idx+1}۔</b> ${escapeHtmlSearch(f.title || f.fileName)}</span>
+      <span style="color:var(--muted); font-size:.78rem;">${f.pages.length} صفحات · ${escapeHtmlSearch(pmGetFileSystem(f.fileName))}</span>
+      <button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="hzOpenPdfAtPage('${escapeJsAttr(f.fileName)}', 1, '')">📖 کھولیں</button>
+    </div>`).join('') + `<p style="color:var(--muted); font-size:.78rem; text-align:center; margin-top:8px;">کل ${hzLibrary.length} کتابیں</p>`;
+}
 function hzNormalizeChar(ch){
   const code = ch.codePointAt(0);
   if(ch === '\u064A' || ch === '\u0649') return '\u06CC';
@@ -6107,13 +6058,14 @@ function hzRunSearch(){
       ? `<button class="btn secondary" onclick="hzOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(query)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
       : '';
     const sysLabel = `<p style="color:var(--gold-soft); font-size:.8rem; margin:2px 0 6px;">📚 حکمت: ${escapeHtmlSearch(pmGetFileSystem(m.fileName))}</p>`;
-    card.innerHTML = `<h4>🌿 صفحہ ${m.displayPageNum}</h4>${sysLabel}${openBtnHtml}`;
+    const bookTitle = (hzLibrary.find(f=> f.fileName === m.fileName) || {}).title || m.fileName;
+    card.innerHTML = `<h4>🌿 ${escapeHtmlSearch(bookTitle)} — صفحہ ${m.displayPageNum}</h4>${sysLabel}${openBtnHtml}`;
     hzResultsEl.appendChild(card);
   });
 }
 function hzCanOpenFile(fileName){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
-  return !!(entry && entry.pdfDoc);
+  return !!(entry && (entry.pdfDoc || entry.builtin));
 }
 function hzOpenTextEditor(fileName, pageNum){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
