@@ -372,6 +372,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <input class="search" id="herbSearch" placeholder="جڑی بوٹی یا کشتے کا نام لکھیں..." oninput="filterHerbs()" onkeydown="if(event.key==='Enter'){event.preventDefault(); hzOpenBest(true);}" style="flex:1;">
     <button class="btn" onclick="hzOpenBest(true)" style="border-radius:20px; padding:10px 16px; white-space:nowrap;">📖 کھولیں</button>
   </div>
+  <div id="hzResults"></div>
   <div id="herbList"></div>
 
   <button class="btn" style="margin-top:16px;" onclick="buildNuskha()">منتخب بوٹیوں سے نسخہ بنائیں</button>
@@ -393,7 +394,6 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <div id="hzSummary" style="color:var(--muted); font-size:.9rem; text-align:center; margin-top:10px;"></div>
   </div>
 
-  <div id="hzResults"></div>
 </section>
 
 <section class="page-section" id="page-pdfmulti">
@@ -4830,6 +4830,11 @@ function pmNormalizeChar(ch){
   const code = ch.codePointAt(0);
   if(ch === '\u064A' || ch === '\u0649') return '\u06CC';
   if(ch === '\u0643') return '\u06A9';
+  if(ch === '\u06D2' || ch === '\u06D3') return '\u06CC'; // ے → ی
+  if(ch === '\u06BA') return '\u0646'; // ں → ن
+  if(ch === '\u06C3' || ch === '\u0629' || ch === '\u0647' || ch === '\u06C2') return '\u06C1'; // ۃ ة ه ۂ → ہ
+  if(ch === '\u0622' || ch === '\u0623' || ch === '\u0625') return '\u0627'; // آ أ إ → ا
+  if(ch === '\u0624') return '\u0648';
   if(
     (code >= 0x0610 && code <= 0x061A) ||
     (code >= 0x064B && code <= 0x065F) ||
@@ -5883,8 +5888,10 @@ async function herbalOpenFullPdfViewer(entry, startPage, queryText){
   herbalFullPdfState.vmap = vmap;
   herbalFullPdfState.totalPages = vmap.length;
   // باہر سے آنے والا صفحہ نمبر اصل PDF کا ہوتا ہے — اسے نئی ترتیب کے پہلے متعلقہ صفحے میں بدلیں
-  const rawStart = Math.max(1, startPage||1);
-  const vIdx = vmap.findIndex(v=> v.raw === rawStart);
+  const wantLeft = (startPage||1) % 1 !== 0; // مثلاً 244.5 = صفحہ 244 کا بایاں آدھا
+  const rawStart = Math.max(1, Math.floor(startPage||1));
+  let vIdx = wantLeft ? vmap.findIndex(v=> v.raw === rawStart && v.part === 'L') : -1;
+  if(vIdx < 0) vIdx = vmap.findIndex(v=> v.raw === rawStart);
   herbalFullPdfState.pageNum = vIdx >= 0 ? vIdx + 1 : 1;
   herbalFullPdfState.queryText = queryText || '';
 
@@ -6142,7 +6149,7 @@ async function herbalOpenLibraryPdf(entry, pageNum, queryText, btnSelector){
     if(parts){
       // بڑی کتاب کئی حصوں میں — صرف وہی حصہ ڈاؤن لوڈ ہو گا جس میں مطلوبہ صفحہ ہے
       const doc = herbalMakeMultiPartPdfDoc(parts);
-      await doc.getPage(pageNum || 1); // پہلا مطلوبہ حصہ لوڈ کر کے یقینی بنائیں کہ فائل موجود ہے
+      await doc.getPage(Math.floor(pageNum || 1)); // پہلا مطلوبہ حصہ لوڈ کر کے یقینی بنائیں کہ فائل موجود ہے
       entry.pdfDoc = doc;
     }else{
       const res = await fetch(pdfPath);
@@ -6458,6 +6465,11 @@ function hzNormalizeChar(ch){
   const code = ch.codePointAt(0);
   if(ch === '\u064A' || ch === '\u0649') return '\u06CC';
   if(ch === '\u0643') return '\u06A9';
+  if(ch === '\u06D2' || ch === '\u06D3') return '\u06CC'; // ے → ی
+  if(ch === '\u06BA') return '\u0646'; // ں → ن
+  if(ch === '\u06C3' || ch === '\u0629' || ch === '\u0647' || ch === '\u06C2') return '\u06C1'; // ۃ ة ه ۂ → ہ
+  if(ch === '\u0622' || ch === '\u0623' || ch === '\u0625') return '\u0627'; // آ أ إ → ا
+  if(ch === '\u0624') return '\u0648';
   if(
     (code >= 0x0610 && code <= 0x061A) ||
     (code >= 0x064B && code <= 0x065F) ||
@@ -6625,8 +6637,15 @@ function hzRunSearch(){
   if(!query){ hzSummaryEl.textContent = ''; return; }
   const queryData = hzBuildSearchable(query);
   if(!queryData.searchable){ hzSummaryEl.textContent = ''; return; }
-  const matches = hzFindAllMatches(queryData);
-  if(matches.length===0){ hzSummaryEl.textContent = ''; return; }
+  const info = hzHerbInfoHtml(query);
+  if(info){ const d = document.createElement('div'); d.innerHTML = info; hzResultsEl.appendChild(d); }
+  const kh = hzFindKhawas(query);
+  const matches = kh.matches.length ? kh.matches : hzFindAllMatches(queryData);
+  if(matches.length===0){
+    hzSummaryEl.textContent = '';
+    if(!info) hzResultsEl.innerHTML = `<p style="color:var(--muted); text-align:center; margin-top:12px;">"${escapeHtmlSearch(query)}" کتابوں میں نہیں ملا — نام دوسرے طریقے سے لکھ کر دیکھیں۔</p>`;
+    return;
+  }
   hzSummaryEl.textContent = '';
   const hzHead = document.createElement('p');
   hzHead.style.cssText = 'color:var(--gold-soft); text-align:center; margin:18px 0 8px;';
@@ -6645,19 +6664,127 @@ function hzRunSearch(){
     hzResultsEl.appendChild(card);
   });
 }
+// ===== کتاب "تحریک امراض اور علاج" — مشہور ادویات (عقاقیر) کے خواص و فوائد (ص 81-84) =====
+// p = اصل PDF صفحہ؛ .5 = اسی صفحے کا بایاں آدھا (دو صفحوں والے اسکین میں)
+const HZ_TK_GROUPS = [
+  { t:1, p:243, page:'ص 81', khawas:'دل و عضلات میں تسکین اور جسم میں ٹھنڈک پیدا کرتی ہیں؛ گرمی کے امراض، بخار، پیشاب کی جلن، یرقان، خونی بواسیر اور ہائی بلڈ پریشر میں بے حد مفید؛ تمام غدی عضلاتی اور غدی اعصابی امراض کا تریاق۔',
+    names:'اجوائن خراسانی، اروی، اراروٹ، اسبغول، امرود خام، انار شیریں، برہمی بوٹی، بھنڈی، بہدانہ، بیر شیریں، بکن بوٹی، بہی، برگ شیشم، بید مشک، پھول گلاب، تربوز، تخم خرفہ، تخم کاسنی، تخم کدو، تخم خبازی، تخم بالنگو، ٹینڈے، جوکھار، چوہا کنی، چاندی، چاول، زہر مہرہ خطائی، ساگوانہ، صندل، فرید بوٹی، کالا دانہ، کنول کا پھول، کھیرا، کافور، ککڑی، گوند کیکر، گل گڑھل، گنا، گل نیلوفر، گاجر، مولی، ہاتھی سنڈی' },
+  { t:6, p:243.5, page:'ص 82', khawas:'مقوی اعصاب و دماغ اور مفرح قلب؛ گاڑھے خون و بلغم کو پتلا کرتی ہیں، پیشاب زیادہ لاتی ہیں، ہائی بلڈ پریشر کو اعتدال پر لاتی ہیں؛ نکسیر، خونی پیچش، بواسیر، بدن کے کھچاؤ میں کامیاب؛ غدی عضلاتی اور عضلاتی غدی امراض کا تریاق۔',
+    names:'آڑو شیریں، آک، ابریشم، اونگن، الائچی سبز، املتاس، امرود پختہ، بہمن، تالمکھانہ، تخم تربوز، چھوٹی چندن، توری، ثعلب مصری، چھوئی موئی، خربوزہ، چولائی، خطمی، ریوند چینی، زمرد، ستاور، سمندر سوکھ، سقمونیا، ست ملٹھی، ملٹھی، سنبل، سیب شیریں، شکاکائی، شلجم، کہربا، کدو، کیلا، کھرنی، کھویا، گل کیسو، گوندنی، گاؤزبان، گرما، گلقند، لیچی، موصلی سفید، مریم پنجہ، موم، مربہ سیب، ناگ کیسر، ناشپاتی' },
+  { t:2, p:244, page:'ص 82-83', khawas:'قابض اور مقوی بدن، خون پیدا کرتی ہیں، بلغمی رطوبات ختم کرتی ہیں؛ لیکوریا، سرعت انزال، شدید کھانسی جس میں بلغم نکلے؛ تمام غدی اعصابی اور اعصابی غدی امراض کا تریاق؛ بوڑھوں کو احتیاط سے دیں۔',
+    names:'آلو بخارا، آلو چہ، آملہ، آم خام، اقاقیا، ابرک، اتیس، لوبیا، حرمل، انجبار، انار ترش، بھنگ، بند گوبھی، بیلگری، بیج بند، طباشیر، بیخ مرجان، پیپل، پھول گوبھی، پھٹکڑی، تخم سریالہ، املی، انار، کڑا چھال، سرمہ، ہیرا کسیس، ست لیموں، جھاؤ، جامن، سلاجیت، سمندر جھاگ، سم الفار، سنگ جراحت، سیپ، صدف، کرنجوہ، گل ارمنی، گیرو، ہلیلہ سیاہ، ہلیلہ، ناپال، موچرس، مہندی، دھتورہ' },
+  { t:3, p:244, page:'ص 83', khawas:'مصفی خون، سودا پیدا کر کے خارج کرتی ہیں، بلغمی امراض کا خاتمہ کرتی ہیں، حرارت عزیزی پیدا کر کے بدن گرم کرتی ہیں؛ کثرت پیشاب میں بے حد مفید؛ اعصابی غدی اور اعصابی عضلاتی امراض کے لیے اعلیٰ درجہ۔',
+    names:'ازراقی، بارہ سنگھا، افسنتین، انجیر، بالچھڑ، بیر بوٹی، ہینگ، بلادر، جلوتری، گھوگر ویل، پیاز، پان، پنیر ڈوڈی، تانبا، تخم نیم، ٹماٹر، جدوار، لونگ، جائفل، چرائتہ، کرکس، ریگ ماہی، مال کنگنی، مالکنگنی، مصبر، گوگل، کنوار گندل، گھیکوار، نیلا تھوتھا، کالے چنے، منسل، عود صلیب، سورنجان تلخ، نیم، چاکسو، مردہ سنگ، گوشت کبوتر، انڈے، کاک جھنگا، کڑوا بادام، پالک، کریلے، ہرن کا گوشت، لہسن، کچنار، رال، خراطین، شنگرف' },
+  { t:5, p:244, page:'ص 83-84', khawas:'کاسر ریاح؛ سوداوی امراض، سیاہ یرقان، خشک دمہ، بواسیر، مالیخولیا، فالج، تپ دق، احتلام اور وجع المفاصل (جوڑوں کا درد) میں کامیاب؛ تمام عضلاتی غدی اور عضلاتی اعصابی امراض میں اکسیر صفت۔',
+    names:'آم شیریں، ادرک، آکسن، ارنڈ، شہد، بسکھپرا، بادام شیریں، باتھو، بادیان، بند، بکری کا گوشت، پھٹکنڈا، گندنا، تخم شلجم، بنولہ، کلتھی، مکھاں، روغن زیتون، کالی مرچ، مرچ سیاہ، فلفل سیاہ، گڑ، کھجور، ریوند عصارہ' },
+  { t:5, p:244.5, page:'ص 84', khawas:'کاسر ریاح؛ سوداوی امراض، سیاہ یرقان، خشک دمہ، بواسیر، مالیخولیا، فالج، تپ دق، احتلام اور وجع المفاصل (جوڑوں کا درد) میں کامیاب؛ تمام عضلاتی غدی اور عضلاتی اعصابی امراض میں اکسیر صفت۔',
+    names:'روغن اخروٹ، ریوند خطائی، زیرہ سفید، ہڑتال ورقیہ، بداری قند، سنا مکی، سورنجان شیریں، ہار سنگھار، مروڑ پھلی، اشان، پتھر توڑ بوٹی، اڑوسہ، چرونجی، اونٹ کٹارا، چلغوزہ، سرپھوکا، سنڈھ، سونٹھ، شکر تیغال، نمک، نوشادر، پستہ، ہلدی' },
+  { t:4, p:244.5, page:'ص 84', khawas:'گرمی خشکی پیدا کرتی ہیں، رطوبت، تیزابیت اور بدن کے زہروں کا خاتمہ کرتی ہیں؛ ہیضہ، دست، قے بند نہ ہوں تو تریاق کا کام؛ زیادہ مقدار سے دل میں گھبراہٹ؛ تمام اعصابی عضلاتی اور عضلاتی اعصابی امراض کا تریاق۔',
+    names:'آسارون، اسارون، اجمود، اجوائن، اخروٹ، اشق، بٹیر، بچھو، برنا، بکائن، بندال ڈوڈہ، بھنگرہ، پلاس پاپڑہ، پنوار، پودینہ، تارا میرا، تیتر، تیلنی مکھی، تیندو، تخم کرلی، ٹڈی، جل بھنگرہ، جگنو، جمال گوٹہ، جل دھنیا، چڑیا، چکور، چیڑ، چیونٹا، حسن یوسف، خولنجان، دیودار، رائی، ذراریح، روغن تارپین، زعفران، سازج، ساریقون، سانپ، سالٹ، ستیاناسی، سرسوں، سداب، سنگدانہ مرغ، سانول، سونا، شیطرج، صنوبر، عاقرقرحا، عود بلسان، غافث، کمون، کالی زیری، کباب چینی، کٹائی خورد، کنڈیاری، کچور، کرفس، کنگرونڈہ، کندر، گندھک، مصطگی، سرخ مرچ، لال مرچ، میلم، نرکچور، ہرن کھری' }
+];
+// ایک ہی بوٹی کے دوسرے نام — تلاش میں سب آزمائے جاتے ہیں
+const HZ_HERB_SYN = {
+  'سونٹھ':['سنڈھ','ادرک'], 'سنڈھ':['سونٹھ'], 'سنا مکی':['سونامکھی','سناء مکی'], 'سونامکھی':['سنا مکی'],
+  'فلفل سیاہ':['کالی مرچ','مرچ سیاہ'], 'کالی مرچ':['مرچ سیاہ','فلفل سیاہ'], 'فلفل دراز':['دارفلفل','پیپل'], 'دارفلفل':['فلفل دراز'],
+  'اجوائن دیسی':['اجوائن'], 'میتھی دانہ':['میتھی'], 'اسگندھ':['اسگندھ ناگوری'], 'بانسہ':['اڑوسہ'], 'اڑوسہ':['بانسہ'],
+  'مصطگی رومی':['مصطگی'], 'کوٹھ تلخ':['کوٹھ','قسط'], 'ریوند':['ریوند خطائی','عصارہ ریوند'], 'ریوند خطائی':['عصارہ ریوند'],
+  'زردچوب':['ہلدی'], 'ہلدی':['زردچوب'], 'لال مرچ':['مرچ سرخ','سرخ مرچ'], 'سرخ مرچ':['مرچ سرخ'], 'اجمود':['اجمودہ','کرفس'], 'کرفس':['اجمودہ'],
+  'ملٹھی':['ست ملٹھی','رب السوس'], 'رب السوس':['ملٹھی'], 'صندل سفید':['صندل'], 'دھنیا':['جل دھنیا','کشنیز'], 'دھنیا خشک':['کشنیز'],
+  'الائچی خورد':['الائچی سبز'], 'الائچی':['الائچی سبز'], 'ہلیلہ':['ہلیلہ سیاہ','ہڑڑ'], 'ہڑڑ':['ہلیلہ'], 'گھیکوار':['کنوار گندل'], 'کنوار گندل':['گھیکوار'], 'ایلوا':['مصبر'],
+  'مالکنگنی':['مال کنگنی'], 'کاہو':['تخم کاہو'], 'تخم کاہو':['کاہو'], 'مغز کدو':['تخم کدو','کدو'], 'کدو':['تخم کدو'], 'اسپغول':['اسبغول'],
+  'زیرہ':['زیرہ سفید','کمون'], 'کلونجی':['کلونجی'], 'تخم بالنگو':['بالنگو'], 'بالنگو':['تخم بالنگو'], 'پھٹکڑی بریاں':['پھٹکڑی'], 'سہاگہ بریاں':['سہاگہ'],
+  'نیم':['تخم نیم'], 'ادرک':['سونٹھ','سنڈھ'], 'چرائتہ':['چرائتہ'], 'حب الرشاد':['ہالوں'], 'گلو':['گلو'], 'کیکر':['گوند کیکر'], 'کسٹرائل':['ارنڈ'],
+  'پودینہ':['پودینہ'], 'سونف':['بادیان','سونف'], 'خشخاش':['تخم خشخاش'], 'تخم خشخاش':['خشخاش'], 'انار':['پوست انار'], 'کشنیز':['دھنیا'], 'دھنیا خشک':['دھنیا'], 'سہاگہ بریاں':['سہاگہ'], 'خرما':['چھوہارے'], 'چھوہارہ':['چھوہارے','خرما'], 'بادیان':['سونف']
+};
+function hzNormName(s){ return hzBuildSearchable(String(s||'')).searchable; }
+function hzQueryVariants(q){
+  const out = [q];
+  (HZ_HERB_SYN[q] || []).forEach(v=> out.push(v));
+  // "تخم" کے بغیر / ساتھ
+  if(q.startsWith('تخم ')) out.push(q.slice(4)); else out.push('تخم ' + q);
+  return [...new Set(out)];
+}
+// تحریک امراض کتاب کی فہرست میں بوٹی تلاش کریں
+function hzTkFind(q){
+  const vars = hzQueryVariants(q).map(hzNormName).filter(Boolean);
+  const hits = [];
+  HZ_TK_GROUPS.forEach(g=>{
+    g.names.split('،').map(x=> x.trim()).filter(Boolean).forEach(name=>{
+      const nn = hzNormName(name);
+      let score = 0;
+      vars.forEach((v,i)=>{
+        if(nn === v) score = Math.max(score, i === 0 ? 100 : 80);
+        else if(v.length >= 3 && nn.startsWith(v)) score = Math.max(score, 50);
+        else if(nn.length >= 3 && v.startsWith(nn)) score = Math.max(score, 40);
+      });
+      if(score) hits.push({ name, g, score });
+    });
+  });
+  hits.sort((a,b)=> b.score - a.score);
+  // ایک ہی گروپ دوبارہ نہ آئے
+  const seen = new Set();
+  return hits.filter(h=>{ const k = h.g.t + ':' + h.name; if(seen.has(k)) return false; seen.add(k); return true; });
+}
+// "ادویہ بلحاظ درجہ بندی" (ص 84-86) کی فہرستوں میں بوٹی تلاش کریں
+function hzDarjaFind(q){
+  const vars = hzQueryVariants(q).map(hzNormName);
+  for(const t of [1,2,3,4,5,6]){
+    const T = QM_T[t];
+    for(const [lvl, list] of [['d1',T.d1],['d2',T.d2],['d3',T.d3],['d4',T.d4]]){
+      const hit = list.find(n=> vars.includes(hzNormName(n)));
+      if(hit) return { t, name: hit, lvl, p: t === 1 ? 244.5 : 245 };
+    }
+  }
+  return null;
+}
+const HZ_DARJA_LABEL = { d1:'درجہ 1 — غذا', d2:'درجہ 2 — عام دوا', d3:'درجہ 3 — تیز دوا', d4:'درجہ 4 — زہریلی دوا' };
+function hzOpenTk(p, q){
+  const entry = (typeof pmLibrary !== 'undefined') ? pmLibrary.find(f=> f.fileName === QM_BOOK_FILE) : null;
+  if(!entry){ alert('کتاب "تحریک امراض اور علاج" ابھی لوڈ نہیں ہوئی — تھوڑی دیر بعد دوبارہ کوشش کریں۔'); return; }
+  herbalOpenLibraryPdf(entry, p, q || '', null);
+}
+// خواص المفردات میں تمام متبادل ناموں سے تلاش
+function hzFindKhawas(q){
+  for(const v of hzQueryVariants(q)){
+    const qd = hzBuildSearchable(v);
+    if(!qd.searchable) continue;
+    const m = hzFindAllMatches(qd).filter(x=> hzCanOpenFile(x.fileName));
+    if(m.length) return { matches:m, used:v };
+  }
+  return { matches:[], used:q };
+}
+function hzHerbInfoHtml(q){
+  const tk = hzTkFind(q);
+  const my = (typeof QM_HERBS !== 'undefined') ? (QM_HERBS.find(h=> hzNormName(h.n) === hzNormName(q)) || QM_HERBS.find(h=> hzQueryVariants(q).some(v=> hzNormName(h.n) === hzNormName(v)))) : null;
+  const dj = hzDarjaFind(q);
+  if(!tk.length && !my && !dj) return '';
+  const top = tk.length ? tk.filter(h=> h.score === tk[0].score) : [];
+  const groups = [...new Map(top.map(h=> [h.g.t + '|' + h.g.p, h])).values()];
+  return `<div class="result-card" style="border-right-color:var(--gold); margin-top:14px;">
+    <h3 style="color:var(--gold); margin-bottom:6px;">🌿 ${escapeHtmlSearch(top.length ? top[0].name : (dj ? dj.name : (my ? my.n : q)))}</h3>
+    ${groups.map(h=> `<p style="font-size:.92rem; margin:6px 0;"><b style="color:var(--gold-soft);">مزاج (کتاب کے مطابق):</b> ${QM_T[h.g.t].name} (${QM_T[h.g.t].kaifiyat})</p>
+      <p style="font-size:.85rem; color:var(--text);"><b style="color:var(--gold-soft);">اس گروپ کی دواؤں کے خواص:</b> ${escapeHtmlSearch(h.g.khawas)}</p>
+      <button class="btn secondary" onclick="hzOpenTk(${h.g.p}, '${escapeJsAttr(h.name)}')" style="margin:4px 0 8px; padding:6px 14px; font-size:.82rem; border-radius:16px;">📖 تحریک امراض و علاج — ${h.g.page}</button>`).join('')}
+    ${dj ? `<p style="font-size:.92rem;"><b style="color:var(--gold-soft);">${groups.length ? 'درجہ بندی' : 'مزاج (کتاب کے مطابق)'}:</b> ${QM_T[dj.t].name} (${QM_T[dj.t].kaifiyat}) — ${HZ_DARJA_LABEL[dj.lvl]}</p><button class="btn secondary" onclick="hzOpenTk(${dj.p}, '${escapeJsAttr(dj.name)}')" style="margin:4px 0 8px; padding:6px 14px; font-size:.82rem; border-radius:16px;">📖 ادویہ بلحاظ درجہ بندی — ${dj.t === 1 ? 'ص 84' : 'ص 85-86'}</button>` : ''}
+    ${!groups.length && !dj && my ? `<p style="font-size:.92rem;"><b style="color:var(--gold-soft);">مزاج:</b> ${QM_T[my.t].name} (${QM_T[my.t].kaifiyat})</p>` : ''}
+    ${my ? `<p style="font-size:.85rem;"><b style="color:var(--gold-soft);">مشہور فوائد:</b> ${escapeHtmlSearch(my.f)} <span style="color:var(--muted); font-size:.72rem;">(عام یونانی معلومات)</span></p>` : ''}
+  </div>`;
+}
+
 // لکھے گئے نام کا پہلا صفحہ (جہاں سے اس جڑی بوٹی/کشتے کا بیان شروع ہوتا ہے) سیدھا PDF میں کھولیں
 function hzOpenBest(manual){
   clearTimeout(hzAutoOpenTimer);
   const q = document.getElementById('herbSearch').value.trim();
   if(!q) return;
   if(!manual && q === hzLastAutoOpened) return;
-  const queryData = hzBuildSearchable(q);
-  if(!queryData.searchable) return;
-  const matches = hzFindAllMatches(queryData).filter(m=> hzCanOpenFile(m.fileName));
-  if(!matches.length){ if(manual) alert('"' + q + '" کتابوں میں نہیں ملا — نام دوسرے طریقے سے لکھ کر دیکھیں۔'); return; }
-  hzLastAutoOpened = q;
-  const m = matches[0];
-  hzOpenPdfAtPage(m.fileName, m.pageNum, q);
+  // پہلے "خواص المفردات" کا مکمل بیان، نہ ملے تو "تحریک امراض" کی ادویہ فہرست
+  const k = hzFindKhawas(q);
+  if(k.matches.length){ hzLastAutoOpened = q; const m = k.matches[0]; hzOpenPdfAtPage(m.fileName, m.pageNum, k.used); return; }
+  const tk = hzTkFind(q);
+  if(tk.length && tk[0].score >= 50){ hzLastAutoOpened = q; hzOpenTk(tk[0].g.p, tk[0].name); return; }
+  const dj = hzDarjaFind(q);
+  if(dj){ hzLastAutoOpened = q; hzOpenTk(dj.p, dj.name); return; }
+  if(manual) alert('"' + q + '" کتابوں میں نہیں ملا — نام دوسرے طریقے سے لکھ کر دیکھیں۔');
 }
 function hzCanOpenFile(fileName){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
