@@ -303,14 +303,14 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
   <button class="btn" style="margin-top:16px;" onclick="buildNuskha()">منتخب بوٹیوں سے نسخہ بنائیں</button>
   <div id="nuskhaResult" style="margin-top:20px;"></div>
 
-  <h3 style="color:var(--gold); text-align:center; margin:30px 0 6px; padding-top:20px; border-top:1px solid var(--border);">جڑی بوٹیوں کی کتابوں میں تلاش</h3>
-  <div class="note">مزاج اور بیماری یا جڑی بوٹی کا نام لکھ کر تلاش کریں — بتایا جائے گا سائٹ میں شامل کس کتاب کے کس صفحے پر اس کا ذکر ہے۔</div>
-  <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:16px;">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin:30px 0 16px;">
     <h4 style="color:var(--gold-soft); margin-bottom:8px; text-align:center; font-size:.95rem;">📚 دستیاب کتابیں (فی الحال تلاش میں شامل)</h4>
     <div id="hzBookListEl" style="font-size:.85rem; color:var(--text);"><p style="color:var(--muted); text-align:center;">لوڈ ہو رہی ہیں...</p></div>
   </div>
 
-  <div style="background:var(--card); border:1px solid var(--gold); border-radius:10px; padding:16px; margin-bottom:16px;">
+  <!-- الگ "تلاش کریں" باکس صارف کو نظر نہیں آتا — اوپر جڑی بوٹی/بیماری والے خانے میں لکھنے پر
+       یہی تلاش خودکار طور پر پس منظر میں چلتی ہے اور صرف ملنے والے صفحات نیچے دکھائے جاتے ہیں -->
+  <div style="display:none;">
     <h3 style="color:var(--gold-soft); margin-bottom:10px; text-align:center;">تلاش کریں</h3>
     <input class="search" id="hzSearchInput" placeholder="مثلاً: غدی قبض، اعصابی کمزوری...">
     <div style="text-align:center; margin-top:10px;">
@@ -2948,8 +2948,14 @@ function filterHerbsByMizaj(mizaj, el){
   el.classList.add('active');
   filterHerbs();
 }
+let hzAutoSearchTimer = null;
 function filterHerbs(){
   const q = document.getElementById('herbSearch').value.trim();
+  // اسی نام کو پس منظر میں نسخہ سازی کی کتابوں میں بھی تلاش کریں (تھوڑا رک کر، تاکہ ہر حرف پر نہ چلے)
+  clearTimeout(hzAutoSearchTimer);
+  hzAutoSearchTimer = setTimeout(()=>{
+    try{ hzSearchInputEl.value = q; hzRunSearch(); }catch(e){}
+  }, 500);
   let list = herbsDB;
   if(currentHerbMizaj !== 'all') list = list.filter(h=> h.mizaj === currentHerbMizaj);
   if(q) list = list.filter(h=> h.name.includes(q) || h.benefit.includes(q));
@@ -6018,9 +6024,9 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
 function hzRunSearch(){
   const query = hzSearchInputEl.value.trim();
   hzResultsEl.innerHTML = '';
-  if(!query){ hzSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
+  if(!query){ hzSummaryEl.textContent = ''; return; }
   const queryData = hzBuildSearchable(query);
-  if(!queryData.searchable){ hzSummaryEl.textContent = 'پہلے کوئی لفظ لکھیں۔'; return; }
+  if(!queryData.searchable){ hzSummaryEl.textContent = ''; return; }
   // پہلے صفحے کے اوپر لکھے بڑے عنوان (title) میں تلاش کریں، نہ ملے تو متبادل کے طور پر پورے متن میں بھی تلاش کریں
   const titleMatches = [];
   const textMatches = [];
@@ -6042,14 +6048,12 @@ function hzRunSearch(){
     });
   });
   const matches = titleMatches.length ? titleMatches : (textMatches.length ? textMatches : looseMatches);
-  if(matches.length===0){
-    let totalPages = 0, ocrPages = 0;
-    hzLibrary.forEach(fe=> fe.pages.forEach(p=>{ totalPages++; if(p.text) ocrPages++; }));
-    hzSummaryEl.textContent = `"${query}" کسی بھی فائل میں نہیں ملا۔`;
-    hzResultsEl.innerHTML = `<div class="result-card"><p style="color:var(--muted);">کوئی نتیجہ نہیں ملا — یہ لفظ کسی بھی صفحے کے عنوان یا متن میں نہیں ملا۔<br>کل صفحات: ${totalPages}، جن میں سے متن نکلا ہوا ہے: ${ocrPages}۔ اگر یہ تعداد کم ہو تو فائل ابھی مکمل OCR نہیں ہوئی — اوپر فائل کے ساتھ "OCR چلائیں" دبائیں۔</p></div>`;
-    return;
-  }
-  hzSummaryEl.textContent = `"${query}" کل ${matches.length} صفحات پر ملا۔`;
+  if(matches.length===0){ hzSummaryEl.textContent = ''; return; }
+  hzSummaryEl.textContent = '';
+  const hzHead = document.createElement('p');
+  hzHead.style.cssText = 'color:var(--gold-soft); text-align:center; margin:18px 0 8px;';
+  hzHead.textContent = `📚 کتابوں میں "${query}" کل ${matches.length} صفحات پر ملا`;
+  hzResultsEl.appendChild(hzHead);
   matches.forEach(m=>{
     const card = document.createElement('div');
     card.className = 'mujarrab-card';
