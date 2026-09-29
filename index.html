@@ -366,16 +366,12 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <div id="qmResult" style="margin-top:16px;"></div>
   </div>
 
-  <div class="note">مزاج منتخب کریں یا بیماری کا نام لکھیں — موزوں جڑی بوٹیاں نظر آئیں گی۔ چند بوٹیاں منتخب کر کے "نسخہ بنائیں" دبائیں تو مکمل فارمولا (فوائد، مزاج، خوراک سمیت) تیار ہو جائے گا۔</div>
+  <div class="note">کسی جڑی بوٹی یا کشتے کا نام لکھیں (مثلاً: اجوائن دیسی، ہلدی، کشتہ فولاد) — کتاب کا وہی صفحہ کھل کر مکمل تفصیل سامنے آ جائے گی۔</div>
 
-  <div class="mizaj-tabs">
-    <div class="mizaj-tab active" onclick="filterHerbsByMizaj('all', this)">تمام</div>
-    <div class="mizaj-tab" onclick="filterHerbsByMizaj('asabi', this)">اعصابی</div>
-    <div class="mizaj-tab" onclick="filterHerbsByMizaj('adalati', this)">عضلاتی</div>
-    <div class="mizaj-tab" onclick="filterHerbsByMizaj('ghudi', this)">غدی</div>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <input class="search" id="herbSearch" placeholder="جڑی بوٹی یا کشتے کا نام لکھیں..." oninput="filterHerbs()" onkeydown="if(event.key==='Enter'){event.preventDefault(); hzOpenBest(true);}" style="flex:1;">
+    <button class="btn" onclick="hzOpenBest(true)" style="border-radius:20px; padding:10px 16px; white-space:nowrap;">📖 کھولیں</button>
   </div>
-
-  <input class="search" id="herbSearch" placeholder="جڑی بوٹی یا بیماری کا نام لکھیں..." onkeyup="filterHerbs()">
   <div id="herbList"></div>
 
   <button class="btn" style="margin-top:16px;" onclick="buildNuskha()">منتخب بوٹیوں سے نسخہ بنائیں</button>
@@ -3524,14 +3520,17 @@ function filterHerbsByMizaj(mizaj, el){
   el.classList.add('active');
   filterHerbs();
 }
-let hzAutoSearchTimer = null;
+let hzAutoSearchTimer = null, hzAutoOpenTimer = null, hzLastAutoOpened = '';
 function filterHerbs(){
   const q = document.getElementById('herbSearch').value.trim();
   // اسی نام کو پس منظر میں نسخہ سازی کی کتابوں میں بھی تلاش کریں (تھوڑا رک کر، تاکہ ہر حرف پر نہ چلے)
   clearTimeout(hzAutoSearchTimer);
+  clearTimeout(hzAutoOpenTimer);
   hzAutoSearchTimer = setTimeout(()=>{
     try{ hzSearchInputEl.value = q; hzRunSearch(); }catch(e){}
   }, 500);
+  // لکھنا رک جائے تو کتاب کا وہی صفحہ خود کھول دیں
+  if(q.length >= 3) hzAutoOpenTimer = setTimeout(()=> hzOpenBest(false), 1800);
   let list = herbsDB;
   if(currentHerbMizaj !== 'all') list = list.filter(h=> h.mizaj === currentHerbMizaj);
   if(q) list = list.filter(h=> h.name.includes(q) || h.benefit.includes(q));
@@ -6597,12 +6596,7 @@ async function hzRunOcrOnFile(fileEntry, row, ocrBtn, forceAll){
     ocrBtn.addEventListener('click', ocrBtn._origHandler);
   }
 }
-function hzRunSearch(){
-  const query = hzSearchInputEl.value.trim();
-  hzResultsEl.innerHTML = '';
-  if(!query){ hzSummaryEl.textContent = ''; return; }
-  const queryData = hzBuildSearchable(query);
-  if(!queryData.searchable){ hzSummaryEl.textContent = ''; return; }
+function hzFindAllMatches(queryData){
   // پہلے صفحے کے اوپر لکھے بڑے عنوان (title) میں تلاش کریں، نہ ملے تو متبادل کے طور پر پورے متن میں بھی تلاش کریں
   const titleMatches = [];
   const textMatches = [];
@@ -6623,7 +6617,15 @@ function hzRunSearch(){
       }
     });
   });
-  const matches = titleMatches.length ? titleMatches : (textMatches.length ? textMatches : looseMatches);
+  return titleMatches.length ? titleMatches : (textMatches.length ? textMatches : looseMatches);
+}
+function hzRunSearch(){
+  const query = hzSearchInputEl.value.trim();
+  hzResultsEl.innerHTML = '';
+  if(!query){ hzSummaryEl.textContent = ''; return; }
+  const queryData = hzBuildSearchable(query);
+  if(!queryData.searchable){ hzSummaryEl.textContent = ''; return; }
+  const matches = hzFindAllMatches(queryData);
   if(matches.length===0){ hzSummaryEl.textContent = ''; return; }
   hzSummaryEl.textContent = '';
   const hzHead = document.createElement('p');
@@ -6642,6 +6644,20 @@ function hzRunSearch(){
     card.innerHTML = `<h4>🌿 ${escapeHtmlSearch(bookTitle)} — صفحہ ${m.displayPageNum}</h4>${sysLabel}${openBtnHtml}`;
     hzResultsEl.appendChild(card);
   });
+}
+// لکھے گئے نام کا پہلا صفحہ (جہاں سے اس جڑی بوٹی/کشتے کا بیان شروع ہوتا ہے) سیدھا PDF میں کھولیں
+function hzOpenBest(manual){
+  clearTimeout(hzAutoOpenTimer);
+  const q = document.getElementById('herbSearch').value.trim();
+  if(!q) return;
+  if(!manual && q === hzLastAutoOpened) return;
+  const queryData = hzBuildSearchable(q);
+  if(!queryData.searchable) return;
+  const matches = hzFindAllMatches(queryData).filter(m=> hzCanOpenFile(m.fileName));
+  if(!matches.length){ if(manual) alert('"' + q + '" کتابوں میں نہیں ملا — نام دوسرے طریقے سے لکھ کر دیکھیں۔'); return; }
+  hzLastAutoOpened = q;
+  const m = matches[0];
+  hzOpenPdfAtPage(m.fileName, m.pageNum, q);
 }
 function hzCanOpenFile(fileName){
   const entry = hzLibrary.find(f=> f.fileName === fileName);
