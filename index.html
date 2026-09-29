@@ -293,7 +293,20 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <h3 style="color:var(--gold); text-align:center; margin-bottom:12px;">📜 قانون مفرد اعضاء کے مطابق نسخہ بنائیں</h3>
 
     <label style="color:var(--gold-soft); font-size:.9rem;">بیماری کا نام (اختیاری)</label>
-    <input class="search" id="qmDisease" placeholder="مثلاً: قبض، دمہ، یرقان..." style="margin:4px 0 12px;">
+    <input class="search" id="qmDisease" list="qmDiseaseSuggest" placeholder="مثلاً: قبض، دمہ، یرقان..." style="margin:4px 0 4px;" onchange="qmDiseaseChanged()">
+    <datalist id="qmDiseaseSuggest"></datalist>
+    <p id="qmDiseaseHint" style="color:var(--muted); font-size:.78rem; margin:0 0 12px;">فہرست سے بیماری چنیں تو تحریک اور عضو خود بھر جائیں گے۔</p>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:150px;">
+        <label style="color:var(--gold-soft); font-size:.9rem;">بیمار عضو</label>
+        <select class="search" id="qmOrgan" style="margin:4px 0 12px;" onchange="qmOrganChanged()"><option value="">— منتخب کریں —</option></select>
+      </div>
+      <div style="flex:1; min-width:150px;">
+        <label style="color:var(--gold-soft); font-size:.9rem;">عضو کا مزاج</label>
+        <select class="search" id="qmOrganMizaj" style="margin:4px 0 12px;"><option value="">—</option></select>
+      </div>
+    </div>
 
     <label style="color:var(--gold-soft); font-size:.9rem;">مرض کی تحریک (مزاج) *</label>
     <select class="search" id="qmTehreek" style="margin:4px 0 12px;">
@@ -332,6 +345,20 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
       <div style="flex:1; min-width:140px;">
         <label style="color:var(--gold-soft); font-size:.9rem;">کل وزن (گرام)</label>
         <input class="search" id="qmTotal" type="number" value="100" min="10" style="margin:4px 0 12px;">
+      </div>
+    </div>
+
+    <div style="border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
+      <div onclick="const b=document.getElementById('qmKushtaBox'); const o=b.style.display==='none'; b.style.display=o?'':'none'; document.getElementById('qmKushtaArrow').textContent=o?'▴':'▾';" style="cursor:pointer; color:var(--gold-soft); text-align:center;">کشتہ شامل کریں (اختیاری) <span id="qmKushtaArrow">▾</span></div>
+      <div id="qmKushtaBox" style="display:none; margin-top:10px;">
+        <label style="color:var(--gold-soft); font-size:.85rem;">تیاری کی قسم</label>
+        <select class="search" id="qmKushtaType" style="margin:4px 0 10px;">
+          <option value="pharma">فارماکوپیا — 15 گرام میں 1 گرام (بچے/بوڑھے 20 گرام میں 1 گرام)</option>
+          <option value="mughallaz">مغلظ — 60 گرام میں 1 گرام کشتہ</option>
+          <option value="special">اسپیشل بیماری — 50 گرام میں 10 گرام کشتہ</option>
+        </select>
+        <div id="qmKushtaList" style="display:flex; flex-wrap:wrap; gap:6px 14px;"></div>
+        <p style="color:#e0524f; font-size:.75rem; margin-top:6px;">⚠ کشتہ صرف مستند تیار شدہ ہو اور ماہر حکیم کی نگرانی میں دیں۔ سرخ نشان والے کشتے زہریلی دھات/معدن سے بنتے ہیں۔</p>
       </div>
     </div>
 
@@ -3069,6 +3096,73 @@ const QM_BOOK_NUSKHE = [
   { t:6, name:'اعصابی غدی تریاق', parts:'افیون 1 ماشہ، لوبان کوڑیہ 1 تولہ، قند سفید 1 تولہ', use:'نصف رتی سے ایک ماشہ تک', raw:167, page:'حصہ سوم ص 134', strong:true },
   { t:2, name:'عضلاتی اعصابی تریاق', parts:'سرمہ سیاہ 1 تولہ، ریٹھے کا چھلکا 2 تولے', use:'ایک رتی سے ایک ماشہ تک نیم گرم پانی کے ساتھ', raw:167, page:'حصہ سوم ص 134', strong:true }
 ];
+const QM_KUSHTE = ['ابرک','بارہ سنگھا','تانبا','توتیا','جست','چاندی','حجر الیہود','خبث الحدید','سرمہ','سنکھیا','سنگ جراحت','سیپ','سیسہ','شنگرف','عقیق','فولاد','قلعی','مرجان','موتی'];
+const QM_KUSHTE_TOXIC = ['تانبا','توتیا','سنکھیا','سیسہ','شنگرف','سرمہ'];
+const QM_NAME_TO_T = {'اعصابی عضلاتی':1,'عضلاتی اعصابی':2,'عضلاتی غدی':3,'غدی عضلاتی':4,'غدی اعصابی':5,'اعصابی غدی':6};
+// عضو کا مزاج — سائٹ کی موجودہ فہرست organMizajList سے (ایک عضو کے ایک سے زیادہ مزاج بھی ہو سکتے ہیں)
+function qmOrganMizajMap(){
+  const map = {};
+  (typeof organMizajList !== 'undefined' ? organMizajList : []).forEach(o=>{
+    o.mizaj.split(' اور ').forEach(m=>{
+      const t = QM_NAME_TO_T[m.trim()];
+      if(!t) return;
+      (map[o.name] = map[o.name] || []);
+      if(!map[o.name].includes(t)) map[o.name].push(t);
+    });
+  });
+  return map;
+}
+function qmInit(){
+  const organSel = document.getElementById('qmOrgan');
+  if(!organSel || organSel.dataset.ready) return;
+  organSel.dataset.ready = '1';
+  Object.keys(qmOrganMizajMap()).forEach(name=>{
+    const op = document.createElement('option'); op.value = name; op.textContent = name; organSel.appendChild(op);
+  });
+  const dl = document.getElementById('qmDiseaseSuggest');
+  const seen = new Set();
+  (typeof diseaseList !== 'undefined' ? diseaseList : []).forEach(d=>{
+    const key = d.name + ' — ' + d.organ;
+    if(seen.has(key)) return; seen.add(key);
+    const op = document.createElement('option'); op.value = key; dl.appendChild(op);
+  });
+  document.getElementById('qmKushtaList').innerHTML = QM_KUSHTE.map(k=>
+    `<label style="font-size:.9rem;${QM_KUSHTE_TOXIC.includes(k)?' color:#e0524f;':''}"><input type="checkbox" class="qm-kushta" value="${k}"> کشتہ ${k}</label>`).join('');
+}
+function qmOrganChanged(){
+  const name = document.getElementById('qmOrgan').value;
+  const sel = document.getElementById('qmOrganMizaj');
+  const ts = qmOrganMizajMap()[name] || [];
+  sel.innerHTML = ts.length ? ts.map(t=> `<option value="${t}">${QM_T[t].name} (${QM_T[t].kaifiyat})</option>`).join('') : '<option value="">—</option>';
+}
+// بیماری کی فہرست کا عضو (مثلاً "جگر و تلی") → اعضاء کی فہرست کا نام
+function qmMatchOrgan(organText){
+  const map = qmOrganMizajMap();
+  const syn = (typeof organMizajSynonyms !== 'undefined') ? organMizajSynonyms : {};
+  const parts = String(organText||'').split(/\s+و\s+|،|\(|\)|\//).map(x=> x.trim()).filter(Boolean);
+  for(const p of parts){
+    if(map[p]) return p;
+    if(syn[p] && map[syn[p]]) return syn[p];
+    if(p === 'آنکھ' && map['آنکھیں']) return 'آنکھیں';
+    if(p === 'دانت' && map['مسوڑے']) return 'مسوڑے';
+    if(p === 'پھیپھڑے' && map['پھیپھڑے']) return 'پھیپھڑے';
+  }
+  return '';
+}
+function qmDiseaseChanged(){
+  const v = document.getElementById('qmDisease').value.trim();
+  const hint = document.getElementById('qmDiseaseHint');
+  const [dname, organ] = v.split(' — ');
+  const d = (typeof diseaseList !== 'undefined' ? diseaseList : []).find(x=> x.name === dname && (!organ || x.organ === organ));
+  if(!d){ hint.textContent = 'فہرست سے بیماری چنیں تو تحریک اور عضو خود بھر جائیں گے۔'; return; }
+  document.getElementById('qmDisease').value = d.name;
+  document.getElementById('qmTehreek').value = String(d.tendency);
+  const o = qmMatchOrgan(d.organ);
+  if(o){ document.getElementById('qmOrgan').value = o; qmOrganChanged(); }
+  hint.textContent = `✔ "${d.name}" — تحریک: ${QM_T[d.tendency].name}، عضو: ${d.organ}${o ? '' : ' (عضو خود منتخب کریں)'}`;
+}
+document.addEventListener('DOMContentLoaded', qmInit);
+setTimeout(qmInit, 0);
 function qmNext(t, step){ return ((t - 1 + step) % 6) + 1; }
 // کتاب کے کلئے: کلیہ 1 = دو قدم آگے، کلیہ 2 = دو اور تین قدم آگے (ملا کر)، کلیہ 3 = تین قدم آگے (مخالف)
 function qmTreatTehreeks(t, stage){
@@ -3090,8 +3184,12 @@ function qmShowHerbs(){
   document.getElementById('qmResult').innerHTML = '';
   if(!t){ step2.innerHTML = '<p style="color:#e0524f; text-align:center;">پہلے مرض کی تحریک منتخب کریں۔</p>'; return; }
   const stage = document.getElementById('qmStage').value;
+  const organName = document.getElementById('qmOrgan').value;
+  const organT = parseInt(document.getElementById('qmOrganMizaj').value, 10) || 0;
   const treat = qmTreatTehreeks(t, stage);
-  const treatNames = treat.map(x=> QM_T[x].name + ' (' + QM_T[x].kaifiyat + ')').join(' + ');
+  // اصول: جس عضو کی بیماری ہو، اسی عضو کے مزاج کی دوا نسخے میں شامل کی جائے
+  if(organT && !treat.includes(organT)) treat.push(organT);
+  const treatNames = treat.map(x=> QM_T[x].name + ' (' + QM_T[x].kaifiyat + ')' + (x===organT ? ' — ' + organName + ' کا مزاج' : '')).join(' + ');
   let html = `<div class="note" style="margin-bottom:12px;">
       مرض: <b>${QM_T[t].name}</b> — کلیہ ${stage} کے مطابق علاج: <b style="color:var(--gold);">${treatNames}</b> ادویات سے<br>
       ${qmBookLink(109,'کتاب میں کلئے دیکھیں (حصہ سوم ص 18-19)')}
@@ -3100,7 +3198,7 @@ function qmShowHerbs(){
   treat.forEach(x=>{
     const T = QM_T[x];
     html += `<div style="border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:10px;">
-      <div style="color:var(--gold); margin-bottom:6px;">${T.name} ادویات</div>
+      <div style="color:var(--gold); margin-bottom:6px;">${T.name} ادویات${x===organT ? ` <span style="font-size:.8rem; color:var(--gold-soft);">(🫀 ${escapeHtmlSearch(organName)} کے مزاج کی دوا)</span>` : ''}</div>
       <div style="color:var(--gold-soft); font-size:.8rem;">عام دوائیں (درجہ 2)</div>
       <div style="display:flex; flex-wrap:wrap; gap:6px 14px; margin:4px 0 8px;">${T.d2.map((h,i)=>`<label style="font-size:.9rem;"><input type="checkbox" class="qm-herb" data-t="${x}" data-level="2" value="${escapeHtmlSearch(h)}" ${i<3?'checked':''}> ${escapeHtmlSearch(h)}</label>`).join('')}</div>
       <div style="color:var(--gold-soft); font-size:.8rem;">تیز دوائیں (درجہ 3) — کم مقدار میں ڈالی جائیں گی</div>
@@ -3120,17 +3218,36 @@ function qmBuild(){
   const form = document.getElementById('qmForm').value;
   const total = Math.max(10, parseFloat(document.getElementById('qmTotal').value) || 100);
   const disease = document.getElementById('qmDisease').value.trim();
+  const organName = document.getElementById('qmOrgan').value;
+  const organT = parseInt(document.getElementById('qmOrganMizaj').value, 10) || 0;
   const treat = qmTreatTehreeks(t, stage);
+  if(organT && !treat.includes(organT)) treat.push(organT);
+  const kushte = Array.from(document.querySelectorAll('.qm-kushta:checked')).map(c=> c.value);
+  const kType = document.getElementById('qmKushtaType').value;
   const picked = Array.from(document.querySelectorAll('.qm-herb:checked')).map(c=> ({ name:c.value, t:+c.dataset.t, level:+c.dataset.level }));
   const out = document.getElementById('qmResult');
   if(picked.length < 2){ out.innerHTML = '<p style="color:#e0524f; text-align:center;">کم از کم دو جڑی بوٹیاں منتخب کریں۔</p>'; return; }
   // کتاب کے نسخوں کا طریقہ: عام اجزاء ہم وزن؛ تیز دوا کم حصہ (مثلاً 12:12:1، 4:4:4:12:1)۔
   // یہاں: درجہ 2 کی ہر دوا = 2 حصے، درجہ 3 کی ہر دوا = 1 حصہ۔
   // کلیہ 2 میں دونوں تحریکوں کی ادویات ملا کر (÷) دی جاتی ہیں — ہر تحریک کو برابر حصہ ملتا ہے۔
+  // کشتہ کی مقدار (حکیم صاحب کا اصول): فارماکوپیا 10 میں 1 (ایک سے زیادہ ہوں تو ہر ایک 15 میں 1)،
+  // مغلظ 60 میں 1، اسپیشل بیماری 50 میں 10 — باقی وزن جڑی بوٹیوں کا
+  let kushtaRows = [];
+  if(kushte.length){
+    let perKushta;
+    if(kType === 'mughallaz') perKushta = (total / 60) / kushte.length;
+    else if(kType === 'special') perKushta = (total * 10 / 50) / kushte.length;
+    // فارماکوپیا: جوان — ہر 15 گرام میں کل 1 گرام کشتہ؛ بچے اور بوڑھے — ہر 20 گرام میں کل 1 گرام
+    // (کشتے ایک ہوں یا زیادہ، کل مقدار یہی رہتی ہے اور سب میں برابر تقسیم ہوتی ہے)
+    else perKushta = (total / ((age === 'child' || age === 'old') ? 20 : 15)) / kushte.length;
+    kushtaRows = kushte.map(k=> ({ name:'کشتہ ' + k, gram: perKushta, toxic: QM_KUSHTE_TOXIC.includes(k) }));
+  }
+  const kushtaTotal = kushtaRows.reduce((s,r)=> s + r.gram, 0);
+  const herbTotal = Math.max(0, total - kushtaTotal);
   const groups = {};
   picked.forEach(p=>{ (groups[p.t] = groups[p.t] || []).push(p); });
   const groupKeys = Object.keys(groups);
-  const groupShare = total / groupKeys.length;
+  const groupShare = herbTotal / groupKeys.length;
   const rows = [];
   groupKeys.forEach(k=>{
     const list = groups[k];
@@ -3150,6 +3267,11 @@ function qmBuild(){
     dose = age === 'child' ? '2 سے 4 رتی' : (age === 'old' ? 'ایک ماشہ' : (hasStrong ? 'ایک ماشہ' : 'ایک سے تین ماشہ'));
     dose += ' — دن میں تین بار';
   }
+  if(kushte.length){
+    if(kType === 'mughallaz') dose = 'ایک سے دو چمچ — دن میں دو سے تین بار';
+    else if(kType === 'special') dose = 'حکیم کی ہدایت کے مطابق (اسپیشل بیماری کا نسخہ)';
+    else dose = '500 ملی گرام — دن میں دو سے تین بار';
+  }
   const anupan = QM_T[treat[0]].anupan;
   const eat = treat.flatMap(x=> QM_T[x].d1);
   const avoid = QM_T[t].d1;
@@ -3158,9 +3280,12 @@ function qmBuild(){
   let html = `<div class="result-card" style="border-right-color:var(--gold);">
     <h3 style="color:var(--gold); margin-bottom:8px;">🌿 ${escapeHtmlSearch(title)}</h3>
     <p style="font-size:.9rem;">علاج: <b>${treat.map(x=> QM_T[x].name).join(' ÷ ')}</b> ادویات سے (کلیہ ${stage})</p>
+    ${organT ? `<p style="font-size:.9rem;">🫀 بیمار عضو: <b>${escapeHtmlSearch(organName)}</b> — مزاج ${QM_T[organT].name}؛ اسی مزاج کی دوا نسخے میں شامل ہے۔</p>` : ''}
+    ${kushte.length ? `<p style="font-size:.85rem; color:var(--gold-soft);">کشتہ: ${kType==='mughallaz'?'مغلظ — 60 گرام میں 1 گرام':(kType==='special'?'اسپیشل بیماری — 50 گرام میں 10 گرام':('فارماکوپیا' + ((age==='child'||age==='old') ? ' (بچہ/بوڑھا) — ہر 20 گرام میں کل 1 گرام کشتہ' : ' — ہر 15 گرام میں کل 1 گرام کشتہ') + (kushte.length>1 ? ' (سب کشتے اسی 1 گرام میں برابر)' : '')))}</p>` : ''}
     <table style="width:100%; border-collapse:collapse; margin:10px 0; font-size:.95rem;">
       <tr style="color:var(--gold-soft);"><th style="text-align:right; padding:6px; border-bottom:1px solid var(--border);">جزو</th><th style="padding:6px; border-bottom:1px solid var(--border);">حصے</th><th style="padding:6px; border-bottom:1px solid var(--border);">وزن (${total} گرام میں)</th></tr>
       ${rows.map(r=>`<tr><td style="padding:6px; border-bottom:1px solid var(--border);">${escapeHtmlSearch(r.name)} <span style="color:var(--muted); font-size:.75rem;">(${QM_T[r.t].name}${r.level===3?'، تیز':''})</span></td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">${r.part}</td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">${qmFmtGram(r.gram)} گرام</td></tr>`).join('')}
+      ${kushtaRows.map(r=>`<tr><td style="padding:6px; border-bottom:1px solid var(--border);${r.toxic?' color:#e0524f;':''}">${escapeHtmlSearch(r.name)} <span style="color:var(--muted); font-size:.75rem;">(کشتہ)</span></td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">—</td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">${qmFmtGram(r.gram)} گرام</td></tr>`).join('')}
     </table>
     <p><b style="color:var(--gold-soft);">ترکیب:</b> ${form === 'goli' ? 'سب کو باریک پیس کر پانی کی مدد سے چنے کے برابر گولیاں بنا لیں۔' : 'سب کو باریک پیس کر سفوف بنا لیں اور بند ڈبے میں رکھیں۔'}</p>
     <p><b style="color:var(--gold-soft);">خوراک:</b> ${dose}، ${anupan}۔</p>
