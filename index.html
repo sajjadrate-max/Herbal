@@ -416,6 +416,9 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <div id="pmMizajResults" style="margin-top:12px;"></div>
   </div>
 
+  <div id="pmSummary" style="color:var(--gold-soft); font-size:.95rem; text-align:center; margin:0 0 10px;"></div>
+  <div id="pmResults" style="margin-bottom:16px;"></div>
+
   <div style="background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:16px;">
     <h4 style="color:var(--gold-soft); margin-bottom:8px; text-align:center; font-size:.95rem;">📚 دستیاب کتابیں (فی الحال تلاش میں شامل)</h4>
     <div id="pmBookListEl" style="font-size:.85rem; color:var(--text);">
@@ -431,9 +434,6 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <datalist id="pmDiseaseSuggestions"></datalist>
     <button class="btn" id="pmSearchBtn" disabled onclick="pmRunSearch()">تلاش کریں</button>
   </div>
-  <div id="pmSummary" style="color:var(--muted); font-size:.9rem; text-align:center; margin:-8px 0 16px;"></div>
-
-  <div id="pmResults"></div>
 </section>
 
 <!-- ===================== BIOPHARMACOPEIA PDF ===================== -->
@@ -3343,44 +3343,6 @@ function qmPickHerbs(t, treatMain, treatAll, organT, organName, text){
   }
   return chosen;
 }
-function qmHerbRow(h, checked, why){
-  const tag = why === 'fayda' ? '' : (why === 'organ' ? ' <span style="color:var(--gold-soft); font-size:.72rem;">(عضو کے لیے معاون)</span>' : (why === 'mizaj' ? ' <span style="color:var(--gold-soft); font-size:.72rem;">(مزاج کے مطابق معاون)</span>' : ''));
-  return `<label style="display:block; font-size:.92rem; margin:5px 0;"><input type="checkbox" class="qm-herb" data-t="${h.t}" data-level="2" value="${escapeHtmlSearch(h.n)}" ${checked?'checked':''}> <b>${escapeHtmlSearch(h.n)}</b> <span style="color:var(--muted); font-size:.72rem;">[${QM_T[h.t].name}]</span>${tag}<br><span style="color:var(--muted); font-size:.8rem; margin-right:24px;">${escapeHtmlSearch(h.f)}</span></label>`;
-}
-function qmShowHerbs(){
-  const t = parseInt(document.getElementById('qmTehreek').value, 10);
-  const step2 = document.getElementById('qmStep2');
-  document.getElementById('qmResult').innerHTML = '';
-  if(!t){ step2.innerHTML = '<p style="color:#e0524f; text-align:center;">پہلے مرض کی تحریک منتخب کریں۔</p>'; return; }
-  qmAutoDetectOrgan(t);
-  const organName = document.getElementById('qmOrgan').value;
-  const organT = parseInt(document.getElementById('qmOrganMizaj').value, 10) || 0;
-  const main = qmNext(t, 2);
-  // کلیہ 1 کی علاج والی تحریک اصل؛ کلیہ 2/3 والی (تین قدم آگے) بھی اسی مرض کا علاج ہے؛ عضو کا مزاج (اگر مرض والی تحریک نہ ہو)
-  const treatAll = [main, qmNext(t, 3)];
-  if(organT && organT !== t && !treatAll.includes(organT)) treatAll.push(organT);
-  const text = qmDiseaseText();
-  const chosen = qmPickHerbs(t, main, treatAll, organT, organName, text);
-  const others = QM_HERBS.filter(h=> treatAll.includes(h.t) && h.t !== t && !chosen.some(c=> c.n === h.n))
-    .sort((a,b)=> qmHerbScore(b.f, text) - qmHerbScore(a.f, text) || a.t - b.t || a.r - b.r);
-  const noMatch = !chosen.some(c=> c.why === 'fayda');
-  let html = `<div class="note" style="margin-bottom:12px;">
-      مرض: <b>${QM_T[t].name}</b> — علاج (جڑ سے): <b style="color:var(--gold);">${QM_T[main].name} (${QM_T[main].kaifiyat})</b> ادویات سے${organT ? `<br>🫀 بیمار عضو: ${escapeHtmlSearch(organName)} (${QM_T[organT].name})` : ''}<br>
-      ${qmBookLink(109,'کتاب میں کلئے دیکھیں (حصہ سوم ص 18-19)')}
-    </div>
-    <p style="color:var(--text); font-size:.9rem; margin-bottom:8px;">✅ ${text ? `"${escapeHtmlSearch(document.getElementById('qmDisease').value.trim())}" کے فوائد` : 'مزاج'} کے مطابق ${chosen.length} اجزاء (برابر وزن):</p>
-    ${noMatch && text ? '<p style="color:#e0524f; font-size:.82rem;">اس بیماری کے نام سے کسی جڑی بوٹی کے فوائد نہیں ملے — مزاج کے مطابق عام بوٹیاں دی گئی ہیں۔ بیماری کا نام دوسرے لفظوں میں لکھ کر دیکھیں (مثلاً "بے خوابی"، "کھانسی")۔</p>' : ''}
-    <div style="border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:10px;">
-      ${chosen.map(h=> qmHerbRow(h, true, h.why)).join('')}
-      <details style="margin-top:8px;">
-        <summary style="cursor:pointer; color:var(--gold-soft); font-size:.8rem;">دوسری جڑی بوٹیاں (اسی علاج والے مزاج کی — ${others.length})</summary>
-        <div style="margin-top:6px;">${others.map(h=> qmHerbRow(h, false, '')).join('')}</div>
-      </details>
-    </div>
-    <p style="color:var(--muted); font-size:.75rem; text-align:center;">زیادہ سے زیادہ 3 سے 4 اجزاء رکھیں۔ مزاج: کتاب "تحریک امراض اور علاج" (ص 84-86) اور "خواص المفردات غدی"؛ فوائد عام یونانی معلومات سے۔ زہریلی/تیز دوائیں شامل نہیں کی گئیں۔</p>
-    <div style="text-align:center;"><button class="btn" onclick="qmBuild()" style="border-radius:20px;">نسخہ بنائیں</button></div>`;
-  step2.innerHTML = html;
-}
 // نسخہ کن امراض میں کام آئے گا — اجزاء کی مطابقت (کتنے فیصد اجزاء اس مرض میں مفید ہیں)
 const QM_TAG_MERGE = {'بے خوابی':'نیند','زکام':'نزلہ','گلا':'گلے کی خراش','خشک کھانسی':'کھانسی','السر':'معدہ کا زخم','دل کی دھڑکن':'دل کی گھبراہٹ','گھبراہٹ':'دل کی گھبراہٹ','بے چینی':'دل کی گھبراہٹ','پیشاب کی کمی':'پیشاب کی بندش','گنٹھیا':'جوڑوں کا درد','نقرس':'جوڑوں کا درد','بینائی':'آنکھ','ملیریا':'بخار','پیچش':'اسہال','بچوں کے دست':'اسہال','مثانہ کی پتھری':'گردے کی پتھری','سفید داغ':'برص','جلد':'خارش','چنبل':'خارش'};
 function qmCoverage(picked, dText){
@@ -3412,73 +3374,119 @@ function qmCoverageHtml(picked, dText){
 }
 function qmFaide(n){ const h = QM_HERBS.find(x=> x.n === n); return h ? h.f : ''; }
 function qmFmtGram(g){ return (Math.round(g*10)/10).toString().replace(/\.0$/,''); }
+// ایک ہی نسخے میں تینوں کلیے (کتاب کی ترتیب: پہلے کلیہ 3، پھر کلیہ 2، آخر میں کلیہ 1)
+// کلیہ 3 = مرض سے تین قدم آگے والی تحریک؛ کلیہ 2 = دونوں (دو اور تین قدم) ملا کر؛ کلیہ 1 = دو قدم آگے (جڑ سے)
+function qmKulliyaPick(t, organT, organName, text){
+  const t1 = qmNext(t, 2), t3 = qmNext(t, 3);
+  const chosen = [];
+  const best = (ts, organTxt)=> qmPickHerbs(t, ts[0], ts, 0, organTxt || '', text).find(h=> !chosen.some(c=> c.n === h.n));
+  const add = (h, k, note)=>{ if(h) chosen.push({ ...h, k, knote: note }); };
+  add(best([t3]), 3, 'فوری آرام');
+  add(best([t1, t3]), 2, 'دونوں تحریکیں ملا کر');
+  add(best([t1]), 1, 'جڑ سے خاتمہ');
+  // عضو کا مزاج الگ ہو تو اس کی ایک دوا (چوتھا جزو)
+  if(organT && organT !== t && organT !== t1 && organT !== t3){
+    const o = qmPickHerbs(t, organT, [organT], organT, organName, text).find(h=> !chosen.some(c=> c.n === h.n));
+    if(o) chosen.push({ ...o, k:0, knote: organName + ' کے مزاج کی' });
+  }
+  return chosen;
+}
+function qmKLabel(k){ return k ? `کلیہ ${k}` : 'عضو'; }
+function qmHerbRow(h, checked, why, k){
+  const tag = why === 'fayda' ? '' : (why === 'organ' ? ' <span style="color:var(--gold-soft); font-size:.72rem;">(عضو کے لیے معاون)</span>' : (why === 'mizaj' ? ' <span style="color:var(--gold-soft); font-size:.72rem;">(مزاج کے مطابق معاون)</span>' : ''));
+  const kBadge = k !== undefined ? `<span style="background:var(--gold); color:var(--navy); border-radius:10px; padding:0 8px; font-size:.72rem; margin-left:4px;">${qmKLabel(k)}</span> ` : '';
+  return `<label style="display:block; font-size:.92rem; margin:6px 0;"><input type="checkbox" class="qm-herb" data-k="${k === undefined ? '' : k}" data-t="${h.t}" data-level="2" value="${escapeHtmlSearch(h.n)}" ${checked?'checked':''}> ${kBadge}<b>${escapeHtmlSearch(h.n)}</b> <span style="color:var(--muted); font-size:.72rem;">[${QM_T[h.t].name}]</span>${tag}<br><span style="color:var(--muted); font-size:.8rem; margin-right:24px;">${escapeHtmlSearch(h.f)}</span></label>`;
+}
+function qmShowHerbs(){
+  const t = parseInt(document.getElementById('qmTehreek').value, 10);
+  const step2 = document.getElementById('qmStep2');
+  document.getElementById('qmResult').innerHTML = '';
+  if(!t){ step2.innerHTML = '<p style="color:#e0524f; text-align:center;">پہلے مرض کی تحریک منتخب کریں۔</p>'; return; }
+  qmAutoDetectOrgan(t);
+  const organName = document.getElementById('qmOrgan').value;
+  const organT = parseInt(document.getElementById('qmOrganMizaj').value, 10) || 0;
+  const text = qmDiseaseText();
+  const dName = document.getElementById('qmDisease').value.trim();
+  const t1 = qmNext(t, 2), t3 = qmNext(t, 3);
+  const chosen = qmKulliyaPick(t, organT, organName, text);
+  const pool = [t1, t3]; if(organT && organT !== t && !pool.includes(organT)) pool.push(organT);
+  const others = QM_HERBS.filter(h=> pool.includes(h.t) && !chosen.some(c=> c.n === h.n))
+    .sort((a,b)=> qmHerbScore(b.f, text) - qmHerbScore(a.f, text) || a.t - b.t || a.r - b.r);
+  const kOf = h=> h.t === t3 ? 3 : (h.t === t1 ? 1 : 0);
+  step2.innerHTML = `<div class="note" style="margin-bottom:12px;">
+      مرض: <b>${QM_T[t].name}</b> (${QM_T[t].kaifiyat})${organT ? ` — 🫀 بیمار عضو: ${escapeHtmlSearch(organName)} (${QM_T[organT].name})` : ''}<br>
+      ایک ہی نسخے میں تینوں کلیے: <b style="color:var(--gold);">کلیہ 3</b> (${QM_T[t3].name}) ← <b style="color:var(--gold);">کلیہ 2</b> (${QM_T[t1].name} ÷ ${QM_T[t3].name}) ← <b style="color:var(--gold);">کلیہ 1</b> (${QM_T[t1].name})<br>
+      ${qmBookLink(109,'کتاب میں کلئے دیکھیں (حصہ سوم ص 18-19)')}
+    </div>
+    <p style="color:var(--text); font-size:.9rem; margin-bottom:8px;">✅ ${text ? `"${escapeHtmlSearch(dName)}" کے فوائد اور ` : ''}مزاج کے مطابق ${chosen.length} اجزاء (برابر وزن) — ہر کلیے کی ایک دوا:</p>
+    <div style="border:1px solid var(--border); border-right:4px solid var(--gold); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
+      ${chosen.map(h=> qmHerbRow(h, true, h.why, h.k)).join('')}
+      <details style="margin-top:8px;">
+        <summary style="cursor:pointer; color:var(--gold-soft); font-size:.8rem;">دوسری جڑی بوٹیاں (انہی مزاجوں کی — ${others.length})</summary>
+        <div style="margin-top:6px;">${others.map(h=> qmHerbRow(h, false, '', kOf(h))).join('')}</div>
+      </details>
+    </div>
+    <p style="color:var(--muted); font-size:.75rem; text-align:center;">نسخے میں زیادہ سے زیادہ 3 سے 4 اجزاء رکھیں۔ مزاج: کتاب "تحریک امراض اور علاج" (ص 81-86) اور "خواص المفردات غدی"؛ فوائد عام یونانی معلومات سے۔ زہریلی/تیز دوائیں شامل نہیں کی گئیں۔</p>
+    <div style="text-align:center;"><button class="btn" onclick="qmBuild()" style="border-radius:20px;">نسخہ بنائیں</button></div>`;
+}
 function qmBuild(){
   const t = parseInt(document.getElementById('qmTehreek').value, 10);
   if(!t) return;
-  const stage = document.getElementById('qmStage').value;
   const age = document.getElementById('qmAge').value;
   const form = document.getElementById('qmForm').value;
   const total = Math.max(10, parseFloat(document.getElementById('qmTotal').value) || 100);
   const disease = document.getElementById('qmDisease').value.trim();
   const organName = document.getElementById('qmOrgan').value;
   const organT = parseInt(document.getElementById('qmOrganMizaj').value, 10) || 0;
-  const treat = [qmNext(t, 2)];
   const kushte = Array.from(document.querySelectorAll('.qm-kushta:checked')).map(c=> c.value);
   const kType = document.getElementById('qmKushtaType').value;
-  const picked = Array.from(document.querySelectorAll('.qm-herb:checked')).map(c=> ({ name:c.value, t:+c.dataset.t, level:+c.dataset.level }));
   const out = document.getElementById('qmResult');
-  const herbTs = [...new Set(picked.map(p=> p.t))];
-  if(picked.length < 1){ out.innerHTML = '<p style="color:#e0524f; text-align:center;">کم از کم ایک جڑی بوٹی منتخب کریں۔</p>'; return; }
-  // کتاب کے نسخوں کا طریقہ: عام اجزاء ہم وزن؛ تیز دوا کم حصہ (مثلاً 12:12:1، 4:4:4:12:1)۔
-  // یہاں: درجہ 2 کی ہر دوا = 2 حصے، درجہ 3 کی ہر دوا = 1 حصہ۔
-  // کلیہ 2 میں دونوں تحریکوں کی ادویات ملا کر (÷) دی جاتی ہیں — ہر تحریک کو برابر حصہ ملتا ہے۔
-  // کشتہ کی مقدار (حکیم صاحب کا اصول): فارماکوپیا 10 میں 1 (ایک سے زیادہ ہوں تو ہر ایک 15 میں 1)،
-  // مغلظ 60 میں 1، اسپیشل بیماری 50 میں 10 — باقی وزن جڑی بوٹیوں کا
+  const dText = qmDiseaseText();
+  const t1 = qmNext(t, 2), t3 = qmNext(t, 3);
+  const kOrder = { 3:0, 2:1, 1:2, 0:3 };
+  const picked = Array.from(document.querySelectorAll('.qm-herb:checked')).map(c=>{
+    const tt = +c.dataset.t;
+    const k = c.dataset.k !== '' ? +c.dataset.k : (tt === t3 ? 3 : (tt === t1 ? 1 : 0));
+    return { name:c.value, t:tt, k };
+  }).sort((a,b)=> kOrder[a.k] - kOrder[b.k]);
+  if(!picked.length){ out.innerHTML = '<p style="color:#e0524f; text-align:center;">کم از کم ایک جڑی بوٹی منتخب کریں۔</p>'; return; }
+  // کشتہ (حکیم صاحب کا اصول): فارماکوپیا جوان ہر 15 گرام میں کل 1 گرام، بچے/بوڑھے ہر 20 میں 1؛ مغلظ 60 میں 1؛ اسپیشل 50 میں 10
   let kushtaRows = [];
   if(kushte.length){
     let perKushta;
     if(kType === 'mughallaz') perKushta = (total / 60) / kushte.length;
     else if(kType === 'special') perKushta = (total * 10 / 50) / kushte.length;
-    // فارماکوپیا: جوان — ہر 15 گرام میں کل 1 گرام کشتہ؛ بچے اور بوڑھے — ہر 20 گرام میں کل 1 گرام
-    // (کشتے ایک ہوں یا زیادہ، کل مقدار یہی رہتی ہے اور سب میں برابر تقسیم ہوتی ہے)
     else perKushta = (total / ((age === 'child' || age === 'old') ? 20 : 15)) / kushte.length;
     kushtaRows = kushte.map(k=> ({ name:'کشتہ ' + k, gram: perKushta, toxic: QM_KUSHTE_TOXIC.includes(k) }));
   }
   const kushtaTotal = kushtaRows.reduce((s,r)=> s + r.gram, 0);
   const herbTotal = Math.max(0, total - kushtaTotal);
-  // کتاب اور حکیم صاحب کا طریقہ (جیسے اکسیر بدیان: ہلدی + ملٹھی + سونف): سب اجزاء برابر وزن
-  const rows = picked.map(p=> ({ ...p, part:1, gram: herbTotal / picked.length }));
-  const hasStrong = false;
-  // خوراک — کتاب کے نسخوں کے مطابق
+  const rows = picked.map(p=> ({ ...p, gram: herbTotal / picked.length }));
   let dose;
   if(form === 'goli'){
-    dose = age === 'child' ? 'آدھی گولی' : (age === 'old' ? 'ایک گولی' : (hasStrong ? 'ایک گولی' : 'ایک سے دو گولی'));
-    dose += ' — دن میں تین سے چار بار';
+    dose = (age === 'child' ? 'آدھی گولی' : (age === 'old' ? 'ایک گولی' : 'ایک سے دو گولی')) + ' — دن میں تین سے چار بار';
   } else {
-    dose = age === 'child' ? '2 سے 4 رتی' : (age === 'old' ? 'ایک ماشہ' : (hasStrong ? 'ایک ماشہ' : 'ایک سے تین ماشہ'));
-    dose += ' — دن میں تین بار';
+    dose = (age === 'child' ? '2 سے 4 رتی' : (age === 'old' ? 'ایک ماشہ' : 'ایک سے تین ماشہ')) + ' — دن میں تین بار';
   }
   if(kushte.length){
     if(kType === 'mughallaz') dose = 'ایک سے دو چمچ — دن میں دو سے تین بار';
     else if(kType === 'special') dose = 'حکیم کی ہدایت کے مطابق (اسپیشل بیماری کا نسخہ)';
     else dose = '500 ملی گرام — دن میں دو سے تین بار';
   }
-  const anupan = QM_T[treat[0]].anupan;
-  const eat = treat.flatMap(x=> QM_T[x].d1);
+  const anupan = QM_T[t1].anupan;
+  const eat = [...new Set([...QM_T[t3].d1, ...QM_T[t1].d1])];
   const avoid = QM_T[t].d1;
-  const dText = qmDiseaseText();
-  const bookNuskhe = QM_BOOK_NUSKHE.filter(n=> treat.includes(n.t) || (n.note && disease && qmHerbScore(n.note, dText) >= 3 && n.t !== t))
-    .sort((x,y)=> qmHerbScore(y.note||'', dText) - qmHerbScore(x.note||'', dText));
+  const th = 'padding:6px; border-bottom:1px solid var(--border);';
   const title = (disease ? disease + ' — ' : '') + QM_T[t].name + ' مرض کا نسخہ';
   let html = `<div class="result-card" style="border-right-color:var(--gold);">
     <h3 style="color:var(--gold); margin-bottom:8px;">🌿 ${escapeHtmlSearch(title)}</h3>
-    <p style="font-size:.9rem;">علاج (جڑ سے): <b>${QM_T[treat[0]].name}</b> ادویات سے — اجزاء: ${herbTs.map(x=> QM_T[x].name).join('، ')}</p>
-    ${organT ? `<p style="font-size:.9rem;">🫀 بیمار عضو: <b>${escapeHtmlSearch(organName)}</b> — مزاج ${QM_T[organT].name}؛ اسی مزاج کی دوا نسخے میں شامل ہے۔</p>` : ''}
+    <p style="font-size:.9rem;">ایک ہی نسخے میں تینوں کلیے: کلیہ 3 (${QM_T[t3].name}) ← کلیہ 2 (${QM_T[t1].name} ÷ ${QM_T[t3].name}) ← کلیہ 1 (${QM_T[t1].name})</p>
+    ${organT ? `<p style="font-size:.9rem;">🫀 بیمار عضو: <b>${escapeHtmlSearch(organName)}</b> — مزاج ${QM_T[organT].name}</p>` : ''}
     ${kushte.length ? `<p style="font-size:.85rem; color:var(--gold-soft);">کشتہ: ${kType==='mughallaz'?'مغلظ — 60 گرام میں 1 گرام':(kType==='special'?'اسپیشل بیماری — 50 گرام میں 10 گرام':('فارماکوپیا' + ((age==='child'||age==='old') ? ' (بچہ/بوڑھا) — ہر 20 گرام میں کل 1 گرام کشتہ' : ' — ہر 15 گرام میں کل 1 گرام کشتہ') + (kushte.length>1 ? ' (سب کشتے اسی 1 گرام میں برابر)' : '')))}</p>` : ''}
     <table style="width:100%; border-collapse:collapse; margin:10px 0; font-size:.95rem;">
-      <tr style="color:var(--gold-soft);"><th style="text-align:right; padding:6px; border-bottom:1px solid var(--border);">جزو</th><th style="padding:6px; border-bottom:1px solid var(--border);">حصے</th><th style="padding:6px; border-bottom:1px solid var(--border);">وزن (${total} گرام میں)</th></tr>
-      ${rows.map(r=>`<tr><td style="padding:6px; border-bottom:1px solid var(--border);">${escapeHtmlSearch(r.name)} <span style="color:var(--muted); font-size:.75rem;">(${QM_T[r.t].name}${r.level===3?'، تیز':''})</span>${qmFaide(r.name) ? `<br><span style="color:var(--muted); font-size:.72rem;">${escapeHtmlSearch(qmFaide(r.name))}</span>` : ''}</td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">${r.part}</td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">${qmFmtGram(r.gram)} گرام</td></tr>`).join('')}
-      ${kushtaRows.map(r=>`<tr><td style="padding:6px; border-bottom:1px solid var(--border);${r.toxic?' color:#e0524f;':''}">${escapeHtmlSearch(r.name)} <span style="color:var(--muted); font-size:.75rem;">(کشتہ)</span></td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">—</td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">${qmFmtGram(r.gram)} گرام</td></tr>`).join('')}
+      <tr style="color:var(--gold-soft);"><th style="text-align:right; ${th}">جزو</th><th style="${th}">کلیہ</th><th style="${th}">وزن (${total} گرام میں)</th></tr>
+      ${rows.map(r=>`<tr><td style="${th}">${escapeHtmlSearch(r.name)} <span style="color:var(--muted); font-size:.75rem;">(${QM_T[r.t].name})</span>${qmFaide(r.name) ? `<br><span style="color:var(--muted); font-size:.72rem;">${escapeHtmlSearch(qmFaide(r.name))}</span>` : ''}</td><td style="text-align:center; ${th} color:var(--gold); white-space:nowrap;">${qmKLabel(r.k)}</td><td style="text-align:center; ${th}">${qmFmtGram(r.gram)} گرام</td></tr>`).join('')}
+      ${kushtaRows.map(r=>`<tr><td style="${th}${r.toxic?' color:#e0524f;':''}">${escapeHtmlSearch(r.name)} <span style="color:var(--muted); font-size:.75rem;">(کشتہ)</span></td><td style="text-align:center; ${th}">—</td><td style="text-align:center; ${th}">${qmFmtGram(r.gram)} گرام</td></tr>`).join('')}
     </table>
     <p><b style="color:var(--gold-soft);">ترکیب:</b> ${form === 'goli' ? 'سب کو باریک پیس کر پانی کی مدد سے چنے کے برابر گولیاں بنا لیں۔' : 'سب کو باریک پیس کر سفوف بنا لیں اور بند ڈبے میں رکھیں۔'}</p>
     <p><b style="color:var(--gold-soft);">خوراک:</b> ${dose}، ${anupan}۔</p>
@@ -3486,17 +3494,20 @@ function qmBuild(){
     <p><b style="color:var(--gold-soft);">پرہیز:</b> ${avoid.join('، ')} — یعنی مرض والی ${QM_T[t].name} غذائیں۔</p>
     ${qmCoverageHtml(picked, dText)}
     <div class="note" style="font-size:.8rem; margin-top:10px;">
-      📘 کتاب کے اصول: ہمیشہ پہلے ہلکی (محرک) دوا، کام نہ چلے تو تیز۔ پہلے کلیہ 3، پھر کلیہ 2، آخر میں کلیہ 1۔ جسم میں فاسد مادہ ہو تو مقوی دوا نہ دیں۔ بچوں اور بوڑھوں کو ہمیشہ کم مقدار۔ مزاج کے مطابق غذا ساتھ دینے سے فائدہ کئی گنا بڑھ جاتا ہے۔
+      📘 کتاب کے اصول: پہلے کلیہ 3 (فوری آرام)، پھر کلیہ 2، آخر میں کلیہ 1 (جڑ سے خاتمہ) — اس نسخے میں تینوں کی دوا ایک ساتھ شامل ہے۔ جسم میں فاسد مادہ ہو تو مقوی دوا نہ دیں۔ بچوں اور بوڑھوں کو ہمیشہ کم مقدار۔ مزاج کے مطابق غذا ساتھ دینے سے فائدہ کئی گنا بڑھ جاتا ہے۔
       <br>حصوں کا طریقہ: سب اجزاء برابر وزن (جیسے اکسیر بدیان)، نسخے میں 3 سے 4 اجزاء۔
-      <br>${qmBookLink(165,'باب اصطلاحات (ص 130)')} &nbsp; ${qmBookLink(244,'ادویہ بلحاظ درجہ بندی (ص 84)')}
+      <br>${qmBookLink(109,'کلئے (حصہ سوم ص 18-19)')} &nbsp; ${qmBookLink(165,'باب اصطلاحات (ص 130)')} &nbsp; ${qmBookLink(244,'ادویہ بلحاظ درجہ بندی (ص 84)')}
     </div>
     ${disease ? `<div style="text-align:center; margin-top:10px;"><button class="btn secondary" style="padding:6px 16px; font-size:.85rem; border-radius:16px;" onclick="qmSearchDisease()">📚 "${escapeHtmlSearch(disease)}" کو کتابوں میں دیکھیں</button></div>` : ''}
   </div>`;
+  const allTs = new Set([t1, t3]);
+  const bookNuskhe = QM_BOOK_NUSKHE.filter(n=> allTs.has(n.t) || (n.note && disease && qmHerbScore(n.note, dText) >= 3 && n.t !== t))
+    .sort((x,y)=> qmHerbScore(y.note||'', dText) - qmHerbScore(x.note||'', dText));
   if(bookNuskhe.length){
-    html += `<h4 style="color:var(--gold); text-align:center; margin:18px 0 10px;">📖 کتاب کے تیار نسخے (${treat.map(x=> QM_T[x].name).join(' / ')})</h4>`;
+    html += `<h4 style="color:var(--gold); text-align:center; margin:18px 0 10px;">📖 کتاب کے تیار نسخے (${[...allTs].map(x=> QM_T[x].name).join(' / ')})</h4>`;
     bookNuskhe.forEach(n=>{
       html += `<div class="result-card" style="padding:14px 18px;">
-        <h4 style="color:var(--gold-soft); margin-bottom:6px;">${n.name}</h4>
+        <h4 style="color:var(--gold-soft); margin-bottom:6px;">${n.name} <span style="color:var(--muted); font-size:.75rem;">[${QM_T[n.t].name}]</span></h4>
         <p style="font-size:.9rem;"><b>اجزاء:</b> ${n.parts}</p>
         <p style="font-size:.9rem;"><b>استعمال:</b> ${n.use}</p>
         ${n.note ? `<p style="font-size:.85rem; color:var(--muted);">${n.note}</p>` : ''}
@@ -3508,6 +3519,7 @@ function qmBuild(){
   out.innerHTML = html;
   out.scrollIntoView({ behavior:'smooth', block:'start' });
 }
+
 function qmSearchDisease(){
   const q = document.getElementById('qmDisease').value.trim();
   if(!q) return;
@@ -4817,6 +4829,7 @@ async function pmDiscoverBuiltinDataFiles(){
       if(pmLibrary.some(f=> f.fileName === fName)) continue; // ڈپلیکیٹ سے بچاؤ
       pmLibrary.push({
         fileName: fName,
+        title: data.title || '',
         pages: data.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', ocr:true })),
         builtin: true
       });
@@ -5588,7 +5601,7 @@ function pmRunSearch(customTerms){
   const textMatches = [];
   const looseMatches = [];
   const seenPageKeys = new Set();
-  terms.forEach(term=>{
+  const runTerms = (termList)=> termList.forEach(term=>{
     const queryData = pmBuildSearchable(term);
     if(!queryData.searchable) return;
     pmLibrary.forEach(fileEntry=>{
@@ -5613,8 +5626,22 @@ function pmRunSearch(customTerms){
       });
     });
   });
-  const matches = titleMatches.length ? titleMatches : (textMatches.length ? textMatches : looseMatches);
-  if(matches.length===0){
+  runTerms(terms);
+  // پورا نام کہیں نہ ملے تو اس کے اصل الفاظ (مثلاً "شدید قبض" → "قبض") سے دوبارہ تلاش
+  if(!titleMatches.length && !textMatches.length && !looseMatches.length){
+    const PM_WEAK = new Set(['شدید','دائمی','پرانا','پرانی','مزمن','حاد','کی','کا','کے','میں','اور','سے','درد','کمی','زیادتی','کمزوری','بیماری','مرض','امراض','ہونا','آنا','جانا','بار','بار']);
+    const words = [...new Set(terms.flatMap(t=> String(t).split(/[\s،,\/()\-]+/)).filter(w=> w.length >= 3 && !PM_WEAK.has(w)))];
+    if(words.length) runTerms(words);
+  }
+  // جو پوری کتاب ہی اسی بیماری پر ہو (مثلاً "دمہ"، "موٹاپا") — اسے سب سے اوپر دکھائیں
+  const wholeBooks = [];
+  pmLibrary.forEach(fe=>{
+    const tt = pmBuildSearchable((fe.title || '') + ' ' + fe.fileName.replace(/[_.]/g,' ')).searchable;
+    const hitTerm = terms.flatMap(x=> String(x).split(/[\/،,]/)).map(x=> x.trim()).find(term=>{ const q = pmBuildSearchable(term).searchable; return q && q.length >= 3 && tt.indexOf(q) !== -1; });
+    if(hitTerm) wholeBooks.push({ fileName: fe.fileName, term: hitTerm });
+  });
+  const matches = (titleMatches.length || textMatches.length) ? titleMatches.concat(textMatches) : looseMatches;
+  if(matches.length===0 && !wholeBooks.length){
     let totalPages = 0, ocrPages = 0;
     pmLibrary.forEach(fe=> fe.pages.forEach(p=>{ totalPages++; if(p.text) ocrPages++; }));
     pmSummaryEl.textContent = `"${primaryQuery}" کسی بھی فائل میں نہیں ملا۔`;
@@ -5622,19 +5649,41 @@ function pmRunSearch(customTerms){
     return;
   }
   pmLastMatches = matches;
-  pmSummaryEl.textContent = terms.length > 1
-    ? `"${primaryQuery}" اور اس کے ${terms.length-1} متبادل نام مل کر کل ${matches.length} صفحات پر ملے۔`
-    : `"${primaryQuery}" کل ${matches.length} صفحات پر ملا۔`;
-  matches.forEach(m=>{
+  // کتاب وار ترتیب: ہر کتاب میں صفحات بڑھتی ترتیب میں، مسلسل صفحات ایک حصہ (جہاں سے تفصیل شروع ہوتی ہے)
+  const byFile = new Map();
+  matches.forEach(m=>{ if(!byFile.has(m.fileName)) byFile.set(m.fileName, []); byFile.get(m.fileName).push(m); });
+  const order = pmLibrary.map(f=> f.fileName);
+  wholeBooks.forEach(w=>{ if(!byFile.has(w.fileName)) byFile.set(w.fileName, []); });
+  const wholeSet = new Set(wholeBooks.map(w=> w.fileName));
+  const isQma = f=> /مفرد/.test(pmGetFileSystem(f) || '') ? 1 : 0;
+  const files = [...byFile.keys()].sort((x,y)=> (wholeSet.has(y) - wholeSet.has(x)) || (isQma(y) - isQma(x)) || (order.indexOf(x) - order.indexOf(y)));
+  pmSummaryEl.innerHTML = `📚 "${escapeHtmlSearch(primaryQuery)}" کی تفصیل <b>${files.length}</b> کتابوں میں ملی — صفحہ پر ٹیپ کریں، کتاب وہیں سے کھلے گی`;
+  files.forEach((fileName, fi)=>{
+    const list = byFile.get(fileName).slice().sort((x,y)=> x.pageNum - y.pageNum);
+    const runs = [];
+    list.forEach(m=>{
+      const last = runs[runs.length-1];
+      if(last && m.pageNum - last.end.pageNum <= 1) last.end = m;
+      else runs.push({ start:m, end:m });
+    });
+    const entry = pmLibrary.find(f=> f.fileName === fileName) || {};
+    const bookTitle = entry.title || fileName.replace(/\.pdf$/i,'').replace(/_/g,' ');
+    const canOpen = pmCanOpenFile(fileName);
     const card = document.createElement('div');
     card.className = 'mujarrab-card';
-    const canOpen = pmCanOpenFile(m.fileName);
-    const openBtnHtml = canOpen
-      ? `<button class="btn secondary" onclick="pmOpenPdfAtPage('${escapeJsAttr(m.fileName)}', ${m.pageNum}, '${escapeJsAttr(m.matchedTerm)}')" style="margin-top:8px; padding:6px 16px; font-size:.82rem; border-radius:16px;">📖 اسی صفحہ پر PDF کھولیں</button>`
+    card.style.borderRight = '4px solid var(--gold)';
+    const wholeBtn = wholeSet.has(fileName)
+      ? `<p style="color:var(--gold); font-size:.85rem; margin:2px 0;">⭐ یہ پوری کتاب اسی بیماری پر ہے</p>` + (canOpen ? `<button class="btn" onclick="pmOpenPdfAtPage('${escapeJsAttr(fileName)}', 1, '')" style="margin:4px 0 0 6px; padding:6px 14px; font-size:.82rem; border-radius:16px;">📖 کتاب شروع سے کھولیں</button>` : '')
       : '';
-    const termLabel = terms.length > 1 ? `<p style="color:var(--muted); font-size:.8rem; margin:2px 0 6px;">(نام: ${escapeHtmlSearch(m.matchedTerm)})</p>` : '';
-    const sysLabel = `<p style="color:var(--gold-soft); font-size:.8rem; margin:2px 0 6px;">📚 حکمت: ${escapeHtmlSearch(pmGetFileSystem(m.fileName))}</p>`;
-    card.innerHTML = `<h4>📄 صفحہ ${m.displayPageNum}</h4>${sysLabel}${termLabel}${openBtnHtml}`;
+    const btns = wholeBtn + runs.map(r=>{
+      const label = r.start.displayPageNum === r.end.displayPageNum ? `صفحہ ${r.start.displayPageNum}` : `صفحہ ${r.start.displayPageNum} تا ${r.end.displayPageNum}`;
+      return canOpen
+        ? `<button class="btn secondary" onclick="pmOpenPdfAtPage('${escapeJsAttr(fileName)}', ${r.start.pageNum}, '${escapeJsAttr(r.start.matchedTerm)}')" style="margin:4px 0 0 6px; padding:6px 14px; font-size:.82rem; border-radius:16px;">📖 ${label}</button>`
+        : `<span style="color:var(--muted); font-size:.85rem; margin-left:10px;">${label}</span>`;
+    }).join('');
+    card.innerHTML = `<h4 style="color:var(--gold);">${fi+1}۔ 📘 ${escapeHtmlSearch(bookTitle)}</h4>
+      <p style="color:var(--gold-soft); font-size:.8rem; margin:2px 0 6px;">📚 حکمت: ${escapeHtmlSearch(pmGetFileSystem(fileName))}${terms.length > 1 ? ' — نام: ' + escapeHtmlSearch([...new Set(list.map(m=> m.matchedTerm))].join('، ')) : ''}</p>
+      <div style="display:flex; flex-wrap:wrap;">${btns}</div>`;
     pmResultsEl.appendChild(card);
   });
 }
@@ -5690,7 +5739,7 @@ function pmOpenTextEditor(fileName, pageNum){
 // سائٹ کے ساتھ built-in شامل کی گئی کتابوں کا صرف نکالا گیا متن محفوظ ہے (فائل کا سائز بہت زیادہ ہونے کی وجہ سے)
 function pmCanOpenFile(fileName){
   const entry = pmLibrary.find(f=> f.fileName === fileName);
-  return !!(entry && entry.pdfDoc);
+  return !!(entry && (entry.pdfDoc || entry.builtin));
 }
 function escapeJsAttr(s){
   return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
