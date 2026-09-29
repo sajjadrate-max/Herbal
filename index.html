@@ -288,6 +288,60 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
 <!-- ===================== HERB PRESCRIPTION MAKER ===================== -->
 <section class="page-section" id="page-naskhesaz">
   <h2 class="section-title">نسخہ سازی — جڑی بوٹیوں سے علاج</h2>
+  <!-- ===== قانون مفرد اعضاء کے مطابق نسخہ ساز (کتاب: تحریک امراض اور علاج — حکیم قاری محمد یونس شاہد میو) ===== -->
+  <div class="result-card" id="qmBuilder" style="margin-bottom:22px;">
+    <h3 style="color:var(--gold); text-align:center; margin-bottom:12px;">📜 قانون مفرد اعضاء کے مطابق نسخہ بنائیں</h3>
+
+    <label style="color:var(--gold-soft); font-size:.9rem;">بیماری کا نام (اختیاری)</label>
+    <input class="search" id="qmDisease" placeholder="مثلاً: قبض، دمہ، یرقان..." style="margin:4px 0 12px;">
+
+    <label style="color:var(--gold-soft); font-size:.9rem;">مرض کی تحریک (مزاج) *</label>
+    <select class="search" id="qmTehreek" style="margin:4px 0 12px;">
+      <option value="">— منتخب کریں —</option>
+      <option value="1">اعصابی عضلاتی (تر سرد)</option>
+      <option value="2">عضلاتی اعصابی (خشک سرد)</option>
+      <option value="3">عضلاتی غدی (خشک گرم)</option>
+      <option value="4">غدی عضلاتی (گرم خشک)</option>
+      <option value="5">غدی اعصابی (گرم تر)</option>
+      <option value="6">اعصابی غدی (تر گرم)</option>
+    </select>
+
+    <label style="color:var(--gold-soft); font-size:.9rem;">علاج کا مرحلہ</label>
+    <select class="search" id="qmStage" style="margin:4px 0 12px;">
+      <option value="3">کلیہ 3 — فوری کنٹرول (پہلے یہی)</option>
+      <option value="2">کلیہ 2 — مرض قابو میں آ جائے تو</option>
+      <option value="1">کلیہ 1 — مرض کو جڑ سے ختم کرنا</option>
+    </select>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:140px;">
+        <label style="color:var(--gold-soft); font-size:.9rem;">مریض</label>
+        <select class="search" id="qmAge" style="margin:4px 0 12px;">
+          <option value="adult">جوان</option>
+          <option value="child">بچہ</option>
+          <option value="old">بوڑھا</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:140px;">
+        <label style="color:var(--gold-soft); font-size:.9rem;">نسخے کی شکل</label>
+        <select class="search" id="qmForm" style="margin:4px 0 12px;">
+          <option value="safoof">سفوف</option>
+          <option value="goli">گولیاں (چنے کے برابر)</option>
+        </select>
+      </div>
+      <div style="flex:1; min-width:140px;">
+        <label style="color:var(--gold-soft); font-size:.9rem;">کل وزن (گرام)</label>
+        <input class="search" id="qmTotal" type="number" value="100" min="10" style="margin:4px 0 12px;">
+      </div>
+    </div>
+
+    <div style="text-align:center;">
+      <button class="btn" onclick="qmShowHerbs()" style="border-radius:20px;">آگے — جڑی بوٹیاں دکھائیں</button>
+    </div>
+    <div id="qmStep2" style="margin-top:16px;"></div>
+    <div id="qmResult" style="margin-top:16px;"></div>
+  </div>
+
   <div class="note">مزاج منتخب کریں یا بیماری کا نام لکھیں — موزوں جڑی بوٹیاں نظر آئیں گی۔ چند بوٹیاں منتخب کر کے "نسخہ بنائیں" دبائیں تو مکمل فارمولا (فوائد، مزاج، خوراک سمیت) تیار ہو جائے گا۔</div>
 
   <div class="mizaj-tabs">
@@ -2941,6 +2995,205 @@ function renderHerbs(list){
       </label>
     </div>`;
   }).join('');
+}
+// ================= قانون مفرد اعضاء کے مطابق نسخہ ساز =================
+// ماخذ: "تحریک امراض اور علاج" — حکیم قاری محمد یونس شاہد میو (سائٹ میں شامل کتاب Tehreek_Amraz_o_Ilaj.pdf)
+//  • علاج کے مخصوص کلئے 1، 2، 3 — حصہ سوم صفحہ 18-19
+//  • ساری تحریکوں کے مؤثر ترین نسخہ جات — حصہ سوم صفحہ 20
+//  • باب اصطلاحات (محرک، ملین، مسہل، اکسیر، تریاق، مقوی) — حصہ سوم صفحہ 130-134
+//  • ادویہ بلحاظ درجہ بندی بمطابق مفرد اعضاء — نسخہ جات والا حصہ صفحہ 84-86
+// تحریکوں کی ترتیب (دائرہ): 1 اعصابی عضلاتی → 2 عضلاتی اعصابی → 3 عضلاتی غدی → 4 غدی عضلاتی → 5 غدی اعصابی → 6 اعصابی غدی
+const QM_BOOK_FILE = 'Tehreek_Amraz_o_Ilaj.pdf';
+const QM_T = {
+  1:{ name:'اعصابی عضلاتی', kaifiyat:'تر سرد',
+      d1:['اروی','اسبغول','انار شیریں','تخم کدو','توت سیاہ','تربوز','دودھ بھینس','کھیرا','چاول'],
+      d2:['تالمکھانہ','تخم تربوز','گوند کیکر','تخم خیارین','تخم کاسنی','موصلی سفید'],
+      d3:['کافور','روغن بہدانہ','بالنگو','قلمی شورہ','کاہو','صندل'],
+      d4:['میٹھا تیلیہ','اجوائن خراسانی'],
+      anupan:'سادہ پانی یا مکھن/بالائی کے ساتھ' },
+  2:{ name:'عضلاتی اعصابی', kaifiyat:'خشک سرد',
+      d1:['آلو بخارا','کچا آم','آملہ','انار ترش','سیب','سنگترہ','لوکاٹ','بینگن','جوار','مالٹا','کنو','دہی','لسی'],
+      d2:['اقاقیا','گل ببول','ہلیلہ','پوست انار','پھٹکڑی','زرشک','سپاری','سنگھاڑہ','کاکڑا سنگی'],
+      d3:['خشخاش','حجر الیہود','سلاجیت','ہیرا کسیس','ست لیموں'],
+      d4:['سنکھیا','پوست خشخاش','دھتورہ','افیون'],
+      anupan:'دودھ کے ساتھ' },
+  3:{ name:'عضلاتی غدی', kaifiyat:'خشک گرم',
+      d1:['السی','انڈہ','چنا','سبوس گندم','کبوتر','چھوہارے','اخروٹ','چلغوزہ','پیاز'],
+      d2:['اسطوخودوس','انجیر','خرما','مالکنگنی','دارچینی','خولنجان','سنبل الطیب','لونگ','مین پھل'],
+      d3:['تج','مصبر','بیر بوٹی','جائفل','جدوار','چرائتہ','زعفران','بارہ سنگھا'],
+      d4:['کچلہ','دار چکنا'],
+      anupan:'لونگ و دارچینی کے قہوہ کے ساتھ' },
+  4:{ name:'غدی عضلاتی', kaifiyat:'گرم خشک',
+      d1:['بٹیر','خوبانی','گوشت مرغ','تارا میرا','سرسوں کا ساگ','میتھی کا ساگ','لہسن','ادرک'],
+      d2:['اجوائن دیسی','اسارون','تگر','کٹائی خورد','رائی','کالی زیری','بابچی'],
+      d3:['افسنتین','جگنو','حلتیت','رسوت','کباب چینی','گھیکوار'],
+      d4:['تیلنی مکھی','جمال گوٹہ','ہڑتال ورقیہ'],
+      anupan:'نیم گرم پانی کے ساتھ' },
+  5:{ name:'غدی اعصابی', kaifiyat:'گرم تر',
+      d1:['آم شیریں','انگور شیریں','اونٹ کٹارا','بادام شیریں','پستہ','چلغوزہ','گوشت بکری','روغن زیتون'],
+      d2:['آنبہ ہلدی','سونف','فلفل دراز','فلفل سیاہ','ہلدی','شکر تیغال','سنا مکی','پنبہ دانہ'],
+      d3:['ریٹھہ','بیروزہ','روغن تارپین'],
+      d4:['رسکپور','آب لہسن'],
+      anupan:'نیم گرم دودھ یا نیم گرم پانی کے ساتھ' },
+  6:{ name:'اعصابی غدی', kaifiyat:'تر گرم',
+      d1:['بھنڈی توری','تخم توت','حلوہ گندم','شلجم','کدو','ناریل','گنا'],
+      d2:['الائچی خورد','املتاس','رب السوس','دھنیا','زہر مہرہ خطائی','سپستان','ستاور','سہاگہ','ملٹھی','سونف','صندل','بندال ڈوڈہ'],
+      d3:['کہربا','گلو','لوبان','سرپھوکا','دودھی بوٹی','چنبیلی','سقمونیا'],
+      d4:['آک کا دودھ','کدو تلخ'],
+      anupan:'سادہ پانی یا شربت کے ساتھ' }
+};
+// کتاب کے اپنے تیار نسخے (بلحاظ تحریک) — ہر ایک کے ساتھ کتاب کا صفحہ (PDF صفحہ نمبر raw)
+const QM_BOOK_NUSKHE = [
+  { t:2, name:'عضلاتی اعصابی — مؤثر نسخہ', parts:'ہلیلہ سیاہ 12 حصے، برگ کیکر 12 حصے، افیون 1 حصہ', use:'چنے کے برابر گولیاں، ایک گولی دودھ کے ساتھ', note:'تمام اعصابی عضلاتی علامات کے لیے فوری اثر', raw:110, page:'حصہ سوم ص 20', strong:true },
+  { t:3, name:'عضلاتی غدی — مؤثر نسخہ', parts:'حرمل 2 حصے، تمہ 2 حصے، سرخ مرچ 2 حصے، کشتہ کچلہ 1 حصہ، مقل 2 حصے', use:'چنے کے برابر گولیاں، ایک گولی لونگ و دارچینی کے قہوہ کے ساتھ', raw:110, page:'حصہ سوم ص 20', strong:true },
+  { t:4, name:'غدی عضلاتی — مؤثر نسخہ', parts:'مرچ سرخ، گندھک آملہ سار، اجوائن، تارامیرا — سب ہم وزن', use:'چنے کے برابر گولیاں، ایک گولی دن میں چار بار گرم پانی کے ساتھ', raw:110, page:'حصہ سوم ص 20' },
+  { t:5, name:'غدی اعصابی — مؤثر نسخہ', parts:'ریوند خطائی، نوشادر، عصارہ ریوند — سب ہم وزن', use:'چنے کے برابر گولیاں، ایک گولی دن میں چار بار دودھ کے ساتھ', raw:110, page:'حصہ سوم ص 20' },
+  { t:6, name:'اعصابی غدی — مؤثر نسخہ', parts:'قلمی شورہ، ہلدی، پوست ریٹھہ — سب ہم وزن', use:'چنے کے برابر گولیاں، ایک گولی دن میں چار بار', raw:110, page:'حصہ سوم ص 20' },
+  { t:1, name:'اعصابی عضلاتی — مؤثر نسخہ', parts:'قلمی شورہ، کشنیز خشک، جوکھار، الائچی خورد — برابر وزن', use:'سفوف (خوراک کتاب کے اگلے صفحے پر)', raw:110, page:'حصہ سوم ص 20' },
+  { t:1, name:'اعصابی عضلاتی ملین جدید', parts:'قلمی شورہ 1 تولہ، جوکھار 1 تولہ، گل سرخ 3 تولے، صندل سفید 1 تولہ', use:'4 رتی سے ایک ماشہ تک پانی کے ساتھ', note:'پیشاب کی جلن، بلڈ پریشر، دل گھبرانا', raw:237, page:'نسخہ جات ص 70' },
+  { t:6, name:'اعصابی کھار', parts:'شورہ قلمی 2 حصے، نوشادر 2 حصے، کالی مرچ 1 حصہ', use:'ایک ایک ماشہ صبح، دوپہر، شام', note:'پیشاب کی جلن، قطرہ قطرہ پیشاب، بلڈ پریشر', raw:205, page:'نسخہ جات ص 5' },
+  { t:6, name:'سفوف مفید عام', parts:'گوند کیکر، گوند کتیرہ، ست ملٹھی، گاؤزبان، سونف، سفید زیرہ — برابر وزن', use:'حسب ضرورت', note:'خشک کھانسی، بلغمی کھانسی، خون آنا، خونی قے', raw:205, page:'نسخہ جات ص 5' },
+  { t:6, name:'اکسیر کثرت حیض', parts:'قلمی شورہ، گندھک آملہ سار، ہلدی، سونف، ملٹھی — ہم وزن', use:'تین ماشہ دن میں چار بار پانی یا نیم گرم دودھ کے ساتھ', raw:207, page:'نسخہ جات ص 9' },
+  { t:5, name:'اکسیر یرقان', parts:'نوشادر 4 تولے، قلمی شورہ 4 تولے، ریوند خطائی 6 تولے، سنڈھ 3 تولے', use:'ایک ماشہ دن میں تین بار نیم گرم پانی کے ساتھ', note:'یرقان، ورم، استسقاء', raw:207, page:'نسخہ جات ص 10' },
+  { t:5, name:'تریاق یرقان', parts:'ریوند عصارہ 1 تولہ، ملٹھی 3 تولے، ریوند خطائی 3 تولے', use:'چنے کے برابر گولیاں، ایک تا دو گولی نیم گرم دودھ یا پانی کے ساتھ', note:'یرقان، کھانسی میں خون، بواسیر، قبض', raw:207, page:'نسخہ جات ص 10' },
+  { t:5, name:'تریاق درد دل', parts:'سنا مکی، شورہ قلمی، ریوند خطائی — برابر وزن', use:'چنے کے برابر گولیاں', note:'درد دل، پیشاب کم اور جلن سے آئے', raw:208, page:'نسخہ جات ص 11' },
+  { t:3, name:'ہاضم اطفال', parts:'ہلیلہ سیاہ، پودینہ خشک، فلفل سیاہ، نمک لاہوری، سہاگہ بریاں — ہم وزن', use:'بچوں کو عمر کے مطابق 2 سے 4 رتی ماں کے دودھ یا شربت میں', note:'بچوں کا ہاضمہ، کمزوری، سبز دست، پیٹ میں ہوا', raw:220, page:'نسخہ جات ص 35' },
+  { t:4, name:'غدی عضلاتی مسہل', parts:'رائی 4 تولے، اجوائن دیسی 4 تولے، بابچی 4 تولے، گندھک آملہ سار 12 تولے، مغز جمال گوٹہ 1 تولہ', use:'چنے کے برابر گولیاں، ایک تا دو گولی نیم گرم پانی کے ساتھ', note:'خارش، پھوڑے پھنسیاں، فاسد مادہ کا اخراج', raw:228, page:'نسخہ جات ص 51', strong:true },
+  { t:3, name:'عضلاتی غدی اکسیر', parts:'شنگرف رومی 1 تولہ، مرچی 3 تولے', use:'ایک رتی سے ایک ماشہ تک حسب ضرورت', raw:166, page:'حصہ سوم ص 132', strong:true },
+  { t:4, name:'غدی عضلاتی اکسیر', parts:'پارہ 1 تولہ، گندھک 7 تولے', use:'ایک رتی سے ایک ماشہ تک', raw:166, page:'حصہ سوم ص 132', strong:true },
+  { t:5, name:'غدی اعصابی اکسیر', parts:'ہڑتال 1 تولہ، کالی مرچ 3 تولے، سنڈھ 4 تولے', use:'ایک رتی سے ایک ماشہ تک', raw:166, page:'حصہ سوم ص 132', strong:true },
+  { t:6, name:'اعصابی غدی اکسیر', parts:'حجر الیہود، کہربا، نوشادر، الائچی خورد ہر ایک 6 ماشے، قند 2 تولے', use:'ایک سے تین ماشہ، سردیوں میں شہد، گرمیوں میں شربت کے ساتھ', raw:166, page:'حصہ سوم ص 132' },
+  { t:1, name:'اعصابی عضلاتی اکسیر', parts:'کشتہ قلعی، طباشیر، الائچی کلاں ہر ایک 1 تولہ، ورق نقرہ 3 ماشے', use:'چار رتی سے ایک ماشہ، پانی یا مکھن/بالائی کے ساتھ', raw:167, page:'حصہ سوم ص 133' },
+  { t:2, name:'عضلاتی اعصابی اکسیر', parts:'سم الفار 1 ماشہ، کشتہ چاندی 2 تولے', use:'ایک چاول سے ایک رتی تک', raw:167, page:'حصہ سوم ص 133', strong:true },
+  { t:4, name:'غدی عضلاتی تریاق', parts:'مرچ سرخ 1 چھٹانک، رائی 2 چھٹانک', use:'چنے کے برابر گولیاں، ایک سے چار گولی نیم گرم پانی کے ساتھ', raw:167, page:'حصہ سوم ص 133' },
+  { t:6, name:'اعصابی غدی تریاق', parts:'افیون 1 ماشہ، لوبان کوڑیہ 1 تولہ، قند سفید 1 تولہ', use:'نصف رتی سے ایک ماشہ تک', raw:167, page:'حصہ سوم ص 134', strong:true },
+  { t:2, name:'عضلاتی اعصابی تریاق', parts:'سرمہ سیاہ 1 تولہ، ریٹھے کا چھلکا 2 تولے', use:'ایک رتی سے ایک ماشہ تک نیم گرم پانی کے ساتھ', raw:167, page:'حصہ سوم ص 134', strong:true }
+];
+function qmNext(t, step){ return ((t - 1 + step) % 6) + 1; }
+// کتاب کے کلئے: کلیہ 1 = دو قدم آگے، کلیہ 2 = دو اور تین قدم آگے (ملا کر)، کلیہ 3 = تین قدم آگے (مخالف)
+function qmTreatTehreeks(t, stage){
+  if(stage === '1') return [qmNext(t,2)];
+  if(stage === '2') return [qmNext(t,2), qmNext(t,3)];
+  return [qmNext(t,3)];
+}
+function qmOpenBook(raw){
+  const entry = (typeof pmLibrary !== 'undefined') ? pmLibrary.find(f=> f.fileName === QM_BOOK_FILE) : null;
+  if(!entry){ alert('کتاب "تحریک امراض اور علاج" ابھی لوڈ نہیں ہوئی — تھوڑی دیر بعد دوبارہ کوشش کریں۔'); return; }
+  herbalOpenLibraryPdf(entry, raw, '', null);
+}
+function qmBookLink(raw, label){
+  return `<span onclick="qmOpenBook(${raw})" style="cursor:pointer; color:var(--gold-soft); font-size:.8rem; text-decoration:underline;">📖 ${label}</span>`;
+}
+function qmShowHerbs(){
+  const t = parseInt(document.getElementById('qmTehreek').value, 10);
+  const step2 = document.getElementById('qmStep2');
+  document.getElementById('qmResult').innerHTML = '';
+  if(!t){ step2.innerHTML = '<p style="color:#e0524f; text-align:center;">پہلے مرض کی تحریک منتخب کریں۔</p>'; return; }
+  const stage = document.getElementById('qmStage').value;
+  const treat = qmTreatTehreeks(t, stage);
+  const treatNames = treat.map(x=> QM_T[x].name + ' (' + QM_T[x].kaifiyat + ')').join(' + ');
+  let html = `<div class="note" style="margin-bottom:12px;">
+      مرض: <b>${QM_T[t].name}</b> — کلیہ ${stage} کے مطابق علاج: <b style="color:var(--gold);">${treatNames}</b> ادویات سے<br>
+      ${qmBookLink(109,'کتاب میں کلئے دیکھیں (حصہ سوم ص 18-19)')}
+    </div>
+    <p style="color:var(--text); font-size:.9rem; margin-bottom:8px;">نسخے کے لیے 3 سے 5 جڑی بوٹیاں منتخب کریں (کتاب کی درجہ بندی ص 84-86 سے):</p>`;
+  treat.forEach(x=>{
+    const T = QM_T[x];
+    html += `<div style="border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:10px;">
+      <div style="color:var(--gold); margin-bottom:6px;">${T.name} ادویات</div>
+      <div style="color:var(--gold-soft); font-size:.8rem;">عام دوائیں (درجہ 2)</div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px 14px; margin:4px 0 8px;">${T.d2.map((h,i)=>`<label style="font-size:.9rem;"><input type="checkbox" class="qm-herb" data-t="${x}" data-level="2" value="${escapeHtmlSearch(h)}" ${i<3?'checked':''}> ${escapeHtmlSearch(h)}</label>`).join('')}</div>
+      <div style="color:var(--gold-soft); font-size:.8rem;">تیز دوائیں (درجہ 3) — کم مقدار میں ڈالی جائیں گی</div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px 14px; margin:4px 0 4px;">${T.d3.map(h=>`<label style="font-size:.9rem;"><input type="checkbox" class="qm-herb" data-t="${x}" data-level="3" value="${escapeHtmlSearch(h)}"> ${escapeHtmlSearch(h)}</label>`).join('')}</div>
+      <div style="color:var(--muted); font-size:.75rem; margin-top:4px;">⚠ زہریلی دوائیں (درجہ 4: ${T.d4.join('، ')}) یہاں شامل نہیں کی جاتیں — صرف ماہر حکیم کی نگرانی میں۔</div>
+    </div>`;
+  });
+  html += `<div style="text-align:center;"><button class="btn" onclick="qmBuild()" style="border-radius:20px;">نسخہ بنائیں</button></div>`;
+  step2.innerHTML = html;
+}
+function qmFmtGram(g){ return (Math.round(g*10)/10).toString().replace(/\.0$/,''); }
+function qmBuild(){
+  const t = parseInt(document.getElementById('qmTehreek').value, 10);
+  if(!t) return;
+  const stage = document.getElementById('qmStage').value;
+  const age = document.getElementById('qmAge').value;
+  const form = document.getElementById('qmForm').value;
+  const total = Math.max(10, parseFloat(document.getElementById('qmTotal').value) || 100);
+  const disease = document.getElementById('qmDisease').value.trim();
+  const treat = qmTreatTehreeks(t, stage);
+  const picked = Array.from(document.querySelectorAll('.qm-herb:checked')).map(c=> ({ name:c.value, t:+c.dataset.t, level:+c.dataset.level }));
+  const out = document.getElementById('qmResult');
+  if(picked.length < 2){ out.innerHTML = '<p style="color:#e0524f; text-align:center;">کم از کم دو جڑی بوٹیاں منتخب کریں۔</p>'; return; }
+  // کتاب کے نسخوں کا طریقہ: عام اجزاء ہم وزن؛ تیز دوا کم حصہ (مثلاً 12:12:1، 4:4:4:12:1)۔
+  // یہاں: درجہ 2 کی ہر دوا = 2 حصے، درجہ 3 کی ہر دوا = 1 حصہ۔
+  // کلیہ 2 میں دونوں تحریکوں کی ادویات ملا کر (÷) دی جاتی ہیں — ہر تحریک کو برابر حصہ ملتا ہے۔
+  const groups = {};
+  picked.forEach(p=>{ (groups[p.t] = groups[p.t] || []).push(p); });
+  const groupKeys = Object.keys(groups);
+  const groupShare = total / groupKeys.length;
+  const rows = [];
+  groupKeys.forEach(k=>{
+    const list = groups[k];
+    const parts = list.reduce((s,p)=> s + (p.level === 2 ? 2 : 1), 0);
+    list.forEach(p=>{
+      const part = p.level === 2 ? 2 : 1;
+      rows.push({ ...p, part, gram: groupShare * part / parts });
+    });
+  });
+  const hasStrong = picked.some(p=> p.level === 3);
+  // خوراک — کتاب کے نسخوں کے مطابق
+  let dose;
+  if(form === 'goli'){
+    dose = age === 'child' ? 'آدھی گولی' : (age === 'old' ? 'ایک گولی' : (hasStrong ? 'ایک گولی' : 'ایک سے دو گولی'));
+    dose += ' — دن میں تین سے چار بار';
+  } else {
+    dose = age === 'child' ? '2 سے 4 رتی' : (age === 'old' ? 'ایک ماشہ' : (hasStrong ? 'ایک ماشہ' : 'ایک سے تین ماشہ'));
+    dose += ' — دن میں تین بار';
+  }
+  const anupan = QM_T[treat[0]].anupan;
+  const eat = treat.flatMap(x=> QM_T[x].d1);
+  const avoid = QM_T[t].d1;
+  const bookNuskhe = QM_BOOK_NUSKHE.filter(n=> treat.includes(n.t));
+  const title = (disease ? disease + ' — ' : '') + QM_T[t].name + ' مرض کا نسخہ';
+  let html = `<div class="result-card" style="border-right-color:var(--gold);">
+    <h3 style="color:var(--gold); margin-bottom:8px;">🌿 ${escapeHtmlSearch(title)}</h3>
+    <p style="font-size:.9rem;">علاج: <b>${treat.map(x=> QM_T[x].name).join(' ÷ ')}</b> ادویات سے (کلیہ ${stage})</p>
+    <table style="width:100%; border-collapse:collapse; margin:10px 0; font-size:.95rem;">
+      <tr style="color:var(--gold-soft);"><th style="text-align:right; padding:6px; border-bottom:1px solid var(--border);">جزو</th><th style="padding:6px; border-bottom:1px solid var(--border);">حصے</th><th style="padding:6px; border-bottom:1px solid var(--border);">وزن (${total} گرام میں)</th></tr>
+      ${rows.map(r=>`<tr><td style="padding:6px; border-bottom:1px solid var(--border);">${escapeHtmlSearch(r.name)} <span style="color:var(--muted); font-size:.75rem;">(${QM_T[r.t].name}${r.level===3?'، تیز':''})</span></td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">${r.part}</td><td style="text-align:center; padding:6px; border-bottom:1px solid var(--border);">${qmFmtGram(r.gram)} گرام</td></tr>`).join('')}
+    </table>
+    <p><b style="color:var(--gold-soft);">ترکیب:</b> ${form === 'goli' ? 'سب کو باریک پیس کر پانی کی مدد سے چنے کے برابر گولیاں بنا لیں۔' : 'سب کو باریک پیس کر سفوف بنا لیں اور بند ڈبے میں رکھیں۔'}</p>
+    <p><b style="color:var(--gold-soft);">خوراک:</b> ${dose}، ${anupan}۔</p>
+    <p><b style="color:var(--gold-soft);">غذا (کھائیں):</b> ${eat.join('، ')}</p>
+    <p><b style="color:var(--gold-soft);">پرہیز:</b> ${avoid.join('، ')} — یعنی مرض والی ${QM_T[t].name} غذائیں۔</p>
+    <div class="note" style="font-size:.8rem; margin-top:10px;">
+      📘 کتاب کے اصول: ہمیشہ پہلے ہلکی (محرک) دوا، کام نہ چلے تو تیز۔ پہلے کلیہ 3، پھر کلیہ 2، آخر میں کلیہ 1۔ جسم میں فاسد مادہ ہو تو مقوی دوا نہ دیں۔ بچوں اور بوڑھوں کو ہمیشہ کم مقدار۔ مزاج کے مطابق غذا ساتھ دینے سے فائدہ کئی گنا بڑھ جاتا ہے۔
+      <br>حصوں کا طریقہ کتاب کے نسخوں سے لیا گیا ہے: عام اجزاء برابر وزن، تیز دوا آدھا حصہ۔
+      <br>${qmBookLink(165,'باب اصطلاحات (ص 130)')} &nbsp; ${qmBookLink(244,'ادویہ بلحاظ درجہ بندی (ص 84)')}
+    </div>
+    ${disease ? `<div style="text-align:center; margin-top:10px;"><button class="btn secondary" style="padding:6px 16px; font-size:.85rem; border-radius:16px;" onclick="qmSearchDisease()">📚 "${escapeHtmlSearch(disease)}" کو کتابوں میں دیکھیں</button></div>` : ''}
+  </div>`;
+  if(bookNuskhe.length){
+    html += `<h4 style="color:var(--gold); text-align:center; margin:18px 0 10px;">📖 کتاب کے تیار نسخے (${treat.map(x=> QM_T[x].name).join(' / ')})</h4>`;
+    bookNuskhe.forEach(n=>{
+      html += `<div class="result-card" style="padding:14px 18px;">
+        <h4 style="color:var(--gold-soft); margin-bottom:6px;">${n.name}</h4>
+        <p style="font-size:.9rem;"><b>اجزاء:</b> ${n.parts}</p>
+        <p style="font-size:.9rem;"><b>استعمال:</b> ${n.use}</p>
+        ${n.note ? `<p style="font-size:.85rem; color:var(--muted);">${n.note}</p>` : ''}
+        ${n.strong ? `<p style="font-size:.8rem; color:#e0524f;">⚠ اس میں تیز/زہریلی دوا ہے — صرف ماہر حکیم کی نگرانی میں تیار اور استعمال کریں۔</p>` : ''}
+        ${qmBookLink(n.raw, 'کتاب میں دیکھیں — ' + n.page)}
+      </div>`;
+    });
+  }
+  out.innerHTML = html;
+  out.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function qmSearchDisease(){
+  const q = document.getElementById('qmDisease').value.trim();
+  if(!q) return;
+  showPage('pdfmulti');
+  try{ pmSearchInputEl.value = q; pmRunSearch(); }catch(e){}
 }
 function filterHerbsByMizaj(mizaj, el){
   currentHerbMizaj = mizaj;
