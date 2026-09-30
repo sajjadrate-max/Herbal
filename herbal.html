@@ -337,7 +337,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
       <input type="hidden" id="qmTotal" value="100"><!-- سب اجزاء برابر وزن — کل وزن کا خانہ نہیں -->
     </div>
 
-    <div style="display:none; border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px;"><!-- کشتہ اب نسخے کے آخر میں مشورے کے طور پر -->
+    <div style="border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
       <div onclick="const b=document.getElementById('qmKushtaBox'); const o=b.style.display==='none'; b.style.display=o?'':'none'; document.getElementById('qmKushtaArrow').textContent=o?'▴':'▾';" style="cursor:pointer; color:var(--gold-soft); text-align:center;">کشتہ شامل کریں (اختیاری) <span id="qmKushtaArrow">▾</span></div>
       <div id="qmKushtaBox" style="display:none; margin-top:10px;">
         <label style="color:var(--gold-soft); font-size:.85rem;">تیاری کی قسم</label>
@@ -3205,7 +3205,7 @@ const QM_HERBS = [
   {n:'تخم کاہو', t:1, r:1, f:'نیند، بے خوابی، دماغ کی گرمی، جریان، احتلام'},
   {n:'اسبغول', t:1, r:1, f:'قبض، بواسیر، اسہال، پیچش، معدہ کا زخم، السر، پیشاب کی جلن'},
   {n:'صندل سفید', t:1, r:2, f:'دل کی گھبراہٹ، دل کی دھڑکن، بے چینی، نیند، سر درد، پیشاب کی جلن، جلن، بخار'},
-  {n:'گوند کیکر', t:1, r:2, f:'خشک کھانسی، گلے کی خراش، جریان، کمر درد، اسہال'},
+  {n:'گوند کیکر', t:1, r:2, f:'خشک کھانسی، گلے کی خراش، جریان، لیکوریا، کمر درد، اسہال'},
   {n:'تالمکھانہ', t:1, r:2, f:'جریان، کمزوری باہ، سرعت انزال، احتلام'},
   {n:'موصلی سفید', t:1, r:2, f:'جسمانی کمزوری، کمزوری باہ، جریان'},
   {n:'تخم تربوز', t:1, r:3, f:'پیشاب کی جلن، گردے، مثانہ، دماغ کی گرمی'},
@@ -3218,9 +3218,11 @@ const QM_HERBS = [
   {n:'اقاقیا', t:2, r:2, f:'اسہال، نکسیر، خون بہنا، لیکوریا، کثرت حیض'},
   {n:'پھٹکڑی بریاں', t:2, r:2, f:'خون بہنا، نکسیر، کثرت حیض، لیکوریا، مسوڑے، زخم'},
   {n:'گل ببول', t:2, r:2, f:'جریان، احتلام، لیکوریا، کمر درد، سرعت انزال'},
-  {n:'سنگھاڑہ', t:2, r:2, f:'جریان، کمزوری باہ، جسمانی کمزوری، اسہال، کمر درد'},
+  {n:'سنگھاڑہ', t:2, r:2, f:'جریان، لیکوریا، کمزوری باہ، جسمانی کمزوری، اسہال، کمر درد'},
   {n:'کاکڑا سنگی', t:2, r:3, f:'کھانسی، دمہ، بچوں کے دست'},
   {n:'سپاری', t:2, r:2, f:'لیکوریا، مسوڑے، دانت، اسہال'},
+  {n:'مازو', t:2, r:2, f:'لیکوریا، کثرت حیض، اسہال، مسوڑے، منہ کے چھالے'},
+  {n:'موچرس', t:2, r:2, f:'لیکوریا، جریان، اسہال، پیچش، خون بہنا'},
   {n:'تخم خشخاش', t:2, r:2, f:'نیند، بے خوابی، اسہال، کھانسی، دماغی کمزوری'},
   {n:'سلاجیت', t:2, r:2, f:'جسمانی کمزوری، کمزوری باہ، شوگر، جوڑوں کا درد، کمر درد، مثانہ کی کمزوری، گردے'},
   {n:'حجر الیہود', t:2, r:3, f:'گردے کی پتھری، مثانہ کی پتھری، پیشاب کی بندش'},
@@ -3239,6 +3241,7 @@ const QM_HERBS = [
   {n:'چرائتہ', t:3, r:2, f:'بخار، ملیریا، خارش، جلد، شوگر، خون کی صفائی'},
   {n:'برگ نیم', t:3, r:1, f:'خارش، پھوڑے پھنسیاں، خون کی صفائی، شوگر، بخار، جراثیم'},
   {n:'لہسن', t:3, r:1, f:'بلڈ پریشر، گیس، جوڑوں کا درد، کھانسی، جراثیم'},
+  {n:'کمرکس', t:3, r:2, f:'لیکوریا، کمر درد، جریان، کثرت حیض، جسمانی کمزوری'},
   {n:'مصبر', t:3, r:3, f:'قبض، جگر، حیض کی بندش، پیٹ کے کیڑے'},
   // 4 غدی عضلاتی (گرم خشک)
   {n:'اجوائن دیسی', t:4, r:1, f:'گیس، پیٹ درد، بدہضمی، قولنج، پیٹ کے کیڑے، ہیضہ'},
@@ -3256,7 +3259,7 @@ const QM_HERBS = [
   {n:'مصطگی رومی', t:4, r:2, f:'معدہ کی کمزوری، بدہضمی، منہ کی بدبو، متلی', src:'kh'},
   {n:'کندر', t:4, r:2, f:'حافظہ، بلغم، کھانسی، اسہال، زخم', src:'kh'},
   {n:'چترک', t:4, r:3, f:'بواسیر، بدہضمی، بھوک کی کمی، موٹاپا', src:'kh'},
-  {n:'کباب چینی', t:4, r:2, f:'پیشاب کی جلن، سوزاک، منہ کے چھالے، گلا'},
+  {n:'کباب چینی', t:4, r:2, f:'پیشاب کی جلن، سوزاک، لیکوریا، منہ کے چھالے، گلا'},
   {n:'رسوت', t:4, r:2, f:'خونی بواسیر، آنکھ، زخم، منہ کے چھالے'},
   {n:'افسنتین', t:4, r:3, f:'بخار، جگر، پیٹ کے کیڑے، یرقان'},
   {n:'گھیکوار', t:4, r:2, f:'قبض، جگر، جوڑوں کا درد، جلد، زخم'},
@@ -3267,7 +3270,7 @@ const QM_HERBS = [
   {n:'سونٹھ', t:5, r:1, f:'گیس، جوڑوں کا درد، کھانسی، نزلہ، بدہضمی، کمر درد', src:'kh'},
   {n:'کلونجی', t:5, r:1, f:'کھانسی، دمہ، گیس، شوگر، بلغم، جوڑوں کا درد', src:'kh'},
   {n:'سنا مکی', t:5, r:1, f:'قبض، جوڑوں کا درد، گنٹھیا، عرق النساء'},
-  {n:'اسگندھ ناگوری', t:5, r:1, f:'جسمانی کمزوری، کمزوری باہ، جریان، جوڑوں کا درد، کمر درد، نیند، بے خوابی، گھبراہٹ', src:'kh'},
+  {n:'اسگندھ ناگوری', t:5, r:1, f:'جسمانی کمزوری، کمزوری باہ، جریان، لیکوریا، جوڑوں کا درد، کمر درد، نیند، بے خوابی، گھبراہٹ', src:'kh'},
   {n:'اڑوسہ', t:5, r:2, f:'کھانسی، دمہ، بلغم، نزلہ', src:'kh'},
   {n:'فلفل دراز', t:5, r:2, f:'کھانسی، دمہ، بلغم، تلی'},
   {n:'انیسون', t:5, r:2, f:'گیس، کھانسی، دودھ کی کمی، پیٹ درد', src:'kh'},
@@ -3308,14 +3311,16 @@ const QM_DISEASE_SYN = {
   'موٹاپ':'موٹاپا','وزن زیادہ':'موٹاپا','کیڑے':'پیٹ کے کیڑے','دمہ':'دمہ کھانسی','سانس':'دمہ','بخار':'بخار','متلی':'متلی قے','الٹی':'قے متلی'
 };
 const QM_STOP = new Set(['کی','کا','کے','میں','اور','سے','کو','درد','کمی','کمزوری','جسمانی','نہیں','آتی','ہے']);
-function qmHerbScore(f, text){
+const QM_WORD_WEAK = new Set(['حیض','پیشاب','دل','معدہ','جگر','گردے','دماغ','دماغی','خون','منہ','پیٹ','جلد','گلا','آنکھ','بندش','کثرت','جلن','گرمی','خشکی']);
+function qmHerbScore(f, text, strict){
   if(!f || !text) return 0;
   let s = 0;
   // پورے الفاظ ملائیں (مثلاً "سر" کو "سرعت" کے اندر نہ پکڑیں)
   const pad = ' ' + String(text).replace(/[،,؛.()\/\-]/g,' ').replace(/\s+/g,' ') + ' ';
   f.split('،').map(x=> x.trim()).filter(Boolean).forEach(tag=>{
     if(pad.includes(' ' + tag + ' ')) { s += 3; return; }
-    tag.split(/\s+/).forEach(w=>{ if(w.length > 1 && !QM_STOP.has(w) && pad.includes(' ' + w + ' ')) s += 1; });
+    if(strict) return;
+    tag.split(/\s+/).forEach(w=>{ if(w.length > 1 && !QM_STOP.has(w) && !QM_WORD_WEAK.has(w) && pad.includes(' ' + w + ' ')) s += 1; });
   });
   return s;
 }
@@ -3328,7 +3333,7 @@ function qmDiseaseText(){
 // ملتی جلتی بیماریاں — جن کی دوائیں عموماً ایک دوسرے میں بھی استعمال ہوتی ہیں (عام یونانی طریقہ)
 const QM_RELATED = {
   'احتلام':'جریان سرعت انزال کمزوری باہ', 'جریان':'احتلام سرعت انزال کمزوری باہ', 'سرعت انزال':'جریان احتلام کمزوری باہ',
-  'کمزوری باہ':'جریان سرعت انزال', 'لیکوریا':'جریان کثرت حیض', 'کثرت حیض':'خون بہنا لیکوریا', 'حیض کی بندش':'حیض کی کمی',
+  'کمزوری باہ':'جریان سرعت انزال', 'لیکوریا':'جریان سیلان بلغم', 'کثرت حیض':'خون بہنا لیکوریا', 'حیض کی بندش':'حیض کی کمی',
   'بواسیر':'قبض خونی بواسیر', 'قبض':'بواسیر گیس', 'گیس':'بدہضمی پیٹ درد', 'بدہضمی':'گیس بھوک کی کمی', 'تیزابیت':'معدہ کی جلن معدہ کا زخم',
   'کھانسی':'بلغم نزلہ گلا', 'نزلہ':'زکام کھانسی', 'دمہ':'کھانسی بلغم', 'سر درد':'نیند دماغ', 'نیند':'گھبراہٹ دماغ', 'مرگی':'دماغی کمزوری دماغ حافظہ', 'فالج':'لقوہ رعشہ', 'لقوہ':'فالج', 'مالیخولیا':'ڈپریشن وہم', 'ڈپریشن':'مالیخولیا گھبراہٹ', 'بانجھ':'کمزوری باہ حیض کی کمی حیض کی بندش جریان', 'بے اولاد':'کمزوری باہ حیض کی کمی جریان', 'بلڈ پریشر':'دل کی گھبراہٹ دل کی دھڑکن', 'خون کی کمی':'جسمانی کمزوری', 'موٹاپا':'بدہضمی بھوک', 'دبلاپن':'جسمانی کمزوری بھوک کی کمی', 'بخار':'ملیریا پیاس',
   'یرقان':'جگر جگر کی گرمی', 'جوڑوں کا درد':'کمر درد ورم', 'کمر درد':'جوڑوں کا درد', 'خارش':'جلد پھوڑے پھنسیاں', 'شوگر':'پیاس جسمانی کمزوری',
@@ -3357,7 +3362,7 @@ function qmPickHerbs(t, treatMain, treatAll, organT, organName, text){
   const rel = qmRelatedText(text);
   const scored = pool.map(h=>{
     const g = qmGroupHit(h.t, text) || (rel ? qmGroupHit(h.t, rel) : '');
-    const rl = rel ? qmHerbScore(h.f, rel) : 0;
+    const rl = rel ? qmHerbScore(h.f, rel, true) : 0;
     return { h, s: qmHerbScore(h.f, text), g, rl, k2: (g ? 2 : 0) + (rl > 0 ? 1 : 0), o: qmHerbScore(h.f, organName || '') };
   });
   const byRank = (a,b)=> (b.s - a.s) || (b.k2 - a.k2) || (b.rl - a.rl) || (b.o - a.o) || (pref[b.h.t] - pref[a.h.t]) || (a.h.r - b.h.r);
@@ -3422,7 +3427,7 @@ const QM_KUSHTA_INFO = [
   { n:'ابرک', t:2, f:'کھانسی، دمہ، شوگر، جسمانی کمزوری، کمزوری باہ' },
   { n:'سنگ جراحت', t:2, f:'جریان، لیکوریا، کثرت حیض، نکسیر، خون بہنا، زخم' },
   { n:'سیپ', t:2, f:'تیزابیت، معدہ کی جلن، اسہال، ہڈیوں کی کمزوری' },
-  { n:'مرجان', t:2, f:'دل کی کمزوری، کھانسی، ہڈیوں کی کمزوری، بچوں کی کمزوری، تیزابیت' },
+  { n:'مرجان', t:2, f:'جریان، احتلام، سرعت انزال، لیکوریا، منی کی کمزوری، دل کی کمزوری، ہڈیوں کی کمزوری، تیزابیت' },
   { n:'حجر الیہود', t:2, f:'گردے کی پتھری، مثانہ کی پتھری، پیشاب کی بندش' },
   { n:'بارہ سنگھا', t:3, f:'کھانسی، دمہ، پسلی کا درد، نمونیہ، جوڑوں کا درد' },
   { n:'طلا (سونا)', t:4, f:'دل کی کمزوری، دماغی کمزوری، کمزوری باہ، جسمانی کمزوری، فالج' },
@@ -3438,18 +3443,24 @@ function qmKushtaSuggestHtml(t, organT, text, total, age){
   let list = all.filter(x=> x.sc > 0).sort((a,b)=> b.sc - a.sc || b.p - a.p);
   let general = false;
   if(!list.length){ list = all.filter(x=> x.k.f.includes('جسمانی کمزوری')).sort((a,b)=> b.p - a.p); general = true; } // مرض سے نہ ملے تو علاج والے مزاج کا عام مقوی کشتہ
+  // مردانہ/زنانہ امراض (لیکوریا، جریان، احتلام، سرعت انزال، ذکاوت حس، مردانہ کمزوری، منی/سپرم) میں کشتہ مرجان ہمیشہ (حکیم صاحب کی ہدایت)
+  const QM_SEX_WORDS = ['لیکوریا','سیلان','جریان','احتلام','سرعت','ذکاوت','مردانہ','باہ','نامرد','منی','سپرم','اسپرم','جراثیم منی','بانجھ','بے اولاد','عقر'];
+  if(QM_SEX_WORDS.some(w=> String(text).includes(w))){
+    const mj = QM_KUSHTA_INFO.find(k=> k.n === 'مرجان');
+    list = [{ k: mj }].concat(list.filter(x=> x.k.n !== 'مرجان'));
+    general = false;
+  }
   list = list.slice(0, 2).map(x=> x.k);
   if(!list.length) return '';
   const per = (age === 'child' || age === 'old') ? 20 : 15;
   const dose = (age === 'child') ? 250 : 500;
   const one = list[0], two = list[1];
+  const g1 = 100 / per;
   return `<div style="margin:12px 0; padding:10px 12px; border:1px dashed var(--gold); border-radius:10px;">
-    <div style="color:var(--gold); margin-bottom:6px;">⚗ کشتہ ملانا چاہیں تو${general ? ' <span style="font-size:.78rem; color:var(--muted);">(عام طاقت کے لیے)</span>' : ''}</div>
-    ${list.map(k=> `<p style="font-size:.88rem; margin:4px 0;"><b>کشتہ ${escapeHtmlSearch(k.n)}</b> — <span style="color:var(--muted);">${escapeHtmlSearch(k.f)}</span></p>`).join('')}
-    <p style="font-size:.86rem; color:var(--gold-soft); margin-top:8px;"><b>مقدار:</b></p>
-    <p style="font-size:.85rem; margin:2px 0;">• صرف کشتہ ${escapeHtmlSearch(one.n)} ملائیں تو: ہر ${per} گرام سفوف میں <b>1 گرام</b> کشتہ (مثلاً 60 گرام سفوف میں ${qmFmtGram(60 / per)} گرام، 100 گرام سفوف میں ${qmFmtGram(100 / per)} گرام)</p>
-    ${two ? `<p style="font-size:.85rem; margin:2px 0;">• کشتہ ${escapeHtmlSearch(one.n)} اور کشتہ ${escapeHtmlSearch(two.n)} دونوں ملائیں تو: ہر ${per} گرام سفوف میں دونوں کا <b>آدھا آدھا گرام</b> (100 گرام سفوف میں ہر ایک ${qmFmtGram(100 / per / 2)} گرام)</p>` : ''}
-    <p style="font-size:.85rem; margin:2px 0;">• کشتہ ملانے کے بعد خوراک: <b>${dose} ملی گرام</b>، دن میں دو سے تین بار</p>
+    <div style="color:var(--gold); margin-bottom:6px;">⚗ کشتہ (اختیاری) — اگر کشتہ ملانا ہو تو:</div>
+    ${list.map((k,i)=> `<p style="font-size:.88rem; margin:5px 0;">${i ? 'یا ' : ''}<b>کشتہ ${escapeHtmlSearch(k.n)}</b> — 100 گرام نسخے میں <b>${qmFmtGram(g1)} گرام</b> ملا سکتے ہیں <span style="color:var(--muted); font-size:.8rem;">(ہر ${per} گرام میں 1 گرام)</span><br><span style="color:var(--muted); font-size:.8rem;">${escapeHtmlSearch(k.f)}</span></p>`).join('')}
+    ${two ? `<p style="font-size:.85rem; margin:5px 0;">دونوں ملانے ہوں تو 100 گرام نسخے میں ہر ایک <b>${qmFmtGram(g1 / 2)} گرام</b></p>` : ''}
+    <p style="font-size:.85rem; margin:5px 0; color:var(--gold-soft);">کشتہ ملانے کے بعد خوراک ${dose} ملی گرام، دن میں دو سے تین بار۔ کشتہ نہ ملائیں تو نسخہ ایسے ہی استعمال کریں۔</p>
   </div>`;
 }
 function qmFaide(n){ const h = QM_HERBS.find(x=> x.n === n); return h ? h.f : ''; }
@@ -3463,14 +3474,15 @@ function qmKulliyaPick(t, organT, organName, text){
   const chosen = [];
   const sev = +((document.getElementById('qmSeverity') || {}).value || 2);
   qmSkinMode = QM_SKIN_WORDS.some(w=> text.includes(w)) || /جلد/.test(organName || '');
+  { const pf = qmDiseaseProfile(text); qmActiveRoles = QM_ROLE_KEYS.filter(r=> !(r === 'anti' && !pf.inf) && !(r === 'hazim' && pf.dig) && !((r === 'vit' || r === 'muq') && pf.weak)); }
   // شدت کے مطابق درجہ: ہلکا → درجہ 1-2 (تیز نہیں)، درمیانہ → درجہ 2 (تیز کم)، شدید → درجہ 3 کو ترجیح
   const sevAdj = lv=> sev === 1 ? (lv === 3 ? -60 : (lv === 1 ? 6 : 0)) : (sev === 2 ? (lv === 3 ? -15 : 0) : (lv === 3 ? 18 : (lv === 1 ? -8 : 0)));
   const rel = qmRelatedText(text);
-  const uncovered = ()=> QM_ROLE_KEYS.filter(r=> !chosen.some(c=> qmRolesOf(c.n).includes(r)));
+  const uncovered = ()=> qmActiveRoles.filter(r=> !chosen.some(c=> qmRolesOf(c.n).includes(r)));
   const evalH = (h, organTxt)=>{
     const s = qmHerbScore(h.f, text);
     const g = qmGroupHit(h.t, text) || (rel ? qmGroupHit(h.t, rel) : '');
-    const rl = rel ? qmHerbScore(h.f, rel) : 0;
+    const rl = rel ? qmHerbScore(h.f, rel, true) : 0;
     const o = organTxt ? qmHerbScore(h.f, organTxt) : 0;
     const dis = s > 0 ? 100 + s * 5 : ((g ? 50 : 0) + (rl > 0 ? 30 + rl : 0) + (o > 0 ? 20 : 0));
     const roles = qmRolesOf(h.n).filter(r=> uncovered().includes(r)).length;
@@ -3488,8 +3500,8 @@ function qmKulliyaPick(t, organT, organName, text){
   // صرف وہی بوٹی جو اس مرض میں فائدہ دے — ورنہ اس کلیے کی جگہ خالی (کم سے کم اجزاء)
   const addIf = (h, k)=>{ if(h && h._dis > 0) add(h, k); };
   addIf(best([t3]), 3);
-  addIf(best([t1, t3]), 2);
-  addIf(best([t1]), 1);
+  { const k2 = best([t1, t3]); if(k2 && k2.why === 'fayda') add(k2, 2); } // کلیہ 2 کی الگ دوا صرف تب جب مرض کے فوائد میں براہِ راست ذکر ہو
+  { const k1 = best([t1]); if(k1 && (k1.why === 'fayda' || (!chosen.some(c=> c.t === t1) && k1._dis > 0))) add(k1, 1); }
   // جڑ سے علاج (کلیہ 1) کی کم از کم ایک دوا ضرور ہو
   if(!chosen.some(c=> c.t === t1)) add(best([t1]), 1);
   // عضو کا مزاج الگ ہو تو اس کی ایک دوا
@@ -3497,7 +3509,7 @@ function qmKulliyaPick(t, organT, organName, text){
   // جو کام (ملٹی وٹامن / ہاضم / اینٹی بائیوٹک) ابھی پورا نہیں ہوا، اس کی بوٹی — پہلے علاج والے مزاج سے،
   // وہاں نہ ملے تو مرض والی تحریک کے سوا کسی بھی مزاج سے
   const pools = [[t1, t3].concat(organT && organT !== t && organT !== t1 && organT !== t3 ? [organT] : []), [1,2,3,4,5,6].filter(x=> x !== t)];
-  QM_ROLE_KEYS.forEach(role=>{
+  qmActiveRoles.forEach(role=>{
     if(!uncovered().includes(role)) return;
     for(const pool of pools){
       const c = QM_HERBS.filter(h=> pool.includes(h.t) && qmRolesOf(h.n).includes(role) && !chosen.some(x=> x.n === h.n))
@@ -3511,7 +3523,7 @@ function qmKulliyaPick(t, organT, organName, text){
 // نسخے کے معاون حصے: ملٹی وٹامن (مقوی غذائیت) + ہاضم + اینٹی بائیوٹک (دافع جراثیم)
 const QM_ROLES = {
   vit:   { label:'💊 ملٹی وٹامن', desc:'غذائیت', herbs:['آملہ','کھجور','خرما','انجیر','بادام شیریں','السی','میتھی دانہ','مغز کدو','سنگھاڑہ','موصلی سفید','ستاور'] },
-  muq:   { label:'💪 مقوی', desc:'طاقت', herbs:['اسگندھ ناگوری','موصلی سفید','ستاور','سلاجیت','تالمکھانہ','خرما','کھجور','بادام شیریں','زعفران','جائفل','خولنجان','عاقرقرحا','سنگھاڑہ','گوند کیکر','مالکنگنی','انجیر','صندل سفید','زہر مہرہ خطائی'] },
+  muq:   { label:'💪 مقوی', desc:'طاقت', herbs:['اسگندھ ناگوری','کمرکس','موصلی سفید','ستاور','سلاجیت','تالمکھانہ','خرما','کھجور','بادام شیریں','زعفران','جائفل','خولنجان','عاقرقرحا','سنگھاڑہ','گوند کیکر','مالکنگنی','انجیر','صندل سفید','زہر مہرہ خطائی'] },
   hazim: { label:'🍃 ہاضم', desc:'ہاضمہ درست', herbs:['سونف','اجوائن دیسی','پودینہ','زیرہ سفید','سونٹھ','فلفل سیاہ','الائچی خورد','دارچینی','ہلیلہ','دھنیا خشک','مصطگی رومی','تیزپات','چترک','لونگ','اجمود','انیسون','کلونجی','فلفل دراز'] },
   anti:  { label:'🛡 اینٹی بائیوٹک', desc:'دافع جراثیم', herbs:['ہلدی','کلونجی','برگ نیم','لہسن','لونگ','دارچینی','اجوائن دیسی','کالی زیری','چرائتہ','گلو','پھٹکڑی بریاں','رسوت','افسنتین','لوبان','کندر','بابچی','کباب چینی'] }
 };
@@ -3520,6 +3532,17 @@ const QM_ANTISEPTIC = ['برگ نیم','ہلدی','کالی زیری','بابچ�
 const QM_SKIN_WORDS = ['خارش','جلد','پھوڑ','پھنسی','داد','چنبل','ایگزیما','برص','سفید داغ','کیل','مہاس','الرجی','زخم','خشکی'];
 let qmSkinMode = false;
 const QM_ROLE_KEYS = ['vit','muq','hazim','anti'];
+// مرض کی نوعیت (پس منظر میں): انفیکشن/سوزش والا؟ معدے کا؟ کمزوری والا؟
+const QM_INF_WORDS = ['بخار','زخم','پھوڑ','پھنسی','پیپ','سوزش','ورم','کھانسی','نزلہ','زکام','گلا','خراش','پیشاب کی جلن','لیکوریا','سیلان','خارش','داد','چنبل','ایگزیما','اسہال','دست','پیچش','یرقان','ٹائیفائیڈ','ملیریا','سوزاک','دانت','مسوڑ','چھالے','انفیکشن','بواسیر','کیل','مہاس','جلد','زبان میں کٹ','ٹانسل','نمونیہ','دمہ'];
+const QM_DIG_WORDS = ['قبض','گیس','بدہضمی','ہاضمہ','تیزابیت','اپھارہ','ریاح','قولنج','پیٹ درد','پیٹ','معدہ','بھوک','ہیضہ','متلی','قے','السر','اسہال','دست'];
+const QM_WEAK_WORDS = ['کمزوری','جریان','احتلام','سرعت','باہ','خون کی کمی','دبلاپن','بانجھ','نامردی'];
+function qmDiseaseProfile(text){
+  const t = String(text || '');
+  const has = list=> list.some(w=> t.includes(w));
+  return { inf: has(QM_INF_WORDS) || qmSkinMode, dig: has(QM_DIG_WORDS), weak: has(QM_WEAK_WORDS) };
+}
+// جو کام الگ بوٹی سے ضروری نہیں (مرض کی نوعیت دیکھ کر) — وہ معاون بوٹی الگ سے نہیں ڈالی جاتی
+let qmActiveRoles = QM_ROLE_KEYS.slice();
 function qmRolesOf(name){ return QM_ROLE_KEYS.filter(r=> (r === 'anti' && qmSkinMode ? QM_ANTISEPTIC : QM_ROLES[r].herbs).includes(name)); }
 // جڑی بوٹی کا درجہ (کتاب: ادویہ بلحاظ درجہ بندی) — 1 غذائی/نرم، 2 عام، 3 تیز
 function qmHerbLevel(h){
@@ -3551,7 +3574,7 @@ function qmShowHerbs(){
   const others = QM_HERBS.filter(h=> pool.includes(h.t) && !chosen.some(c=> c.n === h.n))
     .sort((a,b)=> qmHerbScore(b.f, text) - qmHerbScore(a.f, text) || a.t - b.t || a.r - b.r);
   const kOf = h=> h.t === t3 ? 3 : (h.t === t1 ? 1 : 0);
-  step2.innerHTML = `<p style="color:var(--gold); font-size:.95rem; margin-bottom:8px;">🌿 ${text ? `"${escapeHtmlSearch(dName)}" کے لیے ` : ''}نسخے کے اجزاء (برابر وزن):</p>
+  step2.innerHTML = `<p style="color:var(--gold); font-size:.95rem; margin-bottom:8px;">🌿 ${text ? `"${escapeHtmlSearch(dName)}" کے لیے ` : ''}نسخے کے اجزاء:</p>
     <div style="border:1px solid var(--border); border-right:4px solid var(--gold); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
       ${chosen.map(h=> qmHerbRow(h, true, h.why, h.k)).join('')}
       <details style="margin-top:8px;">
@@ -3559,7 +3582,7 @@ function qmShowHerbs(){
         <div style="margin-top:6px;">${others.map(h=> qmHerbRow(h, false, '', kOf(h))).join('')}</div>
       </details>
     </div>
-
+    ${qmKushtaSuggestHtml(t, organT, text, 100, document.getElementById('qmAge').value)}
     <div style="text-align:center;"><button class="btn" onclick="qmBuild()" style="border-radius:20px;">نسخہ بنائیں</button></div>`;
 }
 function qmBuild(){
@@ -3576,7 +3599,7 @@ function qmBuild(){
   const out = document.getElementById('qmResult');
   const dText = qmDiseaseText();
   const t1 = qmNext(t, 2), t3 = qmNext(t, 3);
-  const kOrder = { 3:0, 2:1, 1:2, 0:3, vit:4, hazim:5, anti:6 };
+  const kOrder = { 3:0, 2:1, 1:2, 0:3, vit:4, muq:4, anti:5, hazim:6 };
   const picked = Array.from(document.querySelectorAll('.qm-herb:checked')).map(c=>{
     const tt = +c.dataset.t;
     const kk = c.dataset.k;
@@ -3597,7 +3620,37 @@ function qmBuild(){
   }
   const kushtaTotal = kushtaRows.reduce((s,r)=> s + r.gram, 0);
   const herbTotal = Math.max(0, total - kushtaTotal);
-  const rows = picked.map(p=> ({ ...p, gram: herbTotal / picked.length }));
+  // اثر کی تقسیم (حکیم صاحب کا اصول): 50% اصل مرض، 20% ملٹی وٹامن / مقوی، 15% ہاضم، 15% اینٹی بائیوٹک (جلدی امراض میں اینٹی سیپٹک)
+  // جس کام کی الگ دوا نہ ہو اس کا حصہ اسی دوا کو جو مرض والی ہو کر یہ کام بھی کرتی ہے؛ کوئی بھی نہ ہو تو باقی میں تناسب سے
+  const dTxt = qmDiseaseText();
+  const grpOf = p=> (typeof p.k === 'number' || qmHerbScore(qmFaide(p.name), dTxt) > 0) ? 'd' : (p.k === 'hazim' ? 'h' : (p.k === 'anti' ? 'a' : 's'));
+  const roleHas = (p, rs)=> qmRolesOf(p.name).some(r=> rs.includes(r));
+  const pf = qmDiseaseProfile(dTxt);
+  const GRP_W = { d:50, s:20, h:15, a:15 };
+  // مرض کی نوعیت کے مطابق (پس منظر میں): انفیکشن نہ ہو تو اینٹی بائیوٹک کا حصہ، معدے کا مرض ہو تو ہاضم کا حصہ،
+  // کمزوری کا مرض ہو تو مقوی کا حصہ — اصل مرض کی دواؤں کو
+  if(!pf.inf){ GRP_W.d += GRP_W.a; GRP_W.a = 0; }
+  if(pf.dig){ GRP_W.d += GRP_W.h; GRP_W.h = 0; }
+  if(pf.weak){ GRP_W.d += GRP_W.s; GRP_W.s = 0; }
+  const GRP_ROLES = { s:['vit','muq'], h:['hazim'], a:['anti'] };
+  const share = new Map(picked.map(p=> [p.name, 0]));
+  const give = (set, w)=>{ if(!set.length) return false; set.forEach(p=> share.set(p.name, share.get(p.name) + w / set.length)); return true; };
+  const D = picked.filter(p=> grpOf(p) === 'd');
+  const covered = { d: give(D.length ? D : picked, GRP_W.d) };
+  ['s','h','a'].forEach(g=>{
+    if(!GRP_W[g]){ covered[g] = false; return; }
+    const own = picked.filter(p=> grpOf(p) === g);
+    covered[g] = give(own.length ? own : picked.filter(p=> roleHas(p, GRP_ROLES[g])), GRP_W[g]);
+  });
+  // تیز دوا (درجہ 3) کا حصہ آدھا — کتاب کے نسخوں کی طرح (تیز دوا کم مقدار میں)
+  picked.forEach(p=>{ const h = QM_HERBS.find(x=> x.n === p.name); if(h && qmHerbLevel(h) === 3) share.set(p.name, share.get(p.name) / 2); });
+  const tot = [...share.values()].reduce((x,y)=> x + y, 0) || 1;
+  const ORD = { d:0, s:1, a:2, h:3 };
+  const rows = picked.map(p=>{ const pct = share.get(p.name) / tot * 100; return { ...p, grp: grpOf(p), pct, gram: herbTotal * pct / 100 }; })
+    .sort((x,y)=> (ORD[x.grp] - ORD[y.grp]) || (y.pct - x.pct));
+  const wSum = Object.keys(GRP_W).reduce((x,g)=> x + (covered[g] ? GRP_W[g] : 0), 0) || 100;
+  const cnt = { d: covered.d ? 1 : 0, s: covered.s ? 1 : 0, h: covered.h ? 1 : 0, a: covered.a ? 1 : 0 };
+  const grpPct = g=> cnt[g] ? Math.round(GRP_W[g] / wSum * 100) : 0;
   let dose;
   // خوراک ملی گرام میں: جوان 1000، بوڑھا 750، بچہ 250 ملی گرام — گولی 250 ملی گرام کی
   const doseMg = age === 'child' ? 250 : (age === 'old' ? 750 : 1000);
@@ -3623,9 +3676,10 @@ function qmBuild(){
     ${kushte.length ? `<p style="font-size:.85rem; color:var(--gold-soft);">کشتہ: ${kType==='mughallaz'?'مغلظ — 60 گرام میں 1 گرام':(kType==='special'?'اسپیشل بیماری — 50 گرام میں 10 گرام':('فارماکوپیا' + ((age==='child'||age==='old') ? ' (بچہ/بوڑھا) — ہر 20 گرام میں کل 1 گرام کشتہ' : ' — ہر 15 گرام میں کل 1 گرام کشتہ') + (kushte.length>1 ? ' (سب کشتے اسی 1 گرام میں برابر)' : '')))}</p>` : ''}
     <table style="width:100%; border-collapse:collapse; margin:10px 0; font-size:.95rem;">
       <tr style="color:var(--gold-soft);"><th style="text-align:right; ${th}">جزو</th><th style="${th}">مقدار</th></tr>
-      ${rows.map(r=>`<tr><td style="${th}"><b>${escapeHtmlSearch(r.name)}</b>${qmFaide(r.name) ? `<br><span style="color:var(--muted); font-size:.72rem;">${escapeHtmlSearch(qmFaide(r.name))}</span>` : ''}</td><td style="text-align:center; ${th}">برابر وزن</td></tr>`).join('')}
+      ${rows.map(r=>`<tr><td style="${th}"><b>${escapeHtmlSearch(r.name)}</b>${qmFaide(r.name) ? `<br><span style="color:var(--muted); font-size:.72rem;">${escapeHtmlSearch(qmFaide(r.name))}</span>` : ''}</td><td style="text-align:center; ${th}"><b>${qmFmtGram(r.pct)}%</b><br><span style="color:var(--muted); font-size:.75rem;">100 گرام میں ${qmFmtGram(r.pct)} گرام</span></td></tr>`).join('')}
       ${kushtaRows.map(r=>`<tr><td style="${th}${r.toxic?' color:#e0524f;':''}">${escapeHtmlSearch(r.name)} <span style="color:var(--muted); font-size:.75rem;">(کشتہ)</span></td><td style="text-align:center; ${th}">${r.per}</td></tr>`).join('')}
     </table>
+
     <p><b style="color:var(--gold-soft);">ترکیب:</b> ${form === 'goli' ? 'سب کو باریک پیس کر پانی کی مدد سے 250 ملی گرام (چنے کے برابر) کی گولیاں بنا لیں۔' : 'سب کو باریک پیس کر سفوف بنا لیں اور بند ڈبے میں رکھیں۔'}</p>
     <p><b style="color:var(--gold-soft);">خوراک:</b> ${dose}، ${anupan}۔</p>
     <p><b style="color:var(--gold-soft);">غذا (کھائیں):</b> ${eat.join('، ')}</p>
