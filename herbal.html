@@ -326,14 +326,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
     <!-- مرض کی شدت ہمیشہ "شدید — پرانا / بگڑا ہوا مرض" (پس منظر میں) -->
     <input type="hidden" id="qmSeverity" value="3">
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <div style="flex:1; min-width:140px;">
-        <label style="color:var(--gold-soft); font-size:.9rem;">مریض</label>
-        <select class="search" id="qmAge" style="margin:4px 0 12px;">
-          <option value="adult">جوان</option>
-          <option value="child">بچہ</option>
-          <option value="old">بوڑھا</option>
-        </select>
-      </div>
+      <input type="hidden" id="qmAge" value="adult"><!-- مریض ہمیشہ جوان (پس منظر میں) -->
       <div style="flex:1; min-width:140px;">
         <label style="color:var(--gold-soft); font-size:.9rem;">نسخے کی شکل</label>
         <select class="search" id="qmForm" style="margin:4px 0 12px;">
@@ -344,7 +337,7 @@ footer{position:fixed; left:0; right:0; bottom:0; z-index:55; text-align:center;
       <input type="hidden" id="qmTotal" value="100"><!-- سب اجزاء برابر وزن — کل وزن کا خانہ نہیں -->
     </div>
 
-    <div style="border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
+    <div style="display:none; border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px;"><!-- کشتہ اب نسخے کے آخر میں مشورے کے طور پر -->
       <div onclick="const b=document.getElementById('qmKushtaBox'); const o=b.style.display==='none'; b.style.display=o?'':'none'; document.getElementById('qmKushtaArrow').textContent=o?'▴':'▾';" style="cursor:pointer; color:var(--gold-soft); text-align:center;">کشتہ شامل کریں (اختیاری) <span id="qmKushtaArrow">▾</span></div>
       <div id="qmKushtaBox" style="display:none; margin-top:10px;">
         <label style="color:var(--gold-soft); font-size:.85rem;">تیاری کی قسم</label>
@@ -3431,22 +3424,32 @@ const QM_KUSHTA_INFO = [
   { n:'سیپ', t:2, f:'تیزابیت، معدہ کی جلن، اسہال، ہڈیوں کی کمزوری' },
   { n:'مرجان', t:2, f:'دل کی کمزوری، کھانسی، ہڈیوں کی کمزوری، بچوں کی کمزوری، تیزابیت' },
   { n:'حجر الیہود', t:2, f:'گردے کی پتھری، مثانہ کی پتھری، پیشاب کی بندش' },
-  { n:'بارہ سنگھا', t:3, f:'کھانسی، دمہ، پسلی کا درد، نمونیہ، جوڑوں کا درد' }
+  { n:'بارہ سنگھا', t:3, f:'کھانسی، دمہ، پسلی کا درد، نمونیہ، جوڑوں کا درد' },
+  { n:'طلا (سونا)', t:4, f:'دل کی کمزوری، دماغی کمزوری، کمزوری باہ، جسمانی کمزوری، فالج' },
+  { n:'کہربا', t:6, f:'خون بہنا، نکسیر، کثرت حیض، خونی بواسیر، دل کی دھڑکن' },
+  { n:'زمرد', t:6, f:'دل کی کمزوری، دل کی گھبراہٹ، جسمانی کمزوری' }
 ];
 function qmKushtaSuggestHtml(t, organT, text, total, age){
   const t1 = qmNext(t, 2), t3 = qmNext(t, 3);
   const pool = [t1, t3]; if(organT && organT !== t && !pool.includes(organT)) pool.push(organT);
   const rel = qmRelatedText(text);
-  const list = QM_KUSHTA_INFO.filter(k=> pool.includes(k.t))
-    .map(k=> ({ k, sc: qmHerbScore(k.f, text) * 2 + (rel ? qmHerbScore(k.f, rel) : 0) }))
-    .filter(x=> x.sc > 0).sort((a,b)=> b.sc - a.sc).slice(0, 2).map(x=> x.k);
+  const all = QM_KUSHTA_INFO.filter(k=> pool.includes(k.t))
+    .map(k=> ({ k, sc: qmHerbScore(k.f, text) * 2 + (rel ? qmHerbScore(k.f, rel) : 0), p: k.t === t1 ? 2 : (k.t === t3 ? 1 : 0) }));
+  let list = all.filter(x=> x.sc > 0).sort((a,b)=> b.sc - a.sc || b.p - a.p);
+  let general = false;
+  if(!list.length){ list = all.filter(x=> x.k.f.includes('جسمانی کمزوری')).sort((a,b)=> b.p - a.p); general = true; } // مرض سے نہ ملے تو علاج والے مزاج کا عام مقوی کشتہ
+  list = list.slice(0, 2).map(x=> x.k);
   if(!list.length) return '';
   const per = (age === 'child' || age === 'old') ? 20 : 15;
-  const g = total / per;
+  const dose = (age === 'child') ? 250 : 500;
+  const one = list[0], two = list[1];
   return `<div style="margin:12px 0; padding:10px 12px; border:1px dashed var(--gold); border-radius:10px;">
-    <div style="color:var(--gold); margin-bottom:6px;">⚗ کشتہ ملانا چاہیں تو</div>
+    <div style="color:var(--gold); margin-bottom:6px;">⚗ کشتہ ملانا چاہیں تو${general ? ' <span style="font-size:.78rem; color:var(--muted);">(عام طاقت کے لیے)</span>' : ''}</div>
     ${list.map(k=> `<p style="font-size:.88rem; margin:4px 0;"><b>کشتہ ${escapeHtmlSearch(k.n)}</b> — <span style="color:var(--muted);">${escapeHtmlSearch(k.f)}</span></p>`).join('')}
-    <p style="font-size:.85rem; color:var(--gold-soft); margin-top:6px;">مقدار: سفوف کے ہر ${per} گرام میں 1 گرام کشتہ${list.length > 1 ? ` — دونوں ملائیں تو ہر ایک آدھا گرام` : ''}۔ کشتہ ملانے کے بعد خوراک ${age === 'child' ? '250' : '500'} ملی گرام، دن میں دو سے تین بار۔</p>
+    <p style="font-size:.86rem; color:var(--gold-soft); margin-top:8px;"><b>مقدار:</b></p>
+    <p style="font-size:.85rem; margin:2px 0;">• صرف کشتہ ${escapeHtmlSearch(one.n)} ملائیں تو: ہر ${per} گرام سفوف میں <b>1 گرام</b> کشتہ (مثلاً 60 گرام سفوف میں ${qmFmtGram(60 / per)} گرام، 100 گرام سفوف میں ${qmFmtGram(100 / per)} گرام)</p>
+    ${two ? `<p style="font-size:.85rem; margin:2px 0;">• کشتہ ${escapeHtmlSearch(one.n)} اور کشتہ ${escapeHtmlSearch(two.n)} دونوں ملائیں تو: ہر ${per} گرام سفوف میں دونوں کا <b>آدھا آدھا گرام</b> (100 گرام سفوف میں ہر ایک ${qmFmtGram(100 / per / 2)} گرام)</p>` : ''}
+    <p style="font-size:.85rem; margin:2px 0;">• کشتہ ملانے کے بعد خوراک: <b>${dose} ملی گرام</b>، دن میں دو سے تین بار</p>
   </div>`;
 }
 function qmFaide(n){ const h = QM_HERBS.find(x=> x.n === n); return h ? h.f : ''; }
