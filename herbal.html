@@ -3325,7 +3325,10 @@ function qmHerbScore(f, text, strict){
   return s;
 }
 function qmDiseaseText(){
-  let txt = document.getElementById('qmDisease').value.trim();
+  const nm = document.getElementById('qmDisease').value.trim();
+  let txt = nm;
+  if(QM_SYN_CACHE[nm]) txt += ' ' + QM_SYN_CACHE[nm].synonyms.join(' ');
+  txt += ' ' + herbalOrganVariants(nm, 10).join(' ');
   Object.keys(QM_DISEASE_SYN).forEach(k=>{ if(txt.includes(k)) txt += ' ' + QM_DISEASE_SYN[k]; });
   return txt;
 }
@@ -3445,6 +3448,10 @@ function qmKushtaSuggestHtml(t, organT, text, total, age){
   if(!list.length){ list = all.filter(x=> x.k.f.includes('جسمانی کمزوری')).sort((a,b)=> b.p - a.p); general = true; } // مرض سے نہ ملے تو علاج والے مزاج کا عام مقوی کشتہ
   // مردانہ/زنانہ امراض (لیکوریا، جریان، احتلام، سرعت انزال، ذکاوت حس، مردانہ کمزوری، منی/سپرم) میں کشتہ مرجان ہمیشہ (حکیم صاحب کی ہدایت)
   const QM_SEX_WORDS = ['لیکوریا','سیلان','جریان','احتلام','سرعت','ذکاوت','مردانہ','باہ','نامرد','منی','سپرم','اسپرم','جراثیم منی','بانجھ','بے اولاد','عقر'];
+  if(typeof qmAiKushta !== 'undefined' && qmAiKushta && qmAiKushta.length){
+    const aiK = qmAiKushta.map(n=> QM_KUSHTA_INFO.find(k=> k.n === n)).filter(Boolean);
+    if(aiK.length){ list = aiK.map(k=> ({ k })).concat(list.filter(x=> !qmAiKushta.includes(x.k.n))); general = false; }
+  }
   if(QM_SEX_WORDS.some(w=> String(text).includes(w))){
     const mj = QM_KUSHTA_INFO.find(k=> k.n === 'مرجان');
     list = [{ k: mj }].concat(list.filter(x=> x.k.n !== 'مرجان'));
@@ -3463,7 +3470,7 @@ function qmKushtaSuggestHtml(t, organT, text, total, age){
     <p style="font-size:.85rem; margin:5px 0; color:var(--gold-soft);">کشتہ ملانے کے بعد خوراک ${dose} ملی گرام، دن میں دو سے تین بار۔ کشتہ نہ ملائیں تو نسخہ ایسے ہی استعمال کریں۔</p>
   </div>`;
 }
-function qmFaide(n){ const h = QM_HERBS.find(x=> x.n === n); return h ? h.f : ''; }
+function qmFaide(n){ const h = QM_HERBS.find(x=> x.n === n); return h ? h.f : ((typeof QM_AI_FAIDE !== 'undefined' && QM_AI_FAIDE[n]) || ''); }
 function qmFmtGram(g){ return (Math.round(g*10)/10).toString().replace(/\.0$/,''); }
 // ایک ہی نسخے میں تینوں کلیے (کتاب کی ترتیب: پہلے کلیہ 3، پھر کلیہ 2، آخر میں کلیہ 1)
 // کلیہ 3 = مرض سے تین قدم آگے والی تحریک؛ کلیہ 2 = دونوں (دو اور تین قدم) ملا کر؛ کلیہ 1 = دو قدم آگے (جڑ سے)
@@ -3543,7 +3550,7 @@ function qmDiseaseProfile(text){
 }
 // جو کام الگ بوٹی سے ضروری نہیں (مرض کی نوعیت دیکھ کر) — وہ معاون بوٹی الگ سے نہیں ڈالی جاتی
 let qmActiveRoles = QM_ROLE_KEYS.slice();
-function qmRolesOf(name){ return QM_ROLE_KEYS.filter(r=> (r === 'anti' && qmSkinMode ? QM_ANTISEPTIC : QM_ROLES[r].herbs).includes(name)); }
+function qmRolesOf(name){ const ai = (typeof QM_AI_ROLES !== 'undefined' && QM_AI_ROLES[name]) || []; return QM_ROLE_KEYS.filter(r=> (r === 'anti' && qmSkinMode ? QM_ANTISEPTIC : QM_ROLES[r].herbs).includes(name) || ai.includes(r)); }
 // جڑی بوٹی کا درجہ (کتاب: ادویہ بلحاظ درجہ بندی) — 1 غذائی/نرم، 2 عام، 3 تیز
 function qmHerbLevel(h){
   const T = QM_T[h.t]; if(!T) return 2;
@@ -3558,11 +3565,14 @@ function qmKLabel(k){ return (typeof k === 'string' && QM_ROLES[k]) ? QM_ROLES[k
 // صرف عضو کا نام لکھا ہو (مثلاً "زبان") تو اس عضو کی بیماریاں تجویز کریں
 const QM_ORGAN_WORDS = ['زبان','دل','جگر','معدہ','گردے','گردہ','دماغ','آنکھ','آنکھیں','کان','ناک','گلا','پھیپھڑے','جلد','بال','دانت','مسوڑے','منہ','ہونٹ','آنت','آنتیں','مثانہ','رحم','پستان','تلی','پتہ','ہڈی','جوڑ','کمر','سر','پیٹ','خون','اعصاب','عضلات'];
 function qmOrganOnlyHint(name){
-  const n = String(name || '').trim();
-  if(!n || !QM_ORGAN_WORDS.includes(n)) return '';
+  const n0 = String(name || '').trim();
+  const grp = herbalOrganCanonical(n0);
+  if(!n0 || (!QM_ORGAN_WORDS.includes(n0) && !grp)) return '';
+  const n = n0;
+  const words = (grp || [n0]).filter(w=> w.length > 1);
   const list = (typeof diseaseList !== 'undefined' ? diseaseList : []);
   const seen = new Set();
-  const opts = list.filter(d=> (d.name.includes(n) || String(d.organ || '').includes(n)) && !seen.has(d.name) && seen.add(d.name)).slice(0, 10);
+  const opts = list.filter(d=> words.some(w=> (' ' + d.name + ' ').includes(' ' + w + ' ') || String(d.organ || '').includes(w)) && !seen.has(d.name) && seen.add(d.name)).slice(0, 12);
   return `<div class="note" style="margin-bottom:12px;">
     "${escapeHtmlSearch(n)}" عضو کا نام ہے — ${escapeHtmlSearch(n)} کی کون سی تکلیف ہے؟ نیچے سے چنیں تو نسخہ اسی کے مطابق بنے گا:
     <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">${opts.map(d=> `<span onclick="document.getElementById('qmDisease').value='${escapeJsAttr(d.name)}'; document.getElementById('qmTehreek').value='${d.tendency}'; qmShowHerbs();" style="cursor:pointer; border:1px solid var(--gold); color:var(--gold); border-radius:14px; padding:2px 10px; font-size:.82rem;">${escapeHtmlSearch(d.name)}</span>`).join('') || '<span style="color:var(--muted); font-size:.82rem;">مثلاً: ' + escapeHtmlSearch(n) + ' میں چھالے، ' + escapeHtmlSearch(n) + ' میں درد</span>'}</div>
@@ -3571,7 +3581,82 @@ function qmOrganOnlyHint(name){
 function qmHerbRow(h, checked, why, k){
   return `<label style="display:block; font-size:.92rem; margin:8px 0;"><input type="checkbox" class="qm-herb" data-k="${k === undefined ? '' : k}" data-t="${h.t}" data-level="2" value="${escapeHtmlSearch(h.n)}" ${checked?'checked':''}> <b>${escapeHtmlSearch(h.n)}</b><br><span style="color:var(--muted); font-size:.82rem; margin-right:24px;">${escapeHtmlSearch(h.f)}</span></label>`;
 }
+// ===== AI (OpenAI — سرور کے ذریعے): بیماری کے دوسرے نام + کتابوں کے مطابق نسخہ =====
+const QM_SYN_CACHE = {};
+let QM_AI_FAIDE = {}, QM_AI_ROLES = {}, qmAiKushta = null, qmAiToken = 0;
+function qmAiLive(){ try{ return /^https?:$/.test(location.protocol) && !/claude|anthropic|usercontent/i.test(location.hostname); }catch(e){ return false; } }
+function qmFetchJson(url, body, ms){
+  return Promise.race([
+    fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r=> r.ok ? r.json() : null),
+    new Promise(res=> setTimeout(()=> res(null), ms || 15000))
+  ]).catch(()=> null);
+}
+// ایک بیماری کے دوسرے نام (اردو، عربی، فارسی، ہندی، انگریزی) — ایک بار پوچھ کر یاد رکھیں
+async function qmGetSynonyms(name){
+  name = String(name || '').trim();
+  if(!name) return { synonyms:[], related:[] };
+  if(QM_SYN_CACHE[name]) return QM_SYN_CACHE[name];
+  try{ const c = localStorage.getItem('qmSyn:' + name); if(c){ QM_SYN_CACHE[name] = JSON.parse(c); return QM_SYN_CACHE[name]; } }catch(e){}
+  if(!qmAiLive()) return { synonyms:[], related:[] };
+  const d = await qmFetchJson('/api/disease-synonyms', { name }, 9000);
+  const out = { synonyms: (d && Array.isArray(d.synonyms)) ? d.synonyms : [], related: (d && Array.isArray(d.related)) ? d.related : [], canonical: d && d.canonical };
+  if(d){ QM_SYN_CACHE[name] = out; try{ localStorage.setItem('qmSyn:' + name, JSON.stringify(out)); }catch(e){} }
+  return out;
+}
+const QM_TOXIC_NAMES = ['سنکھیا','دھتورہ','کچلہ','جمال گوٹہ','افیون','ہڑتال','ہڑتال ورقیہ','رسکپور','آک','آک کا دودھ','جگنو','تیلنی مکھی','سم الفار','ذراریح','بچھو','سانپ','بچھناگ','کافور','سقمونیا','نیلا تھوتھا','شنگرف','تانبا','سرمہ','پارہ','چرس','بھنگ'];
+// علاج والے مزاجوں کی تمام جڑی بوٹیاں: سائٹ کی فہرست (فوائد سمیت) + کتاب کی ادویہ فہرستیں
+function qmAiHerbPool(t, organT){
+  const t1 = qmNext(t, 2), t3 = qmNext(t, 3);
+  const pool = [t3, t1]; if(organT && organT !== t && !pool.includes(organT)) pool.push(organT);
+  const seen = new Set(), list = [];
+  const NON_HERB = /گوشت|انڈ|بٹیر|تیتر|چڑیا|چکور|ٹڈی|کبوتر|چیونٹا|ہرن|کھری|بکری|دودھ|مکھن|گھی|چربی|کھویا|سونا|چاندی|زمرد|ابرک|تانبا|سیپ|صدف|مرجان|خراطین|ریگ ماہی|کاک|کیکڑا|سالٹ|نمک|سجی|جوکھار|شورہ|نوشادر|گندھک|پھٹکڑی|موم|چاول|جوار|گنا|گڑ|شکر|مصری|شہد/;
+  const push = (n, tt, f)=>{ n = String(n || '').trim(); if(!n || seen.has(hzNormName(n)) || QM_TOXIC_NAMES.includes(n) || (!f && NON_HERB.test(n))) return; seen.add(hzNormName(n)); list.push({ n, t: tt, m: QM_T[tt].name, f: f || '' }); };
+  QM_HERBS.filter(h=> pool.includes(h.t)).forEach(h=> push(h.n, h.t, h.f));
+  pool.forEach(tt=> ['d1','d2','d3'].forEach(lv=> QM_T[tt][lv].forEach(n=> push(n, tt, ''))));
+  if(typeof HZ_TK_GROUPS !== 'undefined') HZ_TK_GROUPS.filter(g=> pool.includes(g.t)).forEach(g=> g.names.split('،').forEach(n=> push(n, g.t, '')));
+  return { list, t1, t3 };
+}
+async function qmAiEnhance(token){
+  const t = parseInt(document.getElementById('qmTehreek').value, 10);
+  const dName = document.getElementById('qmDisease').value.trim();
+  const status = document.getElementById('qmAiStatus');
+  if(!t || !dName || !qmAiLive() || QM_ORGAN_WORDS.includes(dName) || herbalOrganCanonical(dName)){ if(status) status.innerHTML = ''; return; }
+  if(status) status.innerHTML = '⏳ کتابوں کے مطابق بہترین نسخہ تیار ہو رہا ہے...';
+  const syn = await qmGetSynonyms(dName);
+  if(token !== qmAiToken) return;
+  if(syn.synonyms.length) qmRenderHerbs(null); // دوسرے ناموں کے ساتھ مقامی انتخاب دوبارہ
+  const organName = document.getElementById('qmOrgan').value;
+  const organT = parseInt(document.getElementById('qmOrganMizaj').value, 10) || 0;
+  const { list, t1, t3 } = qmAiHerbPool(t, organT);
+  const pool = [t1, t3]; if(organT && organT !== t && !pool.includes(organT)) pool.push(organT);
+  const kushte = QM_KUSHTA_INFO.filter(k=> pool.includes(k.t) || k.n === 'مرجان').map(k=> ({ n:k.n, m:QM_T[k.t].name, f:k.f }));
+  const d = await qmFetchJson('/api/qm-ai-nuskha', {
+    disease: dName, synonyms: syn.synonyms, diseaseTehreek: QM_T[t].name,
+    k3: QM_T[t3].name, k2: QM_T[t1].name + ' ÷ ' + QM_T[t3].name, k1: QM_T[t1].name,
+    organ: organName, organMizaj: organT ? QM_T[organT].name : '', herbs: list, kushte
+  }, 25000);
+  if(token !== qmAiToken) return;
+  if(!d || !Array.isArray(d.herbs) || !d.herbs.length){ if(status) status.innerHTML = ''; return; }
+  const ai = d.herbs.map(h=>{
+    const p = list.find(x=> x.n === h.name); if(!p) return null;
+    const base = QM_HERBS.find(x=> x.n === h.name);
+    const f = base ? base.f : (h.reason || '');
+    if(!base) QM_AI_FAIDE[h.name] = f;
+    QM_AI_ROLES[h.name] = (h.roles || []).concat([h.role]).filter(r=> r !== 'disease');
+    const k = h.role === 'disease' ? (p.t === t3 ? 3 : (p.t === t1 ? 1 : 0)) : h.role;
+    return { n: h.name, t: p.t, f, r: 1, why: h.role === 'disease' ? 'fayda' : 'role', k, aiDisease: h.role === 'disease' };
+  }).filter(Boolean);
+  if(!ai.length){ if(status) status.innerHTML = ''; return; }
+  qmAiKushta = (d.kushta || []).map(k=> k.name);
+  qmRenderHerbs(ai);
+}
 function qmShowHerbs(){
+  QM_AI_FAIDE = {}; QM_AI_ROLES = {}; qmAiKushta = null;
+  const token = ++qmAiToken;
+  qmRenderHerbs(null);
+  qmAiEnhance(token);
+}
+function qmRenderHerbs(aiChosen){
   const t = parseInt(document.getElementById('qmTehreek').value, 10);
   const step2 = document.getElementById('qmStep2');
   document.getElementById('qmResult').innerHTML = '';
@@ -3582,15 +3667,16 @@ function qmShowHerbs(){
   const text = qmDiseaseText();
   const dName = document.getElementById('qmDisease').value.trim();
   const t1 = qmNext(t, 2), t3 = qmNext(t, 3);
-  const chosen = qmKulliyaPick(t, organT, organName, text);
+  const chosen = aiChosen || qmKulliyaPick(t, organT, organName, text);
   const pool = [t1, t3]; if(organT && organT !== t && !pool.includes(organT)) pool.push(organT);
   const others = QM_HERBS.filter(h=> pool.includes(h.t) && !chosen.some(c=> c.n === h.n))
     .sort((a,b)=> qmHerbScore(b.f, text) - qmHerbScore(a.f, text) || a.t - b.t || a.r - b.r);
   const kOf = h=> h.t === t3 ? 3 : (h.t === t1 ? 1 : 0);
   // مرض کی بوٹیاں اور ساتھ والی (طاقت، ہاضمہ، جراثیم کش) الگ الگ دکھائیں
-  const isDis = h=> h.why === 'fayda' || qmHerbScore(h.f, text) > 0;
+  const isDis = h=> h.aiDisease || (!aiChosen && (h.why === 'fayda' || qmHerbScore(h.f, text) > 0));
   const disH = chosen.filter(isDis), supH = chosen.filter(h=> !isDis(h));
-  step2.innerHTML = `${qmOrganOnlyHint(dName)}<p style="color:var(--gold); font-size:.95rem; margin-bottom:8px;">🌿 ${text ? `"${escapeHtmlSearch(dName)}" کے لیے ` : ''}نسخے کے اجزاء:</p>
+  const prevStatus = (document.getElementById('qmAiStatus') || {}).innerHTML || '';
+  step2.innerHTML = `${qmOrganOnlyHint(dName)}<p id="qmAiStatus" style="color:var(--gold-soft); font-size:.8rem; margin-bottom:6px;">${aiChosen ? '🤖 کتابوں اور طب یونانی کے مطابق AI کا تیار کردہ نسخہ' : prevStatus}</p><p style="color:var(--gold); font-size:.95rem; margin-bottom:8px;">🌿 ${text ? `"${escapeHtmlSearch(dName)}" کے لیے ` : ''}نسخے کے اجزاء:</p>
     <div style="border:1px solid var(--border); border-right:4px solid var(--gold); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
       ${disH.length ? `<div style="color:var(--gold-soft); font-size:.82rem;">مرض کے لیے</div>${disH.map(h=> qmHerbRow(h, true, h.why, h.k)).join('')}` : `<p style="color:#e0524f; font-size:.85rem;">اس نام سے مرض کی کوئی خاص بوٹی نہیں ملی — مرض کا پورا نام لکھیں (مثلاً "${escapeHtmlSearch(dName)} میں درد" یا "${escapeHtmlSearch(dName)} کی کمزوری")۔</p>`}
       ${supH.length ? `<div style="color:var(--gold-soft); font-size:.82rem; margin-top:10px; border-top:1px dashed var(--border); padding-top:8px;">ساتھ میں (طاقت، ہاضمہ، جراثیم کش)</div>${supH.map(h=> qmHerbRow(h, disH.length > 0, h.why, h.k)).join('')}` : ''}
@@ -5460,6 +5546,21 @@ function pmMizajShowList(){
       const terms = pmGetPdfSearchTerms(val);
       pmSearchInputEl.value = terms.join(' / ');
       pmRunSearch(terms);
+      // AI سے اسی بیماری کے دوسرے نام (اردو، عربی، فارسی، ہندی، انگریزی) لے کر ان سے بھی تلاش
+      if(typeof qmGetSynonyms === 'function' && qmAiLive()){
+        const base = String(val).split(' — ')[0].trim();
+        qmGetSynonyms(base).then(syn=>{
+          if(pmSearchInputEl.value !== terms.join(' / ')) return; // صارف آگے بڑھ چکا
+          const extra = (syn.synonyms || []).filter(x=> !terms.includes(x));
+          if(!extra.length) return;
+          pmRunSearch(terms.concat(extra));
+          const old = document.getElementById('pmSynNote'); if(old) old.remove();
+          const note = document.createElement('p'); note.id = 'pmSynNote';
+          note.style.cssText = 'color:var(--muted); font-size:.8rem; text-align:center; margin:-4px 0 10px;';
+          note.textContent = 'اس بیماری کے دوسرے نام بھی تلاش کیے گئے: ' + extra.join('، ');
+          pmSummaryEl.after(note);
+        });
+      }
     }
   });
   if(filterEl){
@@ -5778,6 +5879,8 @@ function pmGetPdfSearchTerms(selectedValue){
     seen.add(syn);
     terms.push(syn);
   });
+  // عضو کے دوسرے ناموں والے روپ (مثلاً لن/ذکر/عضو تناسل)
+  herbalOrganVariants(selectedValue, 10).forEach(v=>{ if(!seen.has(v)){ seen.add(v); terms.push(v); } });
   if(!entry) return terms; // عضو کا نام یا نامعلوم اندراج
   const myTokens = new Set(pmSignificantTokens(entry.name));
   if(!myTokens.size) return terms;
@@ -5790,6 +5893,58 @@ function pmGetPdfSearchTerms(selectedValue){
     if(overlap){ seen.add(d.name); terms.push(d.name); }
   });
   return terms;
+}
+
+// ===== اعضاء کے مختلف نام (علمی، عام، علاقائی، عربی، فارسی، انگریزی) — ایک عضو کے سب نام ایک گروپ میں =====
+const HERBAL_ORGAN_SYN = [
+  ['عضو تناسل','آلہ تناسل','عضو مخصوص','عضو خاص','ذکر','قضیب','لن','نفس','عضو'],
+  ['شرمگاہ','فرج','اندام نہانی','مہبل'],
+  ['خصیے','خصیہ','خصیتین','فوطے','انثیین','بیضے'],
+  ['رحم','بچہ دانی','بچے دانی'],
+  ['معدہ','معدے','پیٹ','شکم'],
+  ['جگر','کلیجہ','کبد'],
+  ['تلی','طحال'],
+  ['دل','قلب'],
+  ['دماغ','بھیجا','مغز'],
+  ['گردے','گردہ','کلیہ','کلیے'],
+  ['مثانہ','پیشاب کی تھیلی'],
+  ['پھیپھڑے','پھیپھڑا','ریہ','شش'],
+  ['آنت','آنتیں','انتڑیاں','امعاء'],
+  ['آنکھ','آنکھیں','چشم','عین','نظر'],
+  ['زبان','لسان'],
+  ['منہ','دہن','فم'],
+  ['گلا','حلق','حلقوم'],
+  ['پستان','چھاتی','سینہ','ثدی','بریسٹ'],
+  ['بال','شعر','گیسو'],
+  ['جلد','کھال','چمڑی','جسم کی جلد'],
+  ['مقعد','دبر','پاخانے کی جگہ'],
+  ['دانت','دندان','اسنان'],
+  ['مسوڑے','مسوڑھے','لثہ'],
+  ['کان','گوش','اذن'],
+  ['ناک','بینی','انف'],
+  ['جوڑ','جوڑوں','مفاصل','مفصل'],
+  ['ہڈی','ہڈیاں','عظم'],
+  ['کمر','پیٹھ','ظہر'],
+  ['سر','راس']
+];
+// کسی جملے میں عضو کا نام ہو تو اسی جملے کے دوسرے نام والے روپ بنائیں (مثلاً "لن کی کمزوری" → "عضو تناسل کی کمزوری")
+function herbalOrganVariants(phrase, max){
+  phrase = String(phrase || '').trim();
+  const out = [];
+  if(!phrase) return out;
+  const pad = ' ' + phrase + ' ';
+  HERBAL_ORGAN_SYN.forEach(group=>{
+    const hit = group.slice().sort((a,b)=> b.length - a.length).find(w=> w.length > 1 && pad.includes(' ' + w + ' '));
+    if(!hit) return;
+    group.forEach(w=>{ if(w === hit || w.length < 2) return; const v = (' ' + phrase + ' ').replace(' ' + hit + ' ', ' ' + w + ' ').trim(); if(!out.includes(v) && v !== phrase) out.push(v); });
+  });
+  return out.slice(0, max || 12);
+}
+// عضو کا اصل (فہرست والا) نام
+function herbalOrganCanonical(word){
+  const w = String(word || '').trim();
+  const g = HERBAL_ORGAN_SYN.find(gr=> gr.includes(w));
+  return g ? g : null;
 }
 // customTerms دیا جائے تو ایک سے زیادہ متبادل ناموں سے تلاش کر کے نتائج ملا دیے جاتے ہیں —
 // ورنہ (پرانے طریقے کی طرح) صرف باکس میں لکھے لفظ سے تلاش ہوتی ہے
