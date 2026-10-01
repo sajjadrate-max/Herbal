@@ -6700,7 +6700,9 @@ hzSearchInputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') hzRunSearch
 // نسخہ سازی کی مستقل (بلٹ اِن) کتابیں — بیماری کی تلاش والی کتابوں کی طرح ہر کتاب کی
 // hz-data-*.json فائل ریپو کی جڑ میں ہے، اور اصل PDF بھی اسی میں لکھے fileName سے وہیں رکھی جاتی ہے
 const HZ_BUILTIN_DATA_FILES = [
+  'hz-data-khawas-ul-mufradat-adalati.json',
   'hz-data-khawas-ul-mufradat-ghudi.json',
+  'hz-data-khawas-ul-mufradat-asabi.json',
   'hz-data-kushta-jaat.json'
 ];
 (async function hzLoadBuiltinData(){
