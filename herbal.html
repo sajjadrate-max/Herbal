@@ -3555,6 +3555,19 @@ function qmHerbLevel(h){
 }
 function qmRoleBadges(name){ return qmRolesOf(name).map(r=> `<span style="border:1px solid var(--gold-soft); color:var(--gold-soft); border-radius:10px; padding:0 6px; font-size:.68rem; margin:2px 0 2px 3px; display:inline-block; white-space:nowrap;">${QM_ROLES[r].label}</span>`).join(''); }
 function qmKLabel(k){ return (typeof k === 'string' && QM_ROLES[k]) ? QM_ROLES[k].label : (k ? `کلیہ ${k}` : 'عضو'); }
+// صرف عضو کا نام لکھا ہو (مثلاً "زبان") تو اس عضو کی بیماریاں تجویز کریں
+const QM_ORGAN_WORDS = ['زبان','دل','جگر','معدہ','گردے','گردہ','دماغ','آنکھ','آنکھیں','کان','ناک','گلا','پھیپھڑے','جلد','بال','دانت','مسوڑے','منہ','ہونٹ','آنت','آنتیں','مثانہ','رحم','پستان','تلی','پتہ','ہڈی','جوڑ','کمر','سر','پیٹ','خون','اعصاب','عضلات'];
+function qmOrganOnlyHint(name){
+  const n = String(name || '').trim();
+  if(!n || !QM_ORGAN_WORDS.includes(n)) return '';
+  const list = (typeof diseaseList !== 'undefined' ? diseaseList : []);
+  const seen = new Set();
+  const opts = list.filter(d=> (d.name.includes(n) || String(d.organ || '').includes(n)) && !seen.has(d.name) && seen.add(d.name)).slice(0, 10);
+  return `<div class="note" style="margin-bottom:12px;">
+    "${escapeHtmlSearch(n)}" عضو کا نام ہے — ${escapeHtmlSearch(n)} کی کون سی تکلیف ہے؟ نیچے سے چنیں تو نسخہ اسی کے مطابق بنے گا:
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">${opts.map(d=> `<span onclick="document.getElementById('qmDisease').value='${escapeJsAttr(d.name)}'; document.getElementById('qmTehreek').value='${d.tendency}'; qmShowHerbs();" style="cursor:pointer; border:1px solid var(--gold); color:var(--gold); border-radius:14px; padding:2px 10px; font-size:.82rem;">${escapeHtmlSearch(d.name)}</span>`).join('') || '<span style="color:var(--muted); font-size:.82rem;">مثلاً: ' + escapeHtmlSearch(n) + ' میں چھالے، ' + escapeHtmlSearch(n) + ' میں درد</span>'}</div>
+  </div>`;
+}
 function qmHerbRow(h, checked, why, k){
   return `<label style="display:block; font-size:.92rem; margin:8px 0;"><input type="checkbox" class="qm-herb" data-k="${k === undefined ? '' : k}" data-t="${h.t}" data-level="2" value="${escapeHtmlSearch(h.n)}" ${checked?'checked':''}> <b>${escapeHtmlSearch(h.n)}</b><br><span style="color:var(--muted); font-size:.82rem; margin-right:24px;">${escapeHtmlSearch(h.f)}</span></label>`;
 }
@@ -3574,9 +3587,13 @@ function qmShowHerbs(){
   const others = QM_HERBS.filter(h=> pool.includes(h.t) && !chosen.some(c=> c.n === h.n))
     .sort((a,b)=> qmHerbScore(b.f, text) - qmHerbScore(a.f, text) || a.t - b.t || a.r - b.r);
   const kOf = h=> h.t === t3 ? 3 : (h.t === t1 ? 1 : 0);
-  step2.innerHTML = `<p style="color:var(--gold); font-size:.95rem; margin-bottom:8px;">🌿 ${text ? `"${escapeHtmlSearch(dName)}" کے لیے ` : ''}نسخے کے اجزاء:</p>
+  // مرض کی بوٹیاں اور ساتھ والی (طاقت، ہاضمہ، جراثیم کش) الگ الگ دکھائیں
+  const isDis = h=> h.why === 'fayda' || qmHerbScore(h.f, text) > 0;
+  const disH = chosen.filter(isDis), supH = chosen.filter(h=> !isDis(h));
+  step2.innerHTML = `${qmOrganOnlyHint(dName)}<p style="color:var(--gold); font-size:.95rem; margin-bottom:8px;">🌿 ${text ? `"${escapeHtmlSearch(dName)}" کے لیے ` : ''}نسخے کے اجزاء:</p>
     <div style="border:1px solid var(--border); border-right:4px solid var(--gold); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
-      ${chosen.map(h=> qmHerbRow(h, true, h.why, h.k)).join('')}
+      ${disH.length ? `<div style="color:var(--gold-soft); font-size:.82rem;">مرض کے لیے</div>${disH.map(h=> qmHerbRow(h, true, h.why, h.k)).join('')}` : `<p style="color:#e0524f; font-size:.85rem;">اس نام سے مرض کی کوئی خاص بوٹی نہیں ملی — مرض کا پورا نام لکھیں (مثلاً "${escapeHtmlSearch(dName)} میں درد" یا "${escapeHtmlSearch(dName)} کی کمزوری")۔</p>`}
+      ${supH.length ? `<div style="color:var(--gold-soft); font-size:.82rem; margin-top:10px; border-top:1px dashed var(--border); padding-top:8px;">ساتھ میں (طاقت، ہاضمہ، جراثیم کش)</div>${supH.map(h=> qmHerbRow(h, disH.length > 0, h.why, h.k)).join('')}` : ''}
       <details style="margin-top:8px;">
         <summary style="cursor:pointer; color:var(--gold-soft); font-size:.8rem;">دوسری جڑی بوٹیاں (${others.length})</summary>
         <div style="margin-top:6px;">${others.map(h=> qmHerbRow(h, false, '', kOf(h))).join('')}</div>
