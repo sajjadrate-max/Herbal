@@ -4796,9 +4796,10 @@ function pmRenderBookList(){
     const kind = f.builtin ? 'بلٹ اِن' : 'اپ لوڈ کردہ';
     const canOpen = true; // اپ لوڈ کردہ کتاب کے پاس ہمیشہ pdfDoc ہوتا ہے؛ بلٹ اِن کتاب کی اصل PDF جڑ (root)
     // میں اسی fileName سے تلاش کی جاتی ہے — نہ ملے تو "کھولیں" دبانے پر خود واضح پیغام آ جائے گا
-    const openBtnHtml = canOpen
-      ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenFullPdf('${escapeJsAttr(f.fileName)}')">📖 کھولیں</button>`
-      : '';
+    const missing = f.builtin && pmPdfKnownMissing(f.fileName);
+    const openBtnHtml = !canOpen ? '' : missing
+      ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenTextViewer('${escapeJsAttr(f.fileName)}', null, '')">📄 متن پڑھیں</button><small style="color:#e0a050; font-size:.7rem; width:100%;">اصل PDF ابھی ریپو میں نہیں — صرف متن دستیاب ہے</small>`
+      : `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenFullPdf('${escapeJsAttr(f.fileName)}')">📖 کھولیں</button>`;
     return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
       <span style="flex:1; min-width:160px;"><b style="color:var(--gold); margin-left:6px;">${idx+1}۔</b> ${f.title ? escapeHtmlSearch(f.title) + ' <small style="color:var(--muted);">(' + escapeHtmlSearch(f.fileName) + ')</small>' : escapeHtmlSearch(f.fileName)}</span>
       <span style="color:var(--muted); font-size:.78rem;">${kind} · ${textPages}/${totalPages} صفحات میں متن · ${escapeHtmlSearch(sys)}</span>
@@ -5100,17 +5101,27 @@ const PM_BUILTIN_DATA_FILES = [
 // اوپر والی مستقل فہرست (PM_BUILTIN_DATA_FILES) میں دوبارہ نام لکھنے کی ضرورت نہیں رہے گی۔
 // (اگر کسی وجہ سے یہ فہرست حاصل نہ ہو سکے — مثلاً انٹرنیٹ کی خرابی یا GitHub کی حد — تو اوپر
 // والی مستقل فہرست بطور محفوظ متبادل استعمال ہو گی)
+// صارف کی ہدایت پر یہ کتابیں ویب سائٹ سے مستقل طور پر ہٹا دی گئی ہیں — ریپو میں ان کی فائل پڑی بھی رہے تو کبھی نظر نہیں آئیں گی
+const PM_BLOCKED_BOOKS = [
+  'BIOCHEMISTRY_FOR_PARAMEDICS.pdf', 'COMPUTER_SCIENCE_FOR_PARAMEDICS.pdf', 'Laboratory_Test_Guide.pdf',
+  'PHARMACY_BOOK.pdf', 'PRACTICE_OF_MEDICINE_PART_1.pdf', 'ULTRASOUND.pdf',
+  'pm-data-biochemistry.json', 'pm-data-computer-science.json', 'pm-data-laboratory-test-guide.json',
+  'pm-data-pharmacy.json', 'pm-data-practice-of-medicine.json', 'pm-data-ultrasound.json'
+].map(n=> n.toLowerCase());
+function pmIsBlockedBook(name){ return PM_BLOCKED_BOOKS.includes(String(name||'').toLowerCase()); }
 async function pmDiscoverBuiltinDataFiles(){
   try{
     const res = await pmWithTimeout(fetch('https://api.github.com/repos/sajjadrate-max/Herbal/contents/'), 8000);
     if(!res.ok) return PM_BUILTIN_DATA_FILES;
     const items = await res.json();
     if(!Array.isArray(items)) return PM_BUILTIN_DATA_FILES;
+    // ریپو میں موجود سب PDF فائلوں کے نام یاد رکھیں — تاکہ "کھولیں" سے پہلے معلوم ہو کہ اصل PDF موجود ہے یا نہیں
+    window.PM_REPO_PDFS = items.filter(it=> it && it.type === 'file' && /\.pdf$/i.test(it.name)).map(it=> it.name);
     const jsonFiles = items
       .filter(it=> it && it.type === 'file' && /^pm-data-.*\.json$/i.test(it.name))
       .map(it=> it.name);
     // ریپو کی سب فائلیں + مستقل فہرست — دونوں کا مجموعہ، تاکہ کوئی کتاب کبھی نہ چھوٹے
-    return [...new Set(PM_BUILTIN_DATA_FILES.concat(jsonFiles))];
+    return [...new Set(PM_BUILTIN_DATA_FILES.concat(jsonFiles))].filter(n=> !pmIsBlockedBook(n));
   }catch(e){
     // GitHub سے خودکار فہرست نہ ملے تو خاموشی سے محفوظ (fallback) فہرست استعمال کر لیں —
     // یہ نارمل ہے (خاص طور پر جب فائل براہِ راست پری ویو میں کھولی جائے)، اس لیے کنسول میں کچھ نہیں دکھاتے
@@ -5144,6 +5155,7 @@ function herbalCanLoadSiteFiles(){
     if(!r) return;
     const data = r.data;
     const fName = data.fileName || r.url;
+    if(pmIsBlockedBook(fName) || pmIsBlockedBook(r.url)) return; // مستقل طور پر ہٹائی گئی کتاب
     if(pmLibrary.some(f=> f.fileName === fName)) return; // ایک ہی فائل دو بار نہیں
     // ایک ہی کتاب کی دو ڈیٹا فائلیں (بالکل ایک جیسا متن) ہوں تو صرف ایک دکھائیں
     const sig = data.pages.length + '|' + data.pages.slice(0, 40).map(p=> (p.text || '').slice(0, 40)).join('|');
@@ -6570,13 +6582,113 @@ function herbalMakeMultiPartPdfDoc(parts){
     }
   };
 }
+// ---------- اصل PDF کا راستہ ڈھونڈنا (مکمل حل) ----------
+// 1) بالکل وہی نام  2) ملتا جلتا نام (چھوٹے/بڑے حروف، _ - اور خالی جگہ کا فرق)  3) حصوں میں بٹی فائل (part1, part2 …)
+function pmNormFileName(n){ return String(n||'').toLowerCase().replace(/\.pdf$/,'').replace(/[\s_\-.()]+/g,''); }
+// ایک ہی کتاب کی PDF دوسرے نام سے ریپو میں موجود ہو
+const PM_PDF_ALIASES = { 'Mufrad_Aza_Aur_Amraz_e_Jild.pdf': 'Amraz_e_Jild.pdf' };
+function pmResolvePdfPath(fileName){
+  const list = window.PM_REPO_PDFS;
+  const alias = PM_PDF_ALIASES[fileName];
+  if(alias && (!Array.isArray(list) || list.includes(alias)) && !(Array.isArray(list) && list.includes(fileName))) return alias;
+  if(!Array.isArray(list)) return fileName; // فہرست نہ ملی تو پرانا طریقہ — اسی نام سے کوشش
+  if(list.includes(fileName)) return fileName;
+  if(PM_BUILTIN_PDF_PARTS[fileName]) return fileName;
+  const key = pmNormFileName(fileName);
+  const same = list.find(n=> pmNormFileName(n) === key);
+  if(same) return same;
+  if(pmFindPartFiles(fileName).length) return fileName;
+  return null;
+}
+function pmFindPartFiles(fileName){
+  const list = window.PM_REPO_PDFS;
+  if(!Array.isArray(list)) return [];
+  const key = pmNormFileName(fileName).replace(/(bookdigital|book|digital)$/,'');
+  return list
+    .map(n=>{ const m = pmNormFileName(n).match(/^(.*?)(?:part|حصہ)(\d+)$/); return m ? { n, base:m[1], i:+m[2] } : null; })
+    .filter(x=> x && x.base && (key.startsWith(x.base) || x.base.startsWith(key)))
+    .sort((a,b)=> a.i - b.i)
+    .map(x=> x.n);
+}
+function pmPdfKnownMissing(fileName){
+  return Array.isArray(window.PM_REPO_PDFS) && !pmResolvePdfPath(fileName);
+}
+const PM_AUTO_PARTS_CACHE = {};
+async function pmAutoParts(fileName){
+  if(PM_AUTO_PARTS_CACHE[fileName]) return PM_AUTO_PARTS_CACHE[fileName];
+  const files = pmFindPartFiles(fileName);
+  if(!files.length || (Array.isArray(window.PM_REPO_PDFS) && window.PM_REPO_PDFS.includes(fileName))) return null;
+  // ہر حصے کے صفحات گن کر صفحہ نمبروں کی حد خود بنائیں
+  const parts = []; let from = 1;
+  for(const file of files){
+    const res = await fetch(file);
+    if(!res.ok) return null;
+    const doc = await pdfjsLib.getDocument({ data: await res.arrayBuffer() }).promise;
+    parts.push({ file, from, to: from + doc.numPages - 1 });
+    from += doc.numPages;
+  }
+  PM_AUTO_PARTS_CACHE[fileName] = parts;
+  return parts;
+}
+// اصل PDF نہ ہو تو اسی صفحے کا متن (جو تلاش کے لیے موجود ہے) صاف پڑھنے کے انداز میں دکھائیں — آگے/پیچھے کے بٹن کے ساتھ
+function pmOpenTextViewer(fileName, pageNum, queryText){
+  const entry = pmLibrary.find(f=> f.fileName === fileName);
+  if(!entry || !entry.pages.length) return;
+  const pages = entry.pages.filter(p=> p.text && p.text.trim());
+  if(!pages.length){ alert('اس کتاب کا متن موجود نہیں۔'); return; }
+  let idx = pageNum == null ? 0 : pages.findIndex(p=> p.pageNum >= pageNum);
+  if(idx < 0) idx = 0;
+  let modal = document.getElementById('pmTextViewer');
+  if(modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'pmTextViewer';
+  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:1000; display:flex; flex-direction:column; background:#0b1426;';
+  const isRtl = t=> /[؀-ۿ]/.test(t);
+  const esc = t=> String(t).replace(/[&<>"]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function hl(text){
+    let h = esc(text);
+    String(queryText||'').split(/[\/،,]/).map(x=> x.trim()).filter(x=> x.length >= 2).forEach(q=>{
+      const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
+      h = h.replace(re, m=> '<mark style="background:var(--gold); color:var(--navy);">' + m + '</mark>');
+    });
+    return h.replace(/\n/g,'<br>');
+  }
+  function render(){
+    const p = pages[idx];
+    modal.querySelector('#pmTvPage').textContent = 'صفحہ ' + (p.printedPageNum || p.pageNum) + ' (' + (idx+1) + '/' + pages.length + ')';
+    const body = modal.querySelector('#pmTvBody');
+    body.dir = isRtl(p.text) ? 'rtl' : 'ltr';
+    body.style.textAlign = isRtl(p.text) ? 'right' : 'left';
+    body.innerHTML = hl(p.text);
+    body.scrollTop = 0;
+    const m = body.querySelector('mark'); if(m) m.scrollIntoView({ block:'center' });
+  }
+  modal.innerHTML = `
+    <div style="display:flex; align-items:center; gap:8px; padding:10px; border-bottom:1px solid var(--border);">
+      <button id="pmTvClose" class="btn" style="padding:4px 14px;">✕ بند کریں</button>
+      <div style="flex:1; color:var(--gold); font-size:.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(entry.title || fileName)}</div>
+    </div>
+    <div style="color:#e0a050; font-size:.75rem; padding:6px 12px; text-align:center;">📄 اس کتاب کی اصل PDF ابھی سائٹ پر موجود نہیں — نیچے اسی صفحے کا متن ہے</div>
+    <div id="pmTvBody" style="flex:1; overflow:auto; padding:14px 16px; color:#fff; line-height:2; font-size:1rem; white-space:normal;"></div>
+    <div style="display:flex; align-items:center; justify-content:center; gap:10px; padding:10px; border-top:1px solid var(--border);">
+      <button id="pmTvPrev" class="btn secondary" style="padding:4px 14px;">→ پچھلا</button>
+      <span id="pmTvPage" style="color:#fff; font-size:.85rem;"></span>
+      <button id="pmTvNext" class="btn secondary" style="padding:4px 14px;">اگلا ←</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#pmTvClose').onclick = ()=> modal.remove();
+  modal.querySelector('#pmTvPrev').onclick = ()=>{ if(idx > 0){ idx--; render(); } };
+  modal.querySelector('#pmTvNext').onclick = ()=>{ if(idx < pages.length-1){ idx++; render(); } };
+  render();
+}
 async function herbalOpenLibraryPdf(entry, pageNum, queryText, btnSelector){
   if(!entry){ return; }
   if(entry.pdfDoc){
     herbalOpenFullPdfViewer(entry, pageNum || 1, queryText || '');
     return;
   }
-  const pdfPath = entry.builtin ? entry.fileName : null; // ریپو کی جڑ میں بالکل اسی fileName سے فائل ڈھونڈیں
+  const pdfPath = entry.builtin ? pmResolvePdfPath(entry.fileName) : null; // ریپو میں اسی نام (یا ملتے جلتے نام) کی فائل
+  if(entry.builtin && !pdfPath){ pmOpenTextViewer(entry.fileName, pageNum, queryText); return; }
   if(!pdfPath){
     alert('یہ کتاب سائٹ کے ساتھ صرف متن کی صورت میں شامل ہے — اصل PDF یہاں دستیاب نہیں (فائل کا حجم بہت بڑا ہونے کی وجہ سے یا ابھی اپ لوڈ نہیں ہوئی)۔');
     return;
@@ -6584,7 +6696,7 @@ async function herbalOpenLibraryPdf(entry, pageNum, queryText, btnSelector){
   const btns = btnSelector ? document.querySelectorAll(btnSelector) : [];
   btns.forEach(b=>{ b.disabled = true; b.textContent = 'لوڈ ہو رہا ہے...'; });
   try{
-    const parts = PM_BUILTIN_PDF_PARTS[pdfPath];
+    const parts = PM_BUILTIN_PDF_PARTS[pdfPath] || PM_BUILTIN_PDF_PARTS[entry.fileName] || (await pmAutoParts(entry.fileName));
     if(parts){
       // بڑی کتاب کئی حصوں میں — صرف وہی حصہ ڈاؤن لوڈ ہو گا جس میں مطلوبہ صفحہ ہے
       const doc = herbalMakeMultiPartPdfDoc(parts);
@@ -6600,7 +6712,8 @@ async function herbalOpenLibraryPdf(entry, pageNum, queryText, btnSelector){
   }catch(e){
     (function(){})('builtin PDF load error:', e);
     if(e && e.notFound){
-      alert('اس کتاب کی اصل PDF فائل ابھی سائٹ پر اپ لوڈ نہیں ہوئی (فائل نہیں ملی: ' + e.notFound + ')۔ تلاش کام کرتی رہے گی، صرف "کھولیں" کے لیے فائل ریپو کی جڑ میں رکھنی ہو گی۔');
+      // اصل PDF نہیں ملی — پیغام کی بجائے اسی صفحے کا متن دکھا دیں
+      pmOpenTextViewer(entry.fileName, pageNum, queryText);
     }else{
       alert('معذرت، اصل PDF لوڈ کرنے میں خرابی ہوئی۔ انٹرنیٹ کنکشن چیک کر کے دوبارہ کوشش کریں۔');
     }
