@@ -5163,7 +5163,7 @@ function herbalCanLoadSiteFiles(){
     seenSig.add(sig);
     pmLibrary.push({
       fileName: fName,
-      title: data.title || '',
+      title: data.title || ({ 'Tehqiqat_o_Ilaj.pdf':'تحقیقات و علاج امراض معدہ و امعاء — حکیم محمد یٰسین دنیاپوری (مکمل متن)' })[fName] || '',
       pages: data.pages.map(p=> { const o = { pageNum:p.pageNum, text:p.text || '', ocr:true }; if(p.printedPageNum) o.printedPageNum = p.printedPageNum; return o; }),
       builtin: true
     });
@@ -6586,7 +6586,7 @@ function herbalMakeMultiPartPdfDoc(parts){
 // 1) بالکل وہی نام  2) ملتا جلتا نام (چھوٹے/بڑے حروف، _ - اور خالی جگہ کا فرق)  3) حصوں میں بٹی فائل (part1, part2 …)
 function pmNormFileName(n){ return String(n||'').toLowerCase().replace(/\.pdf$/,'').replace(/[\s_\-.()]+/g,''); }
 // ایک ہی کتاب کی PDF دوسرے نام سے ریپو میں موجود ہو
-const PM_PDF_ALIASES = { 'Mufrad_Aza_Aur_Amraz_e_Jild.pdf': 'Amraz_e_Jild.pdf' };
+const PM_PDF_ALIASES = { 'Mufrad_Aza_Aur_Amraz_e_Jild.pdf': 'Amraz_e_Jild.pdf', 'Tehqiqat_o_Ilaj.pdf': 'Amraz_e_Maida.pdf' };
 function pmResolvePdfPath(fileName){
   const list = window.PM_REPO_PDFS;
   const alias = PM_PDF_ALIASES[fileName];
