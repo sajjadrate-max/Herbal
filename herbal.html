@@ -4800,7 +4800,7 @@ function pmRenderBookList(){
       ? `<button class="btn secondary" style="padding:4px 12px; font-size:.75rem;" onclick="pmOpenFullPdf('${escapeJsAttr(f.fileName)}')">📖 کھولیں</button>`
       : '';
     return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); flex-wrap:wrap;">
-      <span style="flex:1; min-width:160px;"><b style="color:var(--gold); margin-left:6px;">${idx+1}۔</b> ${escapeHtmlSearch(f.fileName)}</span>
+      <span style="flex:1; min-width:160px;"><b style="color:var(--gold); margin-left:6px;">${idx+1}۔</b> ${f.title ? escapeHtmlSearch(f.title) + ' <small style="color:var(--muted);">(' + escapeHtmlSearch(f.fileName) + ')</small>' : escapeHtmlSearch(f.fileName)}</span>
       <span style="color:var(--muted); font-size:.78rem;">${kind} · ${textPages}/${totalPages} صفحات میں متن · ${escapeHtmlSearch(sys)}</span>
       ${openBtnHtml}
     </div>`;
@@ -5073,9 +5073,9 @@ function pmAutoDetectAndSetFileSystem(fileName, pages, row){
     if(row) pmUpdateFileSystemBadge(row, fileName);
   }
 }
-// سائٹ میں شامل مستقل (بلٹ اِن) کتابیں — صرف یہی کتابیں سب کو نظر آئیں گی اور تلاش میں شامل ہوں گی۔
-// نئی کتاب شامل کرنی ہو تو اس کی pm-data-*.json فائل کا نام یہاں لکھنا لازمی ہے
-// (ریپو میں کوئی اور فائل پڑی ہو تو وہ خود بخود شامل نہیں ہو گی)
+// سائٹ میں شامل مستقل (بلٹ اِن) کتابیں — یہ فہرست صرف محفوظ متبادل ہے۔
+// اصل میں ریپو میں موجود ہر pm-data-*.json خود بخود شامل ہوتی ہے (نیچے pmDiscoverBuiltinDataFiles)،
+// اس لیے کوئی کتاب کبھی خود سے غائب نہیں ہو گی — صرف صارف خود ریپو سے فائل حذف کرے یا "ہٹائیں" دبائے تو ہٹے گی۔
 const PM_BUILTIN_DATA_FILES = [
   'pm-data-gynaecology.json',
   'pm-data-mardon-kay-amraaz.json',
@@ -5088,7 +5088,12 @@ const PM_BUILTIN_DATA_FILES = [
   'pm-data-tehreek-amraz-o-ilaj.json',
   'pm-data-amraz-e-jild.json',
   'pm-data-amraz-e-pistan.json',
-  'pm-data-amraz-e-niswan.json'
+  'pm-data-amraz-e-niswan.json',
+  'pm-data-apna-ilaj-khud-karen.json',
+  'pm-data-kushta-jaat.json',
+  'pm-data-mujarrabat-e-sabir.json',
+  'pm-data-qanoon-mufrad-aza-sabir.json',
+  'pm-data-uzv-e-tanasul-300-nuskhe.json'
 ];
 // GitHub ریپو کی جڑ (root) میں موجود فائلوں کی فہرست خود بخود حاصل کریں — اس طرح مستقبل میں
 // کوئی نئی pm-data-*.json فائل صرف وہیں اپ لوڈ کرنے سے خود بخود شامل ہو جائے گی،
@@ -5104,7 +5109,8 @@ async function pmDiscoverBuiltinDataFiles(){
     const jsonFiles = items
       .filter(it=> it && it.type === 'file' && /^pm-data-.*\.json$/i.test(it.name))
       .map(it=> it.name);
-    return jsonFiles.length ? jsonFiles : PM_BUILTIN_DATA_FILES;
+    // ریپو کی سب فائلیں + مستقل فہرست — دونوں کا مجموعہ، تاکہ کوئی کتاب کبھی نہ چھوٹے
+    return [...new Set(PM_BUILTIN_DATA_FILES.concat(jsonFiles))];
   }catch(e){
     // GitHub سے خودکار فہرست نہ ملے تو خاموشی سے محفوظ (fallback) فہرست استعمال کر لیں —
     // یہ نارمل ہے (خاص طور پر جب فائل براہِ راست پری ویو میں کھولی جائے)، اس لیے کنسول میں کچھ نہیں دکھاتے
@@ -5122,23 +5128,34 @@ function herbalCanLoadSiteFiles(){
 }
 (async function pmLoadBuiltinData(){
   if(!herbalCanLoadSiteFiles()){ try{ pmRenderBookList(); }catch(e){} return; }
-  const fileList = PM_BUILTIN_DATA_FILES; // صرف اوپر والی مقررہ فہرست — ریپو کی باقی فائلیں شامل نہیں ہوتیں
-  for(const url of fileList){
+  // ریپو میں موجود ہر pm-data-*.json خود بخود (مستقل فہرست کے ساتھ ملا کر) — کوئی کتاب خود سے نہیں ہٹتی
+  const fileList = await pmDiscoverBuiltinDataFiles();
+  const seenSig = new Set();
+  const results = await Promise.all(fileList.map(async url=>{
     try{
       const res = await fetch(url);
-      if(!res.ok) continue;
+      if(!res.ok) return null;
       const data = await res.json();
-      if(!data || !Array.isArray(data.pages)) continue;
-      const fName = data.fileName || url;
-      if(pmLibrary.some(f=> f.fileName === fName)) continue; // ڈپلیکیٹ سے بچاؤ
-      pmLibrary.push({
-        fileName: fName,
-        title: data.title || '',
-        pages: data.pages.map(p=> ({ pageNum:p.pageNum, text:p.text || '', ocr:true })),
-        builtin: true
-      });
-    }catch(e){ (function(){})('built-in PDF data لوڈ نہیں ہو سکا:', url, e); }
-  }
+      if(!data || !Array.isArray(data.pages)) return null;
+      return { url, data };
+    }catch(e){ return null; }
+  }));
+  results.forEach(r=>{
+    if(!r) return;
+    const data = r.data;
+    const fName = data.fileName || r.url;
+    if(pmLibrary.some(f=> f.fileName === fName)) return; // ایک ہی فائل دو بار نہیں
+    // ایک ہی کتاب کی دو ڈیٹا فائلیں (بالکل ایک جیسا متن) ہوں تو صرف ایک دکھائیں
+    const sig = data.pages.length + '|' + data.pages.slice(0, 40).map(p=> (p.text || '').slice(0, 40)).join('|');
+    if(seenSig.has(sig)) return;
+    seenSig.add(sig);
+    pmLibrary.push({
+      fileName: fName,
+      title: data.title || '',
+      pages: data.pages.map(p=> { const o = { pageNum:p.pageNum, text:p.text || '', ocr:true }; if(p.printedPageNum) o.printedPageNum = p.printedPageNum; return o; }),
+      builtin: true
+    });
+  });
   pmSearchBtnEl.disabled = pmLibrary.length === 0;
   pmRenderBookList();
 })();
