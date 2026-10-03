@@ -5981,7 +5981,7 @@ function herbalOrganCanonical(word){
 }
 // customTerms دیا جائے تو ایک سے زیادہ متبادل ناموں سے تلاش کر کے نتائج ملا دیے جاتے ہیں —
 // ورنہ (پرانے طریقے کی طرح) صرف باکس میں لکھے لفظ سے تلاش ہوتی ہے
-function pmRunSearch(customTerms){
+function pmRunSearchBase(customTerms){
   const terms = (customTerms && customTerms.length) ? customTerms : [pmSearchInputEl.value.trim()];
   const primaryQuery = terms[0] || '';
   pmResultsEl.innerHTML = '';
@@ -6035,9 +6035,23 @@ function pmRunSearch(customTerms){
   runTerms(terms);
   // پورا نام کہیں نہ ملے تو اس کے اصل الفاظ (مثلاً "شدید قبض" → "قبض") سے دوبارہ تلاش
   if(!titleMatches.length && !textMatches.length && !looseMatches.length){
-    const PM_WEAK = new Set(['شدید','دائمی','پرانا','پرانی','مزمن','حاد','کی','کا','کے','میں','اور','سے','درد','کمی','زیادتی','کمزوری','بیماری','مرض','امراض','ہونا','آنا','جانا','بار','بار']);
-    const words = [...new Set(terms.flatMap(t=> String(t).split(/[\s،,\/()\-]+/)).filter(w=> w.length >= 3 && !PM_WEAK.has(w)))];
-    if(words.length) runTerms(words);
+    const PM_WEAK = new Set(['شدید','دائمی','پرانا','پرانی','مزمن','حاد','کی','کا','کے','میں','اور','سے','درد','کمی','زیادتی','کمزوری','بیماری','مرض','امراض','ہونا','آنا','جانا','بار','چھوٹا','بڑا','ہوتا','جاتا','کرنا','عضو','جسم','حصہ','والا','والی','کیوں','کیسے','کیا','علاج']);
+    // ہر نام کو الگ رکھ کر: اسی صفحے پر اس نام کے کم از کم دو اہم الفاظ ایک ساتھ ملیں تب ہی نتیجہ —
+    // (اکیلا ایک لفظ، مثلاً صرف "عضو" یا "ورم"، غلط صفحات کھول دیتا تھا)
+    terms.forEach(t=>{
+      const words = [...new Set(String(t).split(/[\s،,\/()\-]+/).filter(w=> w.length >= 3 && !PM_WEAK.has(w)))];
+      if(!words.length) return;
+      const need = Math.min(2, words.length);
+      const qds = words.map(w=> pmBuildSearchable(w)).filter(q=> q.searchable);
+      pmLibrary.forEach(fileEntry=> fileEntry.pages.forEach(p=>{
+        const key = fileEntry.fileName + '|' + p.pageNum;
+        if(seenPageKeys.has(key) || !p.text) return;
+        const hits = qds.filter(q=> pmFindMatch(p.text, q));
+        if(hits.length < need) return;
+        textMatches.push({ fileName: fileEntry.fileName, pageNum: p.pageNum, displayPageNum: p.printedPageNum || p.pageNum, snippet: pmBuildSnippet(p.text, 0, Math.min(p.text.length, 220)), fullText: p.text, matchedTerm: words.join(' ') });
+        seenPageKeys.add(key);
+      }));
+    });
   }
   // جو پوری کتاب ہی اسی بیماری پر ہو (مثلاً "دمہ"، "موٹاپا") — اسے سب سے اوپر دکھائیں
   const wholeBooks = [];
@@ -6143,6 +6157,171 @@ function pmOpenTextEditor(fileName, pageNum){
 
 // دی گئی فائل کا اصل PDF (بائٹس) دستیاب ہے یا نہیں — صرف اپ لوڈ کی گئی فائلوں کے پاس اصل PDF ہوتا ہے،
 // سائٹ کے ساتھ built-in شامل کی گئی کتابوں کا صرف نکالا گیا متن محفوظ ہے (فائل کا سائز بہت زیادہ ہونے کی وجہ سے)
+// ================= AI والی "بیماری کی تلاش" =================
+// 1) AI سوال سمجھ کر تلاش کے الفاظ بناتا ہے  2) سب کتابوں کے صفحات میں سے امیدوار صفحات نکلتے ہیں
+// 3) AI ان میں سے صرف وہی صفحات چنتا ہے جن پر واقعی اسی سوال کا جواب ہے  4) صفحہ کھلنے پر AI تصویر
+// پڑھ کر وہ جگہ پیلی نشانی سے دکھاتا ہے جہاں سے پڑھنا ہے
+const pmAiState = { question:'', token:0, cache:{}, box:null };
+function pmRunSearch(customTerms){
+  pmRunSearchBase(customTerms);
+  const q = String((customTerms && customTerms.length ? customTerms[0] : (pmSearchInputEl.value || '').split('/')[0]) || '').trim();
+  if(!q || !pmLibrary.length || typeof qmAiLive !== 'function' || !qmAiLive()) return;
+  pmAiSmartSearch(q, customTerms && customTerms.length ? customTerms : [q]);
+}
+function pmAiBoxEl(){
+  let box = document.getElementById('pmAiBox');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'pmAiBox';
+    box.className = 'mujarrab-card';
+    box.style.cssText = 'border:2px solid var(--gold); margin-bottom:14px;';
+  }
+  if(box.parentNode !== pmResultsEl || pmResultsEl.firstChild !== box) pmResultsEl.insertBefore(box, pmResultsEl.firstChild);
+  return box;
+}
+function pmAiSnippet(text, qds){
+  const t = String(text || '');
+  if(t.length <= 420) return t;
+  for(const q of qds){
+    const m = pmFindMatch(t, q);
+    if(m) return t.slice(Math.max(0, m.startOrig - 150), m.startOrig + 270);
+  }
+  return t.slice(0, 420);
+}
+function pmAiCandidates(question, terms, words){
+  const PM_WEAK2 = new Set(['کی','کا','کے','میں','اور','سے','ہونا','ہے','کیا','کیوں','کیسے','بیماری','مرض','علاج','درد']);
+  const qWords = String(question).split(/[\s،,\/()\-؟?]+/).filter(w=> w.length >= 3 && !PM_WEAK2.has(w));
+  const termQ = [...new Set([question].concat(terms))].map(t=> ({ t, q: pmBuildSearchable(t) })).filter(x=> x.q.searchable && x.q.searchable.length >= 3);
+  const wordQ = [...new Set(words.concat(qWords))].map(w=> pmBuildSearchable(w)).filter(q=> q.searchable && q.searchable.length >= 2);
+  const all = [];
+  pmLibrary.forEach(fe=>{
+    const perBook = [];
+    fe.pages.forEach(p=>{
+      if(!p.text) return;
+      let score = 0; const hitQ = [];
+      termQ.forEach((x, i)=>{ if(pmFindMatch(p.text, x.q)){ score += (i === 0 ? 12 : 5); hitQ.push(x.q); } });
+      const wHits = wordQ.filter(q=> pmFindMatch(p.text, q));
+      if(wHits.length >= 2) score += wHits.length * 2;
+      else if(wHits.length === 1 && score > 0) score += 1;
+      if(score < 4) return;
+      perBook.push({ fe, p, score, snippet: pmAiSnippet(p.text, hitQ.concat(wHits)) });
+    });
+    perBook.sort((a,b)=> b.score - a.score);
+    all.push(...perBook.slice(0, 10));
+  });
+  all.sort((a,b)=> b.score - a.score);
+  return all.slice(0, 70);
+}
+async function pmAiSmartSearch(question, baseTerms){
+  // وہی سوال پہلے سے چل رہا ہو (مثلاً دوسرے ناموں کے ساتھ دوبارہ تلاش) تو نیا AI کام شروع نہ کریں
+  if(pmAiState.busy && pmAiState.question === question){ pmAiBoxEl(); return; }
+  pmAiState.busy = true;
+  try{ await pmAiSmartSearchRun(question, baseTerms); }finally{ if(pmAiState.question === question) pmAiState.busy = false; }
+}
+async function pmAiSmartSearchRun(question, baseTerms){
+  const token = ++pmAiState.token;
+  pmAiState.question = question;
+  const cached = pmAiState.cache[question];
+  const box = pmAiBoxEl();
+  if(cached){ pmAiRender(box, cached); return; }
+  box.innerHTML = `<p style="color:var(--gold); margin:0;">🤖 AI آپ کا سوال سمجھ کر سب کتابوں میں دیکھ رہا ہے...</p>`;
+  const t = await qmFetchJson('/api/pm-ai-search', { mode:'terms', question }, 20000);
+  if(token !== pmAiState.token) return;
+  const terms = [...new Set(baseTerms.concat((t && t.terms) || []))];
+  const words = (t && t.words) || [];
+  const cands = pmAiCandidates(question, terms, words);
+  if(!cands.length){
+    const res = { understood: t && t.understood, items: [] };
+    pmAiState.cache[question] = res; pmAiRender(pmAiBoxEl(), res); return;
+  }
+  const payload = cands.map((c, i)=> ({ id:'c' + i, book: c.fe.title || c.fe.fileName.replace(/\.pdf$/i,'').replace(/_/g,' '), page: String(c.p.printedPageNum || c.p.pageNum), text: c.snippet }));
+  const r = await qmFetchJson('/api/pm-ai-search', { mode:'rank', question, understood: t && t.understood, candidates: payload }, 30000);
+  if(token !== pmAiState.token) return;
+  if(!r){ pmAiBoxEl().innerHTML = `<p style="color:var(--muted); margin:0; font-size:.85rem;">🤖 AI سے ابھی رابطہ نہیں ہو سکا — نیچے الفاظ کی بنیاد پر نتائج ہیں۔</p>`; return; }
+  const items = (r.results || []).map(x=>{ const c = cands[parseInt(String(x.id).slice(1), 10)]; return c ? { fileName: c.fe.fileName, book: c.fe.title || c.fe.fileName.replace(/\.pdf$/i,'').replace(/_/g,' '), pageNum: c.p.pageNum, display: c.p.printedPageNum || c.p.pageNum, score: x.score, reason: x.reason } : null; }).filter(Boolean);
+  const res = { understood: t && t.understood, items };
+  pmAiState.cache[question] = res;
+  pmAiRender(pmAiBoxEl(), res);
+}
+function pmAiRender(box, res){
+  const head = `<h4 style="color:var(--gold); margin:0 0 4px;">🤖 AI کے مطابق آپ کے سوال کا جواب یہاں ہے</h4>` +
+    (res.understood ? `<p style="color:var(--gold-soft); font-size:.8rem; margin:0 0 8px;">سوال: ${escapeHtmlSearch(res.understood)}</p>` : '');
+  if(!res.items.length){
+    box.innerHTML = head + `<p style="color:var(--muted); font-size:.85rem; margin:0;">AI کو کتابوں میں اس سوال کا واضح جواب نہیں ملا — نیچے الفاظ کی بنیاد پر نتائج دیکھیں، یا سوال دوسرے الفاظ میں لکھیں۔</p>`;
+    return;
+  }
+  box.innerHTML = head + res.items.map((it, i)=> `
+    <div style="border-top:1px solid var(--border); padding:8px 0; display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+      <div style="flex:1; min-width:180px;">
+        <b style="color:var(--gold);">${i+1}۔</b> <b>${escapeHtmlSearch(it.book)}</b> — صفحہ ${escapeHtmlSearch(String(it.display))}
+        <span style="font-size:.7rem; border:1px solid var(--gold-soft); color:var(--gold-soft); border-radius:10px; padding:0 6px; margin-right:4px;">${it.score >= 85 ? 'بالکل یہی' : it.score >= 70 ? 'متعلقہ' : 'جزوی'}</span>
+        <div style="color:var(--muted); font-size:.82rem; margin-top:2px;">${escapeHtmlSearch(it.reason || '')}</div>
+      </div>
+      <button class="btn" onclick="pmOpenPdfAtPage('${escapeJsAttr(it.fileName)}', ${it.pageNum}, '')" style="padding:6px 14px; font-size:.82rem; border-radius:16px;">📖 کھولیں</button>
+    </div>`).join('') +
+    `<p style="color:var(--muted); font-size:.75rem; margin:6px 0 0;">صفحہ کھلنے پر AI جواب والی جگہ پیلی نشانی سے دکھائے گا۔ نیچے باقی نتائج الفاظ کی بنیاد پر ہیں۔</p>`;
+}
+// ---------- کھلے صفحے پر جواب کی جگہ نشان لگانا ----------
+function pmAiSetMarkStatus(text){
+  const modal = document.getElementById('herbalFullPdfModal');
+  if(!modal) return;
+  let el = document.getElementById('pmAiMarkStatus');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'pmAiMarkStatus';
+    el.style.cssText = 'position:absolute; top:58px; left:50%; transform:translateX(-50%); z-index:4; background:rgba(11,20,38,.92); color:var(--gold); border:1px solid var(--gold); border-radius:14px; padding:4px 12px; font-size:.8rem; max-width:92vw; text-align:center; pointer-events:none;';
+    modal.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.display = text ? 'block' : 'none';
+  if(text && !/دیکھ رہا/.test(text)){ clearTimeout(el._t); el._t = setTimeout(()=>{ el.style.display = 'none'; }, 6000); }
+}
+async function pmAiMarkPage(canvas, st, v){
+  const key = st.entry.fileName + '|' + v.raw + '|' + v.part + '|' + st.aiQuestion;
+  const pageAt = st.pageNum;
+  pmAiState.marks = pmAiState.marks || {};
+  let m = pmAiState.marks[key];
+  if(!m){
+    pmAiSetMarkStatus('🤖 AI اس صفحے پر جواب کی جگہ دیکھ رہا ہے...');
+    const scale = Math.min(1, 1400 / Math.max(canvas.width, canvas.height));
+    const c2 = document.createElement('canvas');
+    c2.width = Math.round(canvas.width * scale); c2.height = Math.round(canvas.height * scale);
+    c2.getContext('2d').drawImage(canvas, 0, 0, c2.width, c2.height);
+    let image = '';
+    try{ image = c2.toDataURL('image/jpeg', 0.72); }catch(e){}
+    m = image ? await qmFetchJson('/api/pm-locate', { question: st.aiQuestion, image }, 45000) : null;
+    if(m) pmAiState.marks[key] = m;
+  }
+  if(herbalFullPdfState.pageNum !== pageAt || herbalFullPdfState.entry !== st.entry) return; // صارف آگے جا چکا
+  if(!m){ pmAiSetMarkStatus('AI سے ابھی رابطہ نہیں ہو سکا'); return; }
+  if(!m.found){ pmAiSetMarkStatus('اس صفحے پر اس سوال کا ذکر نظر نہیں آیا — اگلا/پچھلا صفحہ دیکھیں'); return; }
+  const ctx = canvas.getContext('2d');
+  const x = m.left/100*canvas.width, y = m.top/100*canvas.height;
+  const w = (m.right - m.left)/100*canvas.width, h = (m.bottom - m.top)/100*canvas.height;
+  const pad = canvas.height * 0.01;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,213,0,0.22)';
+  ctx.fillRect(x, y - pad, w, h + pad*2);
+  ctx.lineWidth = Math.max(4, canvas.width / 220);
+  ctx.strokeStyle = 'rgba(230,160,0,0.95)';
+  ctx.strokeRect(x, y - pad, w, h + pad*2);
+  // کنارے پر تیر نما نشان
+  const fs = Math.max(26, canvas.width / 28);
+  ctx.font = `bold ${fs}px sans-serif`;
+  ctx.direction = 'ltr'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const label = '👈 یہاں سے پڑھیں';
+  const tw = ctx.measureText(label).width;
+  const lx = Math.min(canvas.width - tw - 12, x + w - tw - 12), ly = Math.max(fs + 6, y - pad - 10);
+  ctx.fillStyle = 'rgba(230,160,0,0.95)';
+  ctx.fillRect(lx - 8, ly - fs, tw + 16, fs + 12);
+  ctx.fillStyle = '#0b1426';
+  ctx.fillText(label, lx, ly);
+  ctx.restore();
+  const block = document.getElementById('herbalFullPdfBlock');
+  if(block){ const dispH = canvas.clientHeight || canvas.height; block.scrollTop = Math.max(0, (m.top/100) * dispH - 90); }
+  pmAiSetMarkStatus('✅ ' + (m.note || m.heading || 'جواب کی جگہ نشان لگا دی گئی'));
+}
+
 function pmCanOpenFile(fileName){
   const entry = pmLibrary.find(f=> f.fileName === fileName);
   return !!(entry && (entry.pdfDoc || entry.builtin));
@@ -6153,6 +6332,7 @@ function escapeJsAttr(s){
 async function pmOpenPdfAtPage(fileName, pageNum, queryText){
   const entry = pmLibrary.find(f=> f.fileName === fileName);
   if(!entry){ return; }
+  window.pmPendingAiQuestion = (typeof qmAiLive === 'function' && qmAiLive() && pmAiState.question) ? pmAiState.question : '';
   await herbalOpenLibraryPdf(entry, pageNum, queryText, null);
 }
 
@@ -6349,6 +6529,8 @@ async function herbalOpenFullPdfViewer(entry, startPage, queryText){
   if(vIdx < 0) vIdx = vmap.findIndex(v=> v.raw === rawStart);
   herbalFullPdfState.pageNum = vIdx >= 0 ? vIdx + 1 : 1;
   herbalFullPdfState.queryText = queryText || '';
+  herbalFullPdfState.aiQuestion = window.pmPendingAiQuestion || '';
+  window.pmPendingAiQuestion = '';
 
   let modal = document.getElementById('herbalFullPdfModal');
   if(!modal){
@@ -6424,6 +6606,8 @@ async function herbalRenderFullPdfCurrentPage(){
     }
     loadingEl.style.display = 'none';
     block.style.display = 'block'; block.scrollTop = 0;
+    if(st.aiQuestion) pmAiMarkPage(canvas, st, v);
+    else pmAiSetMarkStatus('');
     const pageInputEl = document.getElementById('herbalFullPdfPageInput');
     if(pageInputEl){
       // دو صفحوں والی کتاب میں ترتیب وار نمبر دکھائیں؛ ورنہ پہلے کی طرح کتاب کا چھپا ہوا نمبر (اگر معلوم ہو)
