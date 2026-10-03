@@ -28,14 +28,25 @@ export default async function handler(req, res) {
     }
     if (image.length > 3_800_000) return res.status(413).json({ error: 'تصویر بہت بڑی ہے۔' });
 
+    const topic = String(body.topic || '').trim().slice(0, 200);
+    const hint = String(body.hint || '').trim().slice(0, 200);
+    const keywords = (Array.isArray(body.keywords) ? body.keywords : []).map(x => String(x || '').trim()).filter(Boolean).slice(0, 12);
+
     const system = `آپ اردو (نستعلیق، ہاتھ کی لکھائی سمیت) طبی کتابوں کے صفحات پڑھنے کے ماہر ہیں۔ یہ طبی ویب سائٹ ہے، پوشیدہ اعضاء کے نام عام طبی الفاظ ہیں۔
-آپ کو کتاب کے ایک صفحے کی تصویر اور صارف کا سوال دیا جائے گا۔ دیکھیں کہ اس صفحے پر سوال کا جواب/وضاحت/علاج/نسخہ کس حصے میں لکھا ہے۔
-- اگر ملے تو اس حصے کی جگہ تصویر کی اونچائی/چوڑائی کے فیصد (0 سے 100) میں بتائیں: top (اوپر کی لکیر)، bottom (نیچے کی لکیر)، left، right۔ عنوان (heading) سے شروع کر کے اس پیراگراف/نسخے کے آخر تک کا حصہ لیں — پورا صفحہ نہیں، صرف متعلقہ حصہ۔
-- تصویر میں کتاب کے دو صفحے ساتھ ہوں تو صرف اسی صفحے کا left/right دیں جس پر جواب ہے۔
-- heading: اس حصے کا عنوان یا پہلے چند الفاظ، جیسا صفحے پر لکھا ہے۔
-- note: ایک مختصر اردو جملہ کہ یہاں کیا لکھا ہے۔
-- اگر اس صفحے پر سوال سے متعلق کچھ نہ ہو تو found=false۔
-صرف JSON: {"found":true,"top":35,"bottom":70,"left":0,"right":100,"heading":"...","note":"..."}`;
+آپ کو کتاب کے ایک صفحے کی تصویر، صارف کا سوال، اور اس موضوع کے پہچان والے الفاظ دیے جائیں گے۔ صفحہ غور سے پڑھیں — ہر عنوان (موٹا لکھا ہوا) اور اس کے نیچے کا متن۔
+سخت اصول:
+1) صرف وہ حصہ چنیں جس کا عنوان یا متن بالکل اسی سوال کے خاص پہلو کے بارے میں ہو۔ مثال: سوال "عضو تناسل کا چھوٹا ہونا" ہو تو صرف وہ حصہ جس میں لمبا/موٹا/دراز/فربہ کرنا یا چھوٹا پن/لاغری لکھا ہو — "طاقت باہ"، "سختی"، "امساک"، "ٹیڑھا پن" والے دوسرے نسخے غلط ہیں، چاہے وہ اسی عضو کے بارے میں ہوں۔
+2) اگر ایسا حصہ اس صفحے پر نہ ہو تو found=false دیں — قریب ترین یا ملتا جلتا حصہ ہرگز نہ چنیں۔
+3) اگر کسی موضوع کا صرف آخری حصہ (پچھلے صفحے سے جاری) اوپر ہو اور وہ اسی سوال کا ہو، تو وہ حصہ چن سکتے ہیں۔
+4) جگہ تصویر کی اونچائی/چوڑائی کے فیصد (0 سے 100) میں: top = اس حصے کے عنوان کی اوپر والی لکیر، bottom = اس حصے کے آخری جملے کی نیچے والی لکیر، left/right = اسی کالم/صفحے کی حد۔ تصویر میں دو صفحے ساتھ ہوں تو صرف متعلقہ صفحے کا left/right۔
+5) heading: اس حصے کا عنوان بالکل ویسا جیسا صفحے پر لکھا ہے۔ note: ایک مختصر اردو جملہ کہ یہاں کیا لکھا ہے۔
+6) confidence: 0 سے 100 کہ آپ کو کتنا یقین ہے کہ یہ حصہ واقعی اسی سوال کا جواب ہے۔
+صرف JSON: {"found":true,"confidence":90,"top":35,"bottom":70,"left":0,"right":100,"heading":"...","note":"..."}`;
+
+    const userText = `سوال: "${question}"` +
+      (topic ? `\nسوال کا مطلب: ${topic}` : '') +
+      (hint ? `\nکتاب کی فہرست کے مطابق یہاں یہ موضوع ہونا چاہیے: ${hint}` : '') +
+      (keywords.length ? `\nاس موضوع کے پہچان والے الفاظ: ${keywords.join('، ')}` : '');
 
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -45,7 +56,7 @@ export default async function handler(req, res) {
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: [
-            { type: 'text', text: `سوال: "${question}"` },
+            { type: 'text', text: userText },
             { type: 'image_url', image_url: { url: image, detail: 'high' } }
           ] }
         ],
@@ -66,6 +77,7 @@ export default async function handler(req, res) {
     if (right - left < 20) { left = 0; right = 100; }
     return res.status(200).json({
       found: !!out.found,
+      confidence: Math.max(0, Math.min(100, parseInt(out.confidence, 10) || (out.found ? 70 : 0))),
       top, bottom, left, right,
       heading: String(out.heading || '').slice(0, 120),
       note: String(out.note || '').slice(0, 200)
